@@ -6,14 +6,28 @@ import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 // GET /api/queries - List all saved queries
-export const GET: RequestHandler = async ({ locals }) => {
+// Query params: type=progress|widget|general (optional)
+export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!locals.user) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	const queries = await db.query.savedQueries.findMany({
-		where: eq(savedQueries.userId, locals.user.id)
-	});
+	const queryType = url.searchParams.get('type');
+	const validTypes = ['progress', 'widget', 'general'];
+
+	let queries;
+	if (queryType && validTypes.includes(queryType)) {
+		queries = await db.query.savedQueries.findMany({
+			where: and(
+				eq(savedQueries.userId, locals.user.id),
+				eq(savedQueries.queryType, queryType as 'progress' | 'widget' | 'general')
+			)
+		});
+	} else {
+		queries = await db.query.savedQueries.findMany({
+			where: eq(savedQueries.userId, locals.user.id)
+		});
+	}
 
 	return json({ queries });
 };
@@ -26,7 +40,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 	try {
 		const body = await request.json();
-		const { name, description, code } = body;
+		const { name, description, code, queryType } = body;
 
 		if (!name || typeof name !== 'string') {
 			return json({ error: 'Name is required' }, { status: 400 });
@@ -36,6 +50,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			return json({ error: 'Code is required' }, { status: 400 });
 		}
 
+		const validTypes = ['progress', 'widget', 'general'];
+		const type = validTypes.includes(queryType) ? queryType : 'general';
+
 		const id = uuidv4();
 		const now = new Date();
 
@@ -44,6 +61,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			userId: locals.user.id,
 			name: name.trim(),
 			description: description?.trim() || null,
+			queryType: type,
 			code,
 			createdAt: now,
 			updatedAt: now

@@ -3,33 +3,7 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/db/client';
 import { timePeriods, tasks, taskAttributes, taskTags } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-
-// Get week number from date
-function getWeekNumber(date: Date): number {
-	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-	const dayNum = d.getUTCDay() || 7;
-	d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-	return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
-
-// Get the start date of a week (Monday)
-function getWeekStartDate(year: number, week: number): Date {
-	const jan4 = new Date(Date.UTC(year, 0, 4));
-	const dayOfWeek = jan4.getUTCDay() || 7;
-	const monday = new Date(jan4);
-	monday.setUTCDate(jan4.getUTCDate() - dayOfWeek + 1);
-	monday.setUTCDate(monday.getUTCDate() + (week - 1) * 7);
-	return monday;
-}
-
-// Format date as YYYY-MM-DD
-function formatDate(date: Date): string {
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const day = String(date.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-}
+import { getWeekNumber, getWeekStartDate, getWeekYear, formatDate, addDays, getDayName } from '$lib/utils/week';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!locals.user) {
@@ -38,21 +12,23 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	const year = parseInt(params.year);
 	const week = parseInt(params.week);
+	const weekStartDay = locals.user.weekStartDay || 'monday';
 
 	if (isNaN(year) || isNaN(week) || week < 1 || week > 53) {
 		const today = new Date();
-		throw redirect(302, `/weekly/${today.getFullYear()}/${getWeekNumber(today)}`);
+		const currentYear = getWeekYear(today, weekStartDay);
+		const currentWeek = getWeekNumber(today, weekStartDay);
+		throw redirect(302, `/weekly/${currentYear}/${currentWeek}`);
 	}
 
-	// Get the dates for this week
-	const weekStart = getWeekStartDate(year, week);
+	// Get the dates for this week (using UTC-based utilities)
+	const weekStart = getWeekStartDate(year, week, weekStartDay);
 	const days: { date: string; dayName: string; tasks: any[]; period: any }[] = [];
 
 	for (let i = 0; i < 7; i++) {
-		const date = new Date(weekStart);
-		date.setDate(weekStart.getDate() + i);
+		const date = addDays(weekStart, i);
 		const dateStr = formatDate(date);
-		const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+		const dayName = getDayName(date);
 
 		// Find the period for this day
 		const period = await db.query.timePeriods.findFirst({
@@ -114,6 +90,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	return {
 		year,
 		week,
+		weekStartDay,
 		days,
 		stats: {
 			totalTasks: allTasks.length,

@@ -4,7 +4,35 @@
 	let restoreFile = $state<File | null>(null);
 	let restoring = $state(false);
 	let downloading = $state(false);
+	let savingPrefs = $state(false);
 	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+
+	// Preferences
+	let weekStartDay = $state<'sunday' | 'monday'>(data.user?.weekStartDay || 'monday');
+
+	async function saveWeekStartDay(value: 'sunday' | 'monday') {
+		weekStartDay = value;
+		savingPrefs = true;
+		message = null;
+
+		try {
+			const response = await fetch('/api/user/preferences', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ weekStartDay: value })
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to save preference');
+			}
+
+			message = { type: 'success', text: 'Preference saved' };
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to save' };
+		} finally {
+			savingPrefs = false;
+		}
+	}
 
 	async function downloadBackup() {
 		downloading = true;
@@ -116,6 +144,37 @@
 			</div>
 			<span class="card-arrow">→</span>
 		</a>
+
+		<a href="/settings/metrics" class="card settings-card">
+			<div class="card-icon">📊</div>
+			<div class="card-content">
+				<h2>Metrics Template</h2>
+				<p class="text-muted">Define custom daily metrics with input fields, computed values, and external sources</p>
+			</div>
+			<span class="card-arrow">→</span>
+		</a>
+
+		<!-- Preferences Section -->
+		<div class="card">
+			<h2>Preferences</h2>
+			<div class="preferences-section">
+				<div class="preference-row">
+					<div class="preference-info">
+						<span class="preference-label">Week starts on</span>
+						<span class="preference-description">Choose which day your week begins</span>
+					</div>
+					<select
+						class="input preference-select"
+						value={weekStartDay}
+						onchange={(e) => saveWeekStartDay(e.currentTarget.value as 'sunday' | 'monday')}
+						disabled={savingPrefs}
+					>
+						<option value="monday">Monday (ISO standard)</option>
+						<option value="sunday">Sunday (US standard)</option>
+					</select>
+				</div>
+			</div>
+		</div>
 
 		<!-- Backup Section -->
 		<div class="card">
@@ -332,6 +391,38 @@
 
 	.info-value {
 		font-weight: 500;
+	}
+
+	.preferences-section {
+		margin-top: var(--spacing-md);
+	}
+
+	.preference-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--spacing-md);
+		padding: var(--spacing-sm) 0;
+	}
+
+	.preference-info {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.preference-label {
+		font-weight: 500;
+	}
+
+	.preference-description {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+
+	.preference-select {
+		width: auto;
+		min-width: 200px;
 	}
 
 	@media (max-width: 768px) {

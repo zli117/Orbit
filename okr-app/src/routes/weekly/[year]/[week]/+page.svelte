@@ -3,12 +3,38 @@
 
 	let { data } = $props();
 
-	function getWeekNumber(date: Date): number {
+	// ISO week number (Monday-first, week 1 contains Jan 4)
+	function getISOWeekNumber(date: Date): number {
 		const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
 		const dayNum = d.getUTCDay() || 7;
 		d.setUTCDate(d.getUTCDate() + 4 - dayNum);
 		const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
 		return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+	}
+
+	// US week number (Sunday-first, week 1 contains Jan 1)
+	function getUSWeekNumber(date: Date): number {
+		const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+		const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+		const yearStartDay = yearStart.getUTCDay();
+		const firstSunday = new Date(yearStart);
+		firstSunday.setUTCDate(yearStart.getUTCDate() - yearStartDay);
+		const daysSinceFirstSunday = Math.floor((d.getTime() - firstSunday.getTime()) / 86400000);
+		return Math.floor(daysSinceFirstSunday / 7) + 1;
+	}
+
+	function getWeekNumber(date: Date): number {
+		return data.weekStartDay === 'sunday' ? getUSWeekNumber(date) : getISOWeekNumber(date);
+	}
+
+	function getWeekYear(date: Date): number {
+		if (data.weekStartDay === 'monday') {
+			const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+			const dayNum = d.getUTCDay() || 7;
+			d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+			return d.getUTCFullYear();
+		}
+		return date.getFullYear();
 	}
 
 	function navigateWeek(offset: number) {
@@ -28,12 +54,12 @@
 
 	function goToCurrentWeek() {
 		const today = new Date();
-		goto(`/weekly/${today.getFullYear()}/${getWeekNumber(today)}`);
+		goto(`/weekly/${getWeekYear(today)}/${getWeekNumber(today)}`);
 	}
 
 	const isCurrentWeek = $derived(() => {
 		const today = new Date();
-		return data.year === today.getFullYear() && data.week === getWeekNumber(today);
+		return data.year === getWeekYear(today) && data.week === getWeekNumber(today);
 	});
 
 	const completionPercent = $derived(

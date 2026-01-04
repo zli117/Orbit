@@ -33,6 +33,7 @@
 		"bcrypt": "^6.0.0",
 		"better-sqlite3": "^12.5.0",
 		"drizzle-orm": "^0.45.1",
+		"marked": "^17.0.1",
 		"quickjs-emscripten": "^0.31.0",
 		"uuid": "^13.0.0"
 	}

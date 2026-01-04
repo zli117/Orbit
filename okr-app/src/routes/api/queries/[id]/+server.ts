@@ -44,7 +44,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 
 	try {
 		const body = await request.json();
-		const { name, description, code } = body;
+		const { name, description, code, queryType } = body;
 
 		const updates: Record<string, unknown> = {
 			updatedAt: new Date()
@@ -53,6 +53,12 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 		if (name !== undefined) updates.name = name.trim();
 		if (description !== undefined) updates.description = description?.trim() || null;
 		if (code !== undefined) updates.code = code;
+		if (queryType !== undefined) {
+			const validTypes = ['progress', 'widget', 'general'];
+			if (validTypes.includes(queryType)) {
+				updates.queryType = queryType;
+			}
+		}
 
 		await db.update(savedQueries).set(updates).where(eq(savedQueries.id, params.id));
 

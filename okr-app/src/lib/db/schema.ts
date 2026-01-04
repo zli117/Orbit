@@ -5,6 +5,7 @@ export const users = sqliteTable('users', {
 	id: text('id').primaryKey(),
 	username: text('username').notNull().unique(),
 	passwordHash: text('password_hash').notNull(),
+	weekStartDay: text('week_start_day', { enum: ['sunday', 'monday'] }).notNull().default('monday'),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 });
 
@@ -59,10 +60,18 @@ export const keyResults = sqliteTable('key_results', {
 	id: text('id').primaryKey(),
 	objectiveId: text('objective_id').notNull().references(() => objectives.id, { onDelete: 'cascade' }),
 	title: text('title').notNull(),
+	details: text('details'), // Additional description/notes
 	weight: real('weight').notNull().default(1.0),
 	score: real('score').notNull().default(0), // 0-1 range
 	expectedHours: real('expected_hours').default(0),
 	sortOrder: integer('sort_order').notNull().default(0),
+	// Flexible measurement type
+	measurementType: text('measurement_type', { enum: ['slider', 'checkboxes', 'custom_query'] }).notNull().default('slider'),
+	checkboxItems: text('checkbox_items'), // JSON array of {id, label, completed}
+	progressQueryId: text('progress_query_id'), // Reference to saved query for progress calculation
+	progressQueryCode: text('progress_query_code'), // Inline code override for progress
+	widgetQueryId: text('widget_query_id'), // Reference to saved query for custom widget
+	widgetQueryCode: text('widget_query_code'), // Inline code override for widget
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 });
@@ -150,6 +159,7 @@ export const savedQueries = sqliteTable('saved_queries', {
 	userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
 	name: text('name').notNull(),
 	description: text('description'),
+	queryType: text('query_type', { enum: ['progress', 'widget', 'general'] }).notNull().default('general'),
 	code: text('code').notNull(), // JavaScript code
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
@@ -178,6 +188,27 @@ export const plugins = sqliteTable('plugins', {
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 });
 
+// Metrics templates (per-user, versioned by effective date)
+export const metricsTemplates = sqliteTable('metrics_templates', {
+	id: text('id').primaryKey(),
+	userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+	name: text('name').notNull().default('default'),
+	effectiveFrom: text('effective_from').notNull(), // YYYY-MM-DD
+	metricsDefinition: text('metrics_definition').notNull(), // JSON array of MetricDefinition
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+});
+
+// Flexible daily metric values (replaces fixed daily_metrics columns)
+export const dailyMetricValues = sqliteTable('daily_metric_values', {
+	id: text('id').primaryKey(),
+	userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+	date: text('date').notNull(), // YYYY-MM-DD
+	metricName: text('metric_name').notNull(),
+	value: text('value'), // Stored as string, parsed by type
+	source: text('source').notNull() // 'user' | 'computed' | 'fitbit' | etc.
+});
+
 // Type exports for use in the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -191,3 +222,23 @@ export type Tag = typeof tags.$inferSelect;
 export type DailyMetrics = typeof dailyMetrics.$inferSelect;
 export type SavedQuery = typeof savedQueries.$inferSelect;
 export type DashboardWidget = typeof dashboardWidgets.$inferSelect;
+export type MetricsTemplate = typeof metricsTemplates.$inferSelect;
+export type DailyMetricValue = typeof dailyMetricValues.$inferSelect;
+
+// Metric definition types for template configuration
+export interface MetricDefinition {
+	name: string;
+	label: string;
+	type: 'input' | 'computed' | 'external';
+	inputType?: 'number' | 'time' | 'text' | 'boolean';
+	unit?: string;
+	expression?: string; // JS code for computed metrics
+	source?: string; // e.g., 'fitbit.sleep_length' for external metrics
+}
+
+// Checkbox item for Key Results
+export interface CheckboxItem {
+	id: string;
+	label: string;
+	completed: boolean;
+}

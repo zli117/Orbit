@@ -2,12 +2,32 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import TaskList from '$lib/components/TaskList.svelte';
 	import type { Task } from '$lib/types';
+	import type { MetricDefinition } from '$lib/db/schema';
 
 	let { data } = $props();
 
 	let newTaskTitle = $state('');
 	let loading = $state(false);
 	let error = $state('');
+
+	// Format metric value for display
+	function formatMetricValue(metric: MetricDefinition, value: string | number | boolean | null): string {
+		if (value === null || value === undefined || value === '') return '-';
+
+		if (metric.inputType === 'boolean') {
+			return value ? 'Yes' : 'No';
+		}
+		if (metric.inputType === 'time') {
+			return String(value);
+		}
+		if (metric.inputType === 'number' && typeof value === 'number') {
+			// Format large numbers with locale
+			if (value >= 1000) return value.toLocaleString();
+			// Round decimals
+			if (value % 1 !== 0) return value.toFixed(1);
+		}
+		return String(value);
+	}
 
 	// Reactive derived values
 	const dateObj = $derived(new Date(data.date + 'T00:00:00'));
@@ -194,57 +214,74 @@
 					{loading ? 'Adding...' : 'Add'}
 				</button>
 			</form>
-		</section>
 
-		<section class="card metrics-section">
-			<h2 class="section-title">Health Metrics</h2>
-
-			{#if data.metrics}
-				<div class="metrics-grid">
-					{#if data.metrics.sleepLength}
-						<div class="metric-item">
-							<span class="metric-label">Sleep</span>
-							<span class="metric-value">{data.metrics.sleepLength}</span>
-						</div>
-					{/if}
-					{#if data.metrics.wakeUpTime}
-						<div class="metric-item">
-							<span class="metric-label">Wake Up</span>
-							<span class="metric-value">{data.metrics.wakeUpTime}</span>
-						</div>
-					{/if}
-					{#if data.metrics.steps}
-						<div class="metric-item">
-							<span class="metric-label">Steps</span>
-							<span class="metric-value">{data.metrics.steps.toLocaleString()}</span>
-						</div>
-					{/if}
-					{#if data.metrics.cardioLoad}
-						<div class="metric-item">
-							<span class="metric-label">Cardio Load</span>
-							<span class="metric-value">{data.metrics.cardioLoad}</span>
-						</div>
-					{/if}
-					{#if data.metrics.fitbitReadiness}
-						<div class="metric-item">
-							<span class="metric-label">Readiness</span>
-							<span class="metric-value">{data.metrics.fitbitReadiness}</span>
-						</div>
-					{/if}
-					{#if data.metrics.restingHeartRate}
-						<div class="metric-item">
-							<span class="metric-label">Resting HR</span>
-							<span class="metric-value">{data.metrics.restingHeartRate} bpm</span>
-						</div>
-					{/if}
+			<!-- Metrics Section (inline below tasks) -->
+			<div class="metrics-inline">
+				<div class="metrics-header">
+					<h3 class="metrics-title">Metrics</h3>
+					<a href="/daily/{data.date}/metrics" class="btn-link btn-edit-metrics">Edit</a>
 				</div>
-			{:else}
-				<p class="text-muted">No health metrics recorded for this day.</p>
-			{/if}
 
-			<a href="/daily/{data.date}/metrics" class="btn btn-secondary btn-block">
-				Edit Metrics
-			</a>
+				{#if data.flexibleMetrics?.template && data.flexibleMetrics.metricsDefinition.length > 0}
+					<!-- Flexible metrics from template -->
+					<div class="metrics-grid">
+						{#each data.flexibleMetrics.metricsDefinition as metric}
+							{@const value = data.flexibleMetrics?.values[metric.name]}
+							{#if value !== null && value !== undefined && value !== ''}
+								<div class="metric-item">
+									<span class="metric-label">{metric.label}</span>
+									<span class="metric-value">{formatMetricValue(metric, value)}{metric.unit ? ` ${metric.unit}` : ''}</span>
+								</div>
+							{/if}
+						{/each}
+					</div>
+					{#if Object.values(data.flexibleMetrics.values).every(v => v === null || v === undefined || v === '')}
+						<p class="text-muted text-sm">No metrics recorded for this day.</p>
+					{/if}
+				{:else if data.metrics}
+					<!-- Legacy fixed metrics -->
+					<div class="metrics-grid">
+						{#if data.metrics.sleepLength}
+							<div class="metric-item">
+								<span class="metric-label">Sleep</span>
+								<span class="metric-value">{data.metrics.sleepLength}</span>
+							</div>
+						{/if}
+						{#if data.metrics.wakeUpTime}
+							<div class="metric-item">
+								<span class="metric-label">Wake Up</span>
+								<span class="metric-value">{data.metrics.wakeUpTime}</span>
+							</div>
+						{/if}
+						{#if data.metrics.steps}
+							<div class="metric-item">
+								<span class="metric-label">Steps</span>
+								<span class="metric-value">{data.metrics.steps.toLocaleString()}</span>
+							</div>
+						{/if}
+						{#if data.metrics.cardioLoad}
+							<div class="metric-item">
+								<span class="metric-label">Cardio Load</span>
+								<span class="metric-value">{data.metrics.cardioLoad}</span>
+							</div>
+						{/if}
+						{#if data.metrics.fitbitReadiness}
+							<div class="metric-item">
+								<span class="metric-label">Readiness</span>
+								<span class="metric-value">{data.metrics.fitbitReadiness}</span>
+							</div>
+						{/if}
+						{#if data.metrics.restingHeartRate}
+							<div class="metric-item">
+								<span class="metric-label">Resting HR</span>
+								<span class="metric-value">{data.metrics.restingHeartRate} bpm</span>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<p class="text-muted text-sm">No metrics recorded for this day.</p>
+				{/if}
+			</div>
 		</section>
 	</div>
 </div>
@@ -299,15 +336,11 @@
 	}
 
 	.daily-content {
-		display: grid;
-		grid-template-columns: 1fr;
+		display: flex;
+		flex-direction: column;
 		gap: var(--spacing-lg);
-	}
-
-	@media (min-width: 768px) {
-		.daily-content {
-			grid-template-columns: 2fr 1fr;
-		}
+		max-width: 700px;
+		margin: 0 auto;
 	}
 
 	.section-title {
@@ -316,7 +349,7 @@
 	}
 
 	.tasks-section {
-		min-height: 300px;
+		min-height: 200px;
 	}
 
 	.add-task-form {
@@ -331,11 +364,35 @@
 		flex: 1;
 	}
 
+	/* Inline metrics section */
+	.metrics-inline {
+		margin-top: var(--spacing-lg);
+		padding-top: var(--spacing-md);
+		border-top: 1px solid var(--color-border);
+	}
+
+	.metrics-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.metrics-title {
+		font-size: 1rem;
+		font-weight: 600;
+		margin: 0;
+		color: var(--color-text-muted);
+	}
+
+	.btn-edit-metrics {
+		font-size: 0.875rem;
+	}
+
 	.metrics-grid {
 		display: grid;
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 		gap: var(--spacing-sm);
-		margin-bottom: var(--spacing-md);
 	}
 
 	.metric-item {
@@ -347,18 +404,18 @@
 	}
 
 	.metric-label {
-		font-size: 0.75rem;
+		font-size: 0.7rem;
 		color: var(--color-text-muted);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
 
 	.metric-value {
-		font-size: 1.125rem;
+		font-size: 1rem;
 		font-weight: 600;
 	}
 
-	.btn-block {
-		width: 100%;
+	.text-sm {
+		font-size: 0.875rem;
 	}
 </style>

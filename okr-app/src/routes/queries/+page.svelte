@@ -3,16 +3,29 @@
 
 	let { data } = $props();
 
-	let code = $state(`// Query API Example
+	// Query type filter and selection
+	type QueryTypeFilter = 'all' | 'progress' | 'widget' | 'general';
+	type QueryType = 'progress' | 'widget' | 'general';
+	let selectedTypeFilter = $state<QueryTypeFilter>('all');
+	let queryType = $state<QueryType>('general');
+
+	// Filtered queries based on selected type
+	const filteredQueries = $derived(
+		selectedTypeFilter === 'all'
+			? data.savedQueries
+			: data.savedQueries.filter(q => q.queryType === selectedTypeFilter)
+	);
+
+	// Sample code templates for each query type
+	const sampleCode: Record<QueryType, string> = {
+		general: `// General Query - Return any data structure
 // Available methods:
 //   q.daily({ year, month, week, from, to })
 //   q.tasks({ year, tag, completed })
 //   q.objectives({ year, level })
 //
 // Helper functions:
-//   q.sum(items, field)
-//   q.avg(items, field)
-//   q.count(items)
+//   q.sum(items, field), q.avg(items, field), q.count(items)
 //   q.parseTime("7:30") -> 450 (minutes)
 //   q.formatDuration(450) -> "7h 30m"
 //   q.formatPercent(3, 10) -> "30%"
@@ -32,7 +45,67 @@ return {
   days: sleepData.length,
   avgSleep: q.formatDuration(avgSleep),
   goodSleepDays: sleepData.filter(d => d.sleepMinutes >= 420).length
-};`);
+};`,
+		progress: `// Progress Query - Return a number between 0 and 1
+// Used for Key Result progress tracking
+//
+// Examples:
+// - Task completion rate: completed / total
+// - Habit streak: daysCompleted / targetDays
+// - Reading goal: booksRead / targetBooks
+
+// Example: Calculate progress for tasks with a specific tag
+const tasks = await q.tasks({ tag: 'Read_Books', year: 2025 });
+
+if (tasks.length === 0) return 0;
+
+const completed = tasks.filter(t => t.completed).length;
+return completed / tasks.length; // Returns 0.0 to 1.0`,
+		widget: `// Widget Query - Return Markdown for custom display
+// Rendered as HTML in Key Result widgets
+//
+// Supported Markdown:
+// - Tables: | Header | Header |
+// - Lists: - item or 1. item
+// - Bold/Italic: **bold** *italic*
+// - Code: \`inline\` or \`\`\`block\`\`\`
+
+// Example: Create a table showing daily step counts
+const days = await q.daily({ year: 2025, month: 1 });
+
+const rows = days
+  .filter(d => d.steps)
+  .slice(-7) // Last 7 days
+  .map(d => \`| \${d.date} | \${d.steps?.toLocaleString() || '-'} |\`)
+  .join('\\n');
+
+return \`### Recent Steps
+| Date | Steps |
+|------|-------|
+\${rows}\`;`
+	};
+
+	let code = $state(sampleCode.general);
+
+	// Track if the user has modified the code (to avoid overwriting their work)
+	let codeModified = $state(false);
+
+	function setQueryTypeWithSample(type: QueryType) {
+		// Only update sample code if creating new query and code hasn't been modified
+		if (!selectedQuery && !codeModified) {
+			code = sampleCode[type];
+		}
+		queryType = type;
+	}
+
+	function startNewQuery(type: QueryType) {
+		selectedQuery = null;
+		queryName = '';
+		queryDescription = '';
+		queryType = type;
+		code = sampleCode[type];
+		codeModified = false;
+	}
 
 	let result = $state<unknown>(null);
 	let error = $state('');
@@ -85,6 +158,7 @@ return {
 				body: JSON.stringify({
 					name: queryName.trim(),
 					description: queryDescription.trim() || null,
+					queryType,
 					code
 				})
 			});
@@ -96,6 +170,7 @@ return {
 
 			queryName = '';
 			queryDescription = '';
+			queryType = 'general';
 			showSaveForm = false;
 			await invalidateAll();
 		} catch (err) {
@@ -117,6 +192,7 @@ return {
 				body: JSON.stringify({
 					name: queryName.trim(),
 					description: queryDescription.trim() || null,
+					queryType,
 					code
 				})
 			});
@@ -129,6 +205,7 @@ return {
 			selectedQuery = null;
 			queryName = '';
 			queryDescription = '';
+			queryType = 'general';
 			await invalidateAll();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to update query';
@@ -163,6 +240,7 @@ return {
 		selectedQuery = query;
 		queryName = query.name;
 		queryDescription = query.description || '';
+		queryType = (query.queryType as QueryType) || 'general';
 	}
 
 	function formatResult(value: unknown): string {
@@ -191,7 +269,7 @@ return {
 					<h2>Code Editor</h2>
 					<div class="editor-actions">
 						{#if selectedQuery}
-							<button class="btn btn-secondary btn-sm" onclick={() => { selectedQuery = null; queryName = ''; queryDescription = ''; }}>
+							<button class="btn btn-secondary btn-sm" onclick={() => startNewQuery('general')}>
 								New Query
 							</button>
 							<button class="btn btn-primary btn-sm" onclick={updateQuery} disabled={saveLoading}>
@@ -207,6 +285,27 @@ return {
 						</button>
 					</div>
 				</div>
+
+				{#if !selectedQuery}
+					<div class="new-query-type-tabs">
+						<span class="type-label">New:</span>
+						<button
+							class="type-tab"
+							class:active={queryType === 'general'}
+							onclick={() => startNewQuery('general')}
+						>General</button>
+						<button
+							class="type-tab"
+							class:active={queryType === 'progress'}
+							onclick={() => startNewQuery('progress')}
+						>Progress (0-1)</button>
+						<button
+							class="type-tab"
+							class:active={queryType === 'widget'}
+							onclick={() => startNewQuery('widget')}
+						>Widget (Markdown)</button>
+					</div>
+				{/if}
 
 				{#if showSaveForm && !selectedQuery}
 					<div class="save-form">
@@ -228,9 +327,21 @@ return {
 					</div>
 				{/if}
 
+				{#if selectedQuery}
+					<div class="edit-type-row">
+						<label>Type:</label>
+						<select class="input type-select" bind:value={queryType}>
+							<option value="general">General</option>
+							<option value="progress">Progress (0-1)</option>
+							<option value="widget">Widget (Markdown)</option>
+						</select>
+					</div>
+				{/if}
+
 				<textarea
 					class="code-editor"
 					bind:value={code}
+					oninput={() => codeModified = true}
 					spellcheck="false"
 					placeholder="Write your query here..."
 				></textarea>
@@ -252,14 +363,42 @@ return {
 			<div class="card">
 				<h2>Saved Queries</h2>
 
-				{#if data.savedQueries.length === 0}
-					<p class="text-muted">No saved queries yet</p>
+				<div class="type-tabs">
+					<button
+						class="type-tab"
+						class:active={selectedTypeFilter === 'all'}
+						onclick={() => selectedTypeFilter = 'all'}
+					>All</button>
+					<button
+						class="type-tab"
+						class:active={selectedTypeFilter === 'progress'}
+						onclick={() => selectedTypeFilter = 'progress'}
+					>Progress</button>
+					<button
+						class="type-tab"
+						class:active={selectedTypeFilter === 'widget'}
+						onclick={() => selectedTypeFilter = 'widget'}
+					>Widget</button>
+					<button
+						class="type-tab"
+						class:active={selectedTypeFilter === 'general'}
+						onclick={() => selectedTypeFilter = 'general'}
+					>General</button>
+				</div>
+
+				{#if filteredQueries.length === 0}
+					<p class="text-muted">No {selectedTypeFilter === 'all' ? '' : selectedTypeFilter + ' '}queries yet</p>
 				{:else}
 					<ul class="saved-queries-list">
-						{#each data.savedQueries as query}
+						{#each filteredQueries as query}
 							<li class:active={selectedQuery?.id === query.id}>
 								<button class="query-item" onclick={() => loadQuery(query)}>
-									<span class="query-name">{query.name}</span>
+									<div class="query-header">
+										<span class="query-name">{query.name}</span>
+										<span class="query-type-badge" class:type-progress={query.queryType === 'progress'} class:type-widget={query.queryType === 'widget'}>
+											{query.queryType || 'general'}
+										</span>
+									</div>
 									{#if query.description}
 										<span class="query-desc">{query.description}</span>
 									{/if}
@@ -382,6 +521,109 @@ return {
 
 	.save-form .input {
 		flex: 1;
+	}
+
+	.save-form .type-select {
+		flex: 0 0 auto;
+		width: auto;
+		min-width: 120px;
+	}
+
+	.edit-type-row {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-sm);
+		background-color: var(--color-bg);
+		border-radius: var(--radius-sm);
+	}
+
+	.edit-type-row label {
+		font-size: 0.875rem;
+		color: var(--color-text-muted);
+	}
+
+	.edit-type-row .type-select {
+		flex: 1;
+	}
+
+	.new-query-type-tabs {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-sm);
+		background-color: var(--color-bg);
+		border-radius: var(--radius-sm);
+	}
+
+	.new-query-type-tabs .type-label {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.new-query-type-tabs .type-tab {
+		flex: none;
+		padding: var(--spacing-xs) var(--spacing-sm);
+		font-size: 0.75rem;
+	}
+
+	.type-tabs {
+		display: flex;
+		gap: 2px;
+		margin-bottom: var(--spacing-md);
+		background-color: var(--color-bg);
+		border-radius: var(--radius-sm);
+		padding: 2px;
+	}
+
+	.type-tab {
+		flex: 1;
+		padding: var(--spacing-xs) var(--spacing-sm);
+		border: none;
+		background: transparent;
+		font-size: 0.75rem;
+		cursor: pointer;
+		border-radius: var(--radius-sm);
+		color: var(--color-text-muted);
+		transition: all 0.15s ease;
+	}
+
+	.type-tab:hover {
+		color: var(--color-text);
+	}
+
+	.type-tab.active {
+		background-color: var(--color-surface);
+		color: var(--color-text);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.query-header {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+	}
+
+	.query-type-badge {
+		font-size: 0.625rem;
+		padding: 1px 6px;
+		border-radius: var(--radius-sm);
+		background-color: var(--color-bg);
+		color: var(--color-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.query-type-badge.type-progress {
+		background-color: rgb(59 130 246 / 0.15);
+		color: rgb(59 130 246);
+	}
+
+	.query-type-badge.type-widget {
+		background-color: rgb(139 92 246 / 0.15);
+		color: rgb(139 92 246);
 	}
 
 	.code-editor {

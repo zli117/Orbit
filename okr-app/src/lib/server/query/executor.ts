@@ -60,7 +60,20 @@ export async function executeQuery(
 
 		// Handle promise result
 		const promiseHandle = result.value;
-		const resolvedResult = await context.resolvePromise(promiseHandle);
+
+		// Set up continuous event loop pumping while waiting for promise resolution
+		// This is necessary because resolvePromise waits for the QuickJS promise to resolve,
+		// but the promise won't resolve unless we keep pumping the event loop
+		const pumpInterval = setInterval(() => {
+			context.runtime.executePendingJobs();
+		}, 1);
+
+		let resolvedResult;
+		try {
+			resolvedResult = await context.resolvePromise(promiseHandle);
+		} finally {
+			clearInterval(pumpInterval);
+		}
 		promiseHandle.dispose();
 
 		if (resolvedResult.error) {

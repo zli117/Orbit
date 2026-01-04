@@ -45,7 +45,20 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 
 	try {
 		const body = await request.json();
-		const { title, weight, score, expectedHours, sortOrder } = body;
+		const {
+			title,
+			weight,
+			score,
+			expectedHours,
+			sortOrder,
+			details,
+			measurementType,
+			checkboxItems,
+			progressQueryId,
+			progressQueryCode,
+			widgetQueryId,
+			widgetQueryCode
+		} = body;
 
 		if (!title || typeof title !== 'string') {
 			return json({ error: 'Title is required' }, { status: 400 });
@@ -64,10 +77,17 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 			id,
 			objectiveId: params.id,
 			title,
+			details: details || null,
 			weight: weight ?? 1.0,
 			score: score ?? 0,
 			expectedHours: expectedHours ?? 0,
 			sortOrder: sortOrder ?? maxSortOrder + 1,
+			measurementType: measurementType || 'slider',
+			checkboxItems: checkboxItems || null,
+			progressQueryId: progressQueryId || null,
+			progressQueryCode: progressQueryCode || null,
+			widgetQueryId: widgetQueryId || null,
+			widgetQueryCode: widgetQueryCode || null,
 			createdAt: now,
 			updatedAt: now
 		});

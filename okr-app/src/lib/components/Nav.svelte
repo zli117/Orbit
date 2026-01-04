@@ -40,7 +40,7 @@
 		<a href="/weekly" class="nav-link" class:active={isActive('/weekly')} onclick={closeMenu}>Weekly</a>
 		<a href="/objectives" class="nav-link" class:active={isActive('/objectives')} onclick={closeMenu}>Objectives</a>
 		<a href="/queries" class="nav-link" class:active={isActive('/queries')} onclick={closeMenu}>Queries</a>
-		<a href="/settings/plugins" class="nav-link" class:active={isActive('/settings')} onclick={closeMenu}>Settings</a>
+		<a href="/settings" class="nav-link" class:active={isActive('/settings')} onclick={closeMenu}>Settings</a>
 		<span class="nav-separator"></span>
 		<span class="nav-user">{user.username}</span>
 		<button class="btn btn-secondary btn-sm" onclick={handleLogout}>Logout</button>

@@ -3,6 +3,7 @@
 export interface User {
 	id: string;
 	username: string;
+	weekStartDay: 'sunday' | 'monday';
 }
 
 export interface Task {

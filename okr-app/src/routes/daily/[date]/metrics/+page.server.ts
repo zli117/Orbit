@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import type { MetricDefinition } from '$lib/db/schema';
 
 export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 	if (!locals.user) {
@@ -13,12 +14,22 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 		throw redirect(302, '/daily');
 	}
 
-	// Fetch metrics for this date
-	const response = await fetch(`/api/metrics/daily/${dateStr}`);
-	const data = await response.json();
+	// Fetch flexible metrics for this date
+	const flexResponse = await fetch(`/api/metrics/flexible/${dateStr}`);
+	const flexData = await flexResponse.json();
+
+	// Also fetch legacy metrics for backward compatibility
+	const legacyResponse = await fetch(`/api/metrics/daily/${dateStr}`);
+	const legacyData = await legacyResponse.json();
 
 	return {
 		date: dateStr,
-		metrics: data.metrics || null
+		// New flexible metrics system
+		template: flexData.template as { id: string; name: string; effectiveFrom: string } | null,
+		metricsDefinition: (flexData.metrics || []) as MetricDefinition[],
+		values: (flexData.values || {}) as Record<string, string | number | boolean | null>,
+		errors: (flexData.errors || {}) as Record<string, string>,
+		// Legacy fixed metrics (for backward compatibility)
+		legacyMetrics: legacyData.metrics || null
 	};
 };

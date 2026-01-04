@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import type { MetricDefinition } from '$lib/db/schema';
 
 export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 	if (!locals.user) {
@@ -13,8 +14,13 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 		throw redirect(302, `/daily/${formatDate(new Date())}`);
 	}
 
-	// Fetch daily data from API
-	const response = await fetch(`/api/periods/daily/${dateStr}`);
+	// Fetch daily data and flexible metrics in parallel
+	const [response, flexResponse, tagsResponse] = await Promise.all([
+		fetch(`/api/periods/daily/${dateStr}`),
+		fetch(`/api/metrics/flexible/${dateStr}`),
+		fetch('/api/tags')
+	]);
+
 	const data = await response.json();
 
 	if (!response.ok) {
@@ -23,12 +29,12 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 			period: null,
 			tasks: [],
 			metrics: null,
+			flexibleMetrics: null,
 			error: data.error || 'Failed to load data'
 		};
 	}
 
-	// Fetch tags for the user
-	const tagsResponse = await fetch('/api/tags');
+	const flexData = await flexResponse.json();
 	const tagsData = await tagsResponse.json();
 
 	return {
@@ -36,7 +42,14 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 		period: data.period,
 		tasks: data.tasks || [],
 		metrics: data.metrics,
-		tags: tagsData.tags || []
+		tags: tagsData.tags || [],
+		// Flexible metrics system
+		flexibleMetrics: flexResponse.ok ? {
+			template: flexData.template as { id: string; name: string; effectiveFrom: string } | null,
+			metricsDefinition: (flexData.metrics || []) as MetricDefinition[],
+			values: (flexData.values || {}) as Record<string, string | number | boolean | null>,
+			errors: (flexData.errors || {}) as Record<string, string>
+		} : null
 	};
 };
 

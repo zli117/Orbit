@@ -30,7 +30,20 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 
 	try {
 		const body = await request.json();
-		const { title, weight, score, expectedHours, sortOrder } = body;
+		const {
+			title,
+			weight,
+			score,
+			expectedHours,
+			sortOrder,
+			details,
+			measurementType,
+			checkboxItems,
+			progressQueryId,
+			progressQueryCode,
+			widgetQueryId,
+			widgetQueryCode
+		} = body;
 
 		const updates: Record<string, unknown> = {
 			updatedAt: new Date()
@@ -47,6 +60,13 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 		}
 		if (expectedHours !== undefined) updates.expectedHours = expectedHours;
 		if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+		if (details !== undefined) updates.details = details || null;
+		if (measurementType !== undefined) updates.measurementType = measurementType;
+		if (checkboxItems !== undefined) updates.checkboxItems = checkboxItems || null;
+		if (progressQueryId !== undefined) updates.progressQueryId = progressQueryId || null;
+		if (progressQueryCode !== undefined) updates.progressQueryCode = progressQueryCode || null;
+		if (widgetQueryId !== undefined) updates.widgetQueryId = widgetQueryId || null;
+		if (widgetQueryCode !== undefined) updates.widgetQueryCode = widgetQueryCode || null;
 
 		await db.update(keyResults).set(updates).where(eq(keyResults.id, params.krId));
 

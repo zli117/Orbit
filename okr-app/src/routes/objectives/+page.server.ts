@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/db/client';
-import { objectives, keyResults } from '$lib/db/schema';
+import { objectives, keyResults, savedQueries } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -48,11 +48,20 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		? objectivesWithKRs.reduce((sum, obj) => sum + obj.averageScore * obj.weight, 0) / totalWeight
 		: 0;
 
+	// Get progress queries for the selector
+	const progressQueries = await db.query.savedQueries.findMany({
+		where: and(
+			eq(savedQueries.userId, locals.user.id),
+			eq(savedQueries.queryType, 'progress')
+		)
+	});
+
 	return {
 		year,
 		level,
 		objectives: objectivesWithKRs,
 		overallScore,
-		years: [2024, 2025, 2026] // Available years to select
+		years: [2024, 2025, 2026], // Available years to select
+		progressQueries: progressQueries.map(q => ({ id: q.id, name: q.name, code: q.code }))
 	};
 };

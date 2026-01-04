@@ -12,6 +12,7 @@ const SESSION_DURATION_DAYS = 30;
 export interface AuthUser {
 	id: string;
 	username: string;
+	weekStartDay: 'sunday' | 'monday';
 }
 
 /**
@@ -49,7 +50,7 @@ export async function createUser(username: string, password: string): Promise<Au
 		passwordHash
 	});
 
-	return { id, username };
+	return { id, username, weekStartDay: 'monday' };
 }
 
 /**
@@ -72,7 +73,7 @@ export async function authenticateUser(
 		return null;
 	}
 
-	return { id: user.id, username: user.username };
+	return { id: user.id, username: user.username, weekStartDay: user.weekStartDay || 'monday' };
 }
 
 /**
@@ -117,7 +118,7 @@ export async function getUserFromSession(sessionId: string): Promise<AuthUser | 
 		return null;
 	}
 
-	return { id: user.id, username: user.username };
+	return { id: user.id, username: user.username, weekStartDay: user.weekStartDay || 'monday' };
 }
 
 /**
