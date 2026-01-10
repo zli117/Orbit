@@ -7,12 +7,20 @@
 
 	let { data } = $props();
 
+	// Daily task form state
 	let newTaskTitle = $state('');
 	let newTaskProgress = $state('');
 	let newTaskExpectedHours = $state('');
 	let newTaskTagIds = $state<string[]>([]);
 	let loading = $state(false);
 	let error = $state('');
+
+	// Weekly initiative form state
+	let newInitiativeTitle = $state('');
+	let newInitiativeProgress = $state('');
+	let newInitiativeExpectedHours = $state('');
+	let newInitiativeTagIds = $state<string[]>([]);
+	let initiativeLoading = $state(false);
 
 	// Calculate total expected hours for the day
 	const totalExpectedHours = $derived(() => {
@@ -117,7 +125,6 @@
 			newTaskProgress = '';
 			newTaskExpectedHours = '';
 			newTaskTagIds = [];
-			showNewTaskOptions = false;
 			await invalidateAll();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to create task';
@@ -199,6 +206,147 @@
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			addTask();
+		}
+	}
+
+	// --- Weekly Initiative Functions ---
+
+	async function getOrCreateWeeklyPeriod(): Promise<string | null> {
+		// If we already have a weekly period, return its id
+		if (data.weeklyPeriod) {
+			return data.weeklyPeriod.id;
+		}
+
+		// Create the weekly period
+		try {
+			const response = await fetch('/api/periods', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					periodType: 'weekly',
+					year: data.weekYear,
+					week: data.weekNumber
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to create weekly period');
+			}
+
+			const result = await response.json();
+			return result.period.id;
+		} catch (err) {
+			console.error('Failed to create weekly period:', err);
+			return null;
+		}
+	}
+
+	async function addInitiative() {
+		if (!newInitiativeTitle.trim()) return;
+
+		initiativeLoading = true;
+		error = '';
+
+		try {
+			const periodId = await getOrCreateWeeklyPeriod();
+			if (!periodId) {
+				throw new Error('Failed to get weekly period');
+			}
+
+			// Build attributes object
+			const attributes: Record<string, string> = {};
+			const progressStr = String(newInitiativeProgress).trim();
+			const expectedHoursStr = String(newInitiativeExpectedHours).trim();
+			if (progressStr && progressStr !== '0') {
+				attributes.progress = progressStr;
+			}
+			if (expectedHoursStr && expectedHoursStr !== '0') {
+				attributes.expected_hours = expectedHoursStr;
+			}
+
+			const response = await fetch('/api/tasks', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					timePeriodId: periodId,
+					title: newInitiativeTitle.trim(),
+					attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
+					tagIds: newInitiativeTagIds.length > 0 ? newInitiativeTagIds : undefined
+				})
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to create initiative');
+			}
+
+			// Reset form
+			newInitiativeTitle = '';
+			newInitiativeProgress = '';
+			newInitiativeExpectedHours = '';
+			newInitiativeTagIds = [];
+			await invalidateAll();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to create initiative';
+		} finally {
+			initiativeLoading = false;
+		}
+	}
+
+	async function toggleInitiative(id: string) {
+		try {
+			const response = await fetch(`/api/tasks/${id}`, {
+				method: 'PATCH'
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to toggle initiative');
+			}
+
+			await invalidateAll();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to toggle initiative';
+		}
+	}
+
+	async function updateInitiative(id: string, updates: Partial<Task>) {
+		try {
+			const response = await fetch(`/api/tasks/${id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(updates)
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to update initiative');
+			}
+
+			await invalidateAll();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to update initiative';
+		}
+	}
+
+	async function deleteInitiative(id: string) {
+		try {
+			const response = await fetch(`/api/tasks/${id}`, {
+				method: 'DELETE'
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to delete initiative');
+			}
+
+			await invalidateAll();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to delete initiative';
+		}
+	}
+
+	function handleInitiativeKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			addInitiative();
 		}
 	}
 
@@ -412,6 +560,80 @@
 				<p class="text-muted text-sm">No metrics recorded for this day.</p>
 			{/if}
 		</section>
+
+		<!-- Weekly Initiatives Card -->
+		<section class="card initiatives-section">
+			<div class="section-header">
+				<h2 class="section-title">Weekly Initiatives</h2>
+				<span class="week-label">Week {data.weekNumber}, {data.weekYear}</span>
+			</div>
+
+			<TaskList
+				tasks={data.weeklyInitiatives}
+				tags={localTags}
+				onToggle={toggleInitiative}
+				onUpdate={updateInitiative}
+				onDelete={deleteInitiative}
+				onCreateTag={createTag}
+				hideTimer={true}
+				emptyMessage="No weekly initiatives yet."
+			/>
+
+			<form class="add-task-form" onsubmit={(e) => { e.preventDefault(); addInitiative(); }}>
+				<input
+					type="text"
+					class="input"
+					placeholder="Add a weekly initiative..."
+					bind:value={newInitiativeTitle}
+					onkeydown={handleInitiativeKeydown}
+					disabled={initiativeLoading}
+				/>
+				<div class="add-task-options">
+					<div class="option-row">
+						<label class="option-label" for="new-initiative-progress">Progress</label>
+						<input
+							id="new-initiative-progress"
+							type="number"
+							class="input input-sm"
+							bind:value={newInitiativeProgress}
+							placeholder="0"
+							min="0"
+							disabled={initiativeLoading}
+						/>
+					</div>
+					<div class="option-row">
+						<label class="option-label" for="new-initiative-hours">Expected Hours</label>
+						<input
+							id="new-initiative-hours"
+							type="number"
+							class="input input-sm"
+							bind:value={newInitiativeExpectedHours}
+							placeholder="0"
+							step="0.5"
+							min="0"
+							disabled={initiativeLoading}
+						/>
+					</div>
+					<div class="option-row option-row-tags">
+						<label class="option-label">Tags</label>
+						<TagInput
+							tags={localTags}
+							selectedTagIds={newInitiativeTagIds}
+							onChange={(tagIds) => (newInitiativeTagIds = tagIds)}
+							placeholder="Search or create tags..."
+							disabled={initiativeLoading}
+							allowCreate={true}
+							onCreateTag={createTag}
+						/>
+					</div>
+					<div class="option-row option-row-submit">
+						<button class="btn btn-primary" type="submit" disabled={initiativeLoading || !newInitiativeTitle.trim()}>
+							{initiativeLoading ? 'Adding...' : 'Add Initiative'}
+						</button>
+					</div>
+				</div>
+			</form>
+		</section>
 	</div>
 </div>
 
@@ -538,6 +760,19 @@
 	/* Metrics section */
 	.metrics-section {
 		min-height: 100px;
+	}
+
+	/* Weekly Initiatives section */
+	.initiatives-section {
+		min-height: 150px;
+	}
+
+	.week-label {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		background-color: var(--color-bg);
+		padding: 2px 8px;
+		border-radius: var(--radius-sm);
 	}
 
 	.metrics-grid {

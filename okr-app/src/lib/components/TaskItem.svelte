@@ -8,21 +8,25 @@
 		onToggle: (id: string) => void;
 		onUpdate: (id: string, updates: Partial<Task>) => void;
 		onDelete: (id: string) => void;
-		onTimerToggle: (id: string, action: 'start' | 'stop') => void;
+		onTimerToggle?: (id: string, action: 'start' | 'stop') => void;
 		onCreateTag?: (name: string) => Promise<Tag | null>;
+		hideTimer?: boolean;
 	}
 
-	let { task, tags = [], onToggle, onUpdate, onDelete, onTimerToggle, onCreateTag }: Props = $props();
+	let { task, tags = [], onToggle, onUpdate, onDelete, onTimerToggle, onCreateTag, hideTimer = false }: Props = $props();
 
 	let editing = $state(false);
 	let editTitle = $state(task.title);
-	let showAttributes = $state(false);
+	let editProgress = $state(task.attributes?.progress || '');
+	let editExpectedHours = $state(task.attributes?.expected_hours || '');
 	let showTagPicker = $state(false);
 
-	// Sync editTitle when task.title changes (for when props update)
+	// Sync edit values when task changes (for when props update)
 	$effect(() => {
 		if (!editing) {
 			editTitle = task.title;
+			editProgress = task.attributes?.progress || '';
+			editExpectedHours = task.attributes?.expected_hours || '';
 		}
 	});
 
@@ -81,24 +85,54 @@
 	}
 
 	function handleSave() {
-		if (editTitle.trim() && editTitle !== task.title) {
-			onUpdate(task.id, { title: editTitle.trim() });
+		const updates: Partial<Task> = {};
+		let hasChanges = false;
+
+		// Check title change
+		if (editTitle.trim() && editTitle.trim() !== task.title) {
+			updates.title = editTitle.trim();
+			hasChanges = true;
+		}
+
+		// Check attribute changes
+		const currentProgress = task.attributes?.progress || '';
+		const currentHours = task.attributes?.expected_hours || '';
+		if (editProgress !== currentProgress || editExpectedHours !== currentHours) {
+			const newAttributes = { ...task.attributes };
+			if (editProgress) {
+				newAttributes.progress = editProgress;
+			} else {
+				delete newAttributes.progress;
+			}
+			if (editExpectedHours) {
+				newAttributes.expected_hours = editExpectedHours;
+			} else {
+				delete newAttributes.expected_hours;
+			}
+			updates.attributes = newAttributes;
+			hasChanges = true;
+		}
+
+		if (hasChanges) {
+			onUpdate(task.id, updates);
 		}
 		editing = false;
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') {
-			handleSave();
-		} else if (e.key === 'Escape') {
-			editTitle = task.title;
-			editing = false;
-		}
+	function handleCancel() {
+		editTitle = task.title;
+		editProgress = task.attributes?.progress || '';
+		editExpectedHours = task.attributes?.expected_hours || '';
+		editing = false;
 	}
 
-	function handleAttributeChange(key: string, value: string) {
-		const newAttributes = { ...task.attributes, [key]: value };
-		onUpdate(task.id, { attributes: newAttributes });
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			handleSave();
+		} else if (e.key === 'Escape') {
+			handleCancel();
+		}
 	}
 
 	function handleTimerClick() {
@@ -126,25 +160,9 @@
 	/>
 
 	<div class="task-content">
-		{#if editing}
-			<input
-				type="text"
-				class="input task-edit-input"
-				bind:value={editTitle}
-				onblur={handleSave}
-				onkeydown={handleKeydown}
-			/>
-		{:else}
-			<span
-				class="task-title"
-				ondblclick={() => (editing = true)}
-				role="button"
-				tabindex="0"
-				onkeydown={(e) => e.key === 'Enter' && (editing = true)}
-			>
-				{task.title}
-			</span>
-		{/if}
+		<span class="task-title">
+			{task.title}
+		</span>
 
 		<div class="task-meta">
 			<!-- Timer display -->
@@ -183,8 +201,8 @@
 	</div>
 
 	<div class="task-actions">
-		<!-- Timer button (only show for incomplete tasks) -->
-		{#if !task.completed}
+		<!-- Timer button (only show for incomplete tasks, unless hideTimer is true) -->
+		{#if !task.completed && !hideTimer && onTimerToggle}
 			<button
 				class="btn-icon btn-timer"
 				class:running={isTimerRunning}
@@ -220,8 +238,8 @@
 
 		<button
 			class="btn-icon"
-			onclick={() => (showAttributes = !showAttributes)}
-			title="Edit attributes"
+			onclick={() => (editing = !editing)}
+			title="Edit task"
 		>
 			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M12 20h9"/>
@@ -254,30 +272,50 @@
 	</div>
 {/if}
 
-{#if showAttributes}
-	<div class="task-attribute-editor">
-		<div class="attribute-row">
-			<label class="label">Progress</label>
+{#if editing}
+	<div class="task-edit-panel">
+		<div class="edit-row edit-row-title">
+			<label class="label">Title</label>
 			<input
-				type="number"
-				class="input input-sm"
-				value={task.attributes?.progress || ''}
-				onchange={(e) => handleAttributeChange('progress', e.currentTarget.value)}
-				placeholder="0"
-				min="0"
+				type="text"
+				class="input"
+				bind:value={editTitle}
+				onkeydown={handleKeydown}
+				placeholder="Task title"
 			/>
 		</div>
-		<div class="attribute-row">
-			<label class="label">Expected Hours</label>
-			<input
-				type="number"
-				class="input input-sm"
-				value={task.attributes?.expected_hours || ''}
-				onchange={(e) => handleAttributeChange('expected_hours', e.currentTarget.value)}
-				placeholder="0"
-				step="0.5"
-				min="0"
-			/>
+		<div class="edit-row-group">
+			<div class="edit-row">
+				<label class="label">Progress</label>
+				<input
+					type="number"
+					class="input input-sm"
+					bind:value={editProgress}
+					onkeydown={handleKeydown}
+					placeholder="0"
+					min="0"
+				/>
+			</div>
+			<div class="edit-row">
+				<label class="label">Expected Hours</label>
+				<input
+					type="number"
+					class="input input-sm"
+					bind:value={editExpectedHours}
+					onkeydown={handleKeydown}
+					placeholder="0"
+					step="0.5"
+					min="0"
+				/>
+			</div>
+		</div>
+		<div class="edit-actions">
+			<button class="btn btn-secondary btn-sm" type="button" onclick={handleCancel}>
+				Cancel
+			</button>
+			<button class="btn btn-primary btn-sm" type="button" onclick={handleSave}>
+				Save
+			</button>
 		</div>
 	</div>
 {/if}
@@ -312,17 +350,11 @@
 
 	.task-title {
 		display: block;
-		cursor: pointer;
 	}
 
 	.task-completed .task-title {
 		text-decoration: line-through;
 		color: var(--color-text-muted);
-	}
-
-	.task-edit-input {
-		padding: var(--spacing-xs) var(--spacing-sm);
-		font-size: inherit;
 	}
 
 	.task-meta {
@@ -452,24 +484,42 @@
 		background-color: var(--color-bg);
 	}
 
-	.task-attribute-editor {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	.task-edit-panel {
+		display: flex;
+		flex-direction: column;
 		gap: var(--spacing-sm);
 		padding: var(--spacing-sm) 0 var(--spacing-sm) 28px;
 		border-bottom: 1px solid var(--color-border);
 		background-color: var(--color-bg);
 	}
 
-	.attribute-row {
+	.edit-row {
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-xs);
 	}
 
-	.attribute-row .label {
+	.edit-row .label {
 		font-size: 0.75rem;
 		margin-bottom: 0;
+	}
+
+	.edit-row-group {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--spacing-sm);
+	}
+
+	.edit-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: var(--spacing-sm);
+		padding-top: var(--spacing-xs);
+	}
+
+	.btn-sm {
+		padding: var(--spacing-xs) var(--spacing-sm);
+		font-size: 0.875rem;
 	}
 
 	.input-sm {

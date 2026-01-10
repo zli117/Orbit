@@ -1,7 +1,26 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
+	import TaskList from '$lib/components/TaskList.svelte';
+	import TagInput from '$lib/components/TagInput.svelte';
+	import type { Task, Tag } from '$lib/types';
 
 	let { data } = $props();
+
+	// Weekly initiative form state
+	let newInitiativeTitle = $state('');
+	let newInitiativeProgress = $state('');
+	let newInitiativeExpectedHours = $state('');
+	let newInitiativeTagIds = $state<string[]>([]);
+	let initiativeLoading = $state(false);
+	let error = $state('');
+
+	// Store local tags state for inline creation
+	let localTags = $state<Tag[]>(data.tags || []);
+
+	// Keep local tags in sync with server data
+	$effect(() => {
+		localTags = data.tags || [];
+	});
 
 	// ISO week number (Monday-first, week 1 contains Jan 4)
 	function getISOWeekNumber(date: Date): number {
@@ -75,6 +94,155 @@
 		const day = String(today.getDate()).padStart(2, '0');
 		return dateStr === `${year}-${month}-${day}`;
 	}
+
+	// --- Weekly Initiative Functions ---
+
+	async function getOrCreateWeeklyPeriod(): Promise<string | null> {
+		if (data.weeklyPeriod) {
+			return data.weeklyPeriod.id;
+		}
+
+		try {
+			const response = await fetch('/api/periods', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					periodType: 'weekly',
+					year: data.year,
+					week: data.week
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to create weekly period');
+			}
+
+			const result = await response.json();
+			return result.period.id;
+		} catch (err) {
+			console.error('Failed to create weekly period:', err);
+			return null;
+		}
+	}
+
+	async function addInitiative() {
+		if (!newInitiativeTitle.trim()) return;
+
+		initiativeLoading = true;
+		error = '';
+
+		try {
+			const periodId = await getOrCreateWeeklyPeriod();
+			if (!periodId) {
+				throw new Error('Failed to get weekly period');
+			}
+
+			const attributes: Record<string, string> = {};
+			const progressStr = String(newInitiativeProgress).trim();
+			const expectedHoursStr = String(newInitiativeExpectedHours).trim();
+			if (progressStr && progressStr !== '0') {
+				attributes.progress = progressStr;
+			}
+			if (expectedHoursStr && expectedHoursStr !== '0') {
+				attributes.expected_hours = expectedHoursStr;
+			}
+
+			const response = await fetch('/api/tasks', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					timePeriodId: periodId,
+					title: newInitiativeTitle.trim(),
+					attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
+					tagIds: newInitiativeTagIds.length > 0 ? newInitiativeTagIds : undefined
+				})
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to create initiative');
+			}
+
+			newInitiativeTitle = '';
+			newInitiativeProgress = '';
+			newInitiativeExpectedHours = '';
+			newInitiativeTagIds = [];
+			await invalidateAll();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to create initiative';
+		} finally {
+			initiativeLoading = false;
+		}
+	}
+
+	async function toggleInitiative(id: string) {
+		try {
+			const response = await fetch(`/api/tasks/${id}`, { method: 'PATCH' });
+			if (!response.ok) throw new Error('Failed to toggle initiative');
+			await invalidateAll();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to toggle initiative';
+		}
+	}
+
+	async function updateInitiative(id: string, updates: Partial<Task>) {
+		try {
+			const response = await fetch(`/api/tasks/${id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(updates)
+			});
+			if (!response.ok) throw new Error('Failed to update initiative');
+			await invalidateAll();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to update initiative';
+		}
+	}
+
+	async function deleteInitiative(id: string) {
+		try {
+			const response = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+			if (!response.ok) throw new Error('Failed to delete initiative');
+			await invalidateAll();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to delete initiative';
+		}
+	}
+
+	function handleInitiativeKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			addInitiative();
+		}
+	}
+
+	async function createTag(name: string): Promise<Tag | null> {
+		try {
+			const response = await fetch('/api/tags', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to create tag');
+			}
+
+			const { tag } = await response.json();
+			localTags = [...localTags, tag];
+			return tag;
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to create tag';
+			return null;
+		}
+	}
+
+	const initiativeCompletionPercent = $derived(
+		data.stats.totalInitiatives > 0
+			? Math.round((data.stats.completedInitiatives / data.stats.totalInitiatives) * 100)
+			: 0
+	);
 </script>
 
 <svelte:head>
@@ -106,21 +274,115 @@
 	</header>
 
 	<div class="weekly-stats card">
-		<div class="stat-item">
-			<span class="stat-value">{data.stats.completedTasks} / {data.stats.totalTasks}</span>
-			<span class="stat-label">Tasks Completed</span>
+		<div class="stat-group">
+			<div class="stat-group-header">
+				<span class="stat-group-title">Weekly Initiatives</span>
+				<span class="stat-group-count">{data.stats.completedInitiatives} / {data.stats.totalInitiatives}</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-bar-fill" style="width: {initiativeCompletionPercent}%"></div>
+			</div>
+			<div class="stat-group-footer">
+				<span>{initiativeCompletionPercent}% complete</span>
+				<span>{data.stats.initiativeHours}h estimated</span>
+			</div>
 		</div>
-		<div class="stat-item">
+		<div class="stat-group">
+			<div class="stat-group-header">
+				<span class="stat-group-title">Daily Tasks</span>
+				<span class="stat-group-count">{data.stats.completedTasks} / {data.stats.totalTasks}</span>
+			</div>
 			<div class="progress-bar">
 				<div class="progress-bar-fill" style="width: {completionPercent}%"></div>
 			</div>
-			<span class="stat-label">{completionPercent}% Complete</span>
-		</div>
-		<div class="stat-item">
-			<span class="stat-value">{data.stats.totalHours}h</span>
-			<span class="stat-label">Hours Logged</span>
+			<div class="stat-group-footer">
+				<span>{completionPercent}% complete</span>
+				<span>{data.stats.totalHours}h tracked</span>
+			</div>
 		</div>
 	</div>
+
+	{#if error}
+		<div class="error-banner">{error}</div>
+	{/if}
+
+	<!-- Weekly Initiatives Section -->
+	<section class="card initiatives-section">
+		<div class="section-header">
+			<h2 class="section-title">Weekly Initiatives</h2>
+			{#if data.stats.totalInitiatives > 0}
+				<span class="initiative-progress">{initiativeCompletionPercent}% complete</span>
+			{/if}
+		</div>
+
+		<TaskList
+			tasks={data.weeklyInitiatives}
+			tags={localTags}
+			onToggle={toggleInitiative}
+			onUpdate={updateInitiative}
+			onDelete={deleteInitiative}
+			onCreateTag={createTag}
+			hideTimer={true}
+			emptyMessage="No weekly initiatives yet."
+		/>
+
+		<form class="add-initiative-form" onsubmit={(e) => { e.preventDefault(); addInitiative(); }}>
+			<input
+				type="text"
+				class="input"
+				placeholder="Add a weekly initiative..."
+				bind:value={newInitiativeTitle}
+				onkeydown={handleInitiativeKeydown}
+				disabled={initiativeLoading}
+			/>
+			<div class="add-initiative-options">
+				<div class="option-row">
+					<label class="option-label" for="new-initiative-progress">Progress</label>
+					<input
+						id="new-initiative-progress"
+						type="number"
+						class="input input-sm"
+						bind:value={newInitiativeProgress}
+						placeholder="0"
+						min="0"
+						disabled={initiativeLoading}
+					/>
+				</div>
+				<div class="option-row">
+					<label class="option-label" for="new-initiative-hours">Expected Hours</label>
+					<input
+						id="new-initiative-hours"
+						type="number"
+						class="input input-sm"
+						bind:value={newInitiativeExpectedHours}
+						placeholder="0"
+						step="0.5"
+						min="0"
+						disabled={initiativeLoading}
+					/>
+				</div>
+				<div class="option-row option-row-tags">
+					<label class="option-label">Tags</label>
+					<TagInput
+						tags={localTags}
+						selectedTagIds={newInitiativeTagIds}
+						onChange={(tagIds) => (newInitiativeTagIds = tagIds)}
+						placeholder="Search or create tags..."
+						disabled={initiativeLoading}
+						allowCreate={true}
+						onCreateTag={createTag}
+					/>
+				</div>
+				<div class="option-row option-row-submit">
+					<button class="btn btn-primary" type="submit" disabled={initiativeLoading || !newInitiativeTitle.trim()}>
+						{initiativeLoading ? 'Adding...' : 'Add Initiative'}
+					</button>
+				</div>
+			</div>
+		</form>
+	</section>
+
+	<h2 class="days-title">Daily Tasks</h2>
 
 	<div class="week-days">
 		{#each data.days as day}
@@ -198,28 +460,39 @@
 
 	.weekly-stats {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: var(--spacing-md);
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--spacing-lg);
 		margin-bottom: var(--spacing-lg);
-		text-align: center;
 	}
 
-	.stat-item {
+	.stat-group {
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-xs);
+		gap: var(--spacing-sm);
 	}
 
-	.stat-value {
-		font-size: 1.5rem;
+	.stat-group-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+	}
+
+	.stat-group-title {
 		font-weight: 600;
+		font-size: 0.875rem;
 	}
 
-	.stat-label {
+	.stat-group-count {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: var(--color-primary);
+	}
+
+	.stat-group-footer {
+		display: flex;
+		justify-content: space-between;
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
 	}
 
 	.week-days {
@@ -332,5 +605,92 @@
 	.task-count {
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
+	}
+
+	/* Weekly Initiatives Section */
+	.initiatives-section {
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: var(--spacing-md);
+	}
+
+	.section-title {
+		font-size: 1.125rem;
+		margin: 0;
+	}
+
+	.initiative-progress {
+		font-size: 0.875rem;
+		color: var(--color-text-muted);
+	}
+
+	.days-title {
+		font-size: 1.125rem;
+		margin: 0 0 var(--spacing-md) 0;
+	}
+
+	.error-banner {
+		background-color: #fef2f2;
+		border: 1px solid #fecaca;
+		color: var(--color-error);
+		padding: var(--spacing-sm) var(--spacing-md);
+		border-radius: var(--radius-md);
+		margin-bottom: var(--spacing-md);
+	}
+
+	.add-initiative-form {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+		margin-top: var(--spacing-md);
+		padding-top: var(--spacing-md);
+		border-top: 1px solid var(--color-border);
+	}
+
+	.add-initiative-options {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: var(--spacing-sm);
+	}
+
+	.option-row {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+	}
+
+	.option-row-tags {
+		grid-column: 1 / -1;
+	}
+
+	.option-row-submit {
+		grid-column: 1 / -1;
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.option-label {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+
+	.input-sm {
+		padding: var(--spacing-xs) var(--spacing-sm);
+		font-size: 0.875rem;
+	}
+
+	@media (max-width: 768px) {
+		.weekly-stats {
+			grid-template-columns: 1fr;
+		}
+
+		.add-initiative-options {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>
