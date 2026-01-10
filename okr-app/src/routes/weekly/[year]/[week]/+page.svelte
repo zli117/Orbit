@@ -284,7 +284,7 @@
 			</div>
 			<div class="stat-group-footer">
 				<span>{initiativeCompletionPercent}% complete</span>
-				<span>{data.stats.initiativeHours}h estimated</span>
+				<span>{data.stats.initiativePlannedHours}h planned | {data.stats.initiativeTrackedHours}h tracked</span>
 			</div>
 		</div>
 		<div class="stat-group">
@@ -297,7 +297,7 @@
 			</div>
 			<div class="stat-group-footer">
 				<span>{completionPercent}% complete</span>
-				<span>{data.stats.totalHours}h tracked</span>
+				<span>{data.stats.totalPlannedHours}h planned | {data.stats.totalTrackedHours}h tracked</span>
 			</div>
 		</div>
 	</div>

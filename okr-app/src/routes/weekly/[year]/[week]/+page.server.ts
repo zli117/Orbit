@@ -135,17 +135,22 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
 	// Calculate weekly stats (daily tasks only)
 	const allTasks = days.flatMap((d) => d.tasks);
 	const completedTasks = allTasks.filter((t) => t.completed);
-	const totalHours = allTasks.reduce((sum, t) => {
-		const hours = parseFloat(t.attributes?.hour || '0');
-		return sum + (isNaN(hours) ? 0 : hours);
-	}, 0);
-
-	// Calculate initiative stats
-	const completedInitiatives = weeklyInitiatives.filter((t) => t.completed);
-	const initiativeHours = weeklyInitiatives.reduce((sum, t) => {
+	const totalPlannedHours = allTasks.reduce((sum, t) => {
 		const hours = parseFloat(t.attributes?.expected_hours || '0');
 		return sum + (isNaN(hours) ? 0 : hours);
 	}, 0);
+	const totalTrackedMs = allTasks.reduce((sum, t) => sum + (t.timeSpentMs || 0), 0);
+
+	// Calculate initiative stats
+	const completedInitiatives = weeklyInitiatives.filter((t) => t.completed);
+	const initiativePlannedHours = weeklyInitiatives.reduce((sum, t) => {
+		const hours = parseFloat(t.attributes?.expected_hours || '0');
+		return sum + (isNaN(hours) ? 0 : hours);
+	}, 0);
+	const initiativeTrackedMs = weeklyInitiatives.reduce((sum, t) => sum + (t.timeSpentMs || 0), 0);
+
+	// Convert ms to hours
+	const msToHours = (ms: number) => (ms / 1000 / 60 / 60).toFixed(1);
 
 	return {
 		year,
@@ -158,10 +163,12 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
 		stats: {
 			totalTasks: allTasks.length,
 			completedTasks: completedTasks.length,
-			totalHours: totalHours.toFixed(1),
+			totalPlannedHours: totalPlannedHours.toFixed(1),
+			totalTrackedHours: msToHours(totalTrackedMs),
 			totalInitiatives: weeklyInitiatives.length,
 			completedInitiatives: completedInitiatives.length,
-			initiativeHours: initiativeHours.toFixed(1)
+			initiativePlannedHours: initiativePlannedHours.toFixed(1),
+			initiativeTrackedHours: msToHours(initiativeTrackedMs)
 		}
 	};
 };

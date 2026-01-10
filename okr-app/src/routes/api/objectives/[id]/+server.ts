@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/db/client';
 import { objectives } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { broadcastDataChange } from '$lib/server/events';
 
 // GET /api/objectives/[id] - Get a single objective
 export const GET: RequestHandler = async ({ locals, params }) => {
@@ -59,6 +60,9 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 			where: eq(objectives.id, params.id)
 		});
 
+		// Broadcast change to other connected clients
+		broadcastDataChange(locals.user.id, 'data:objectives');
+
 		return json({ objective: updated });
 	} catch (error) {
 		console.error('Error updating objective:', error);
@@ -84,6 +88,9 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 	await db
 		.delete(objectives)
 		.where(and(eq(objectives.id, params.id), eq(objectives.userId, locals.user.id)));
+
+	// Broadcast change to other connected clients
+	broadcastDataChange(locals.user.id, 'data:objectives');
 
 	return json({ success: true });
 };

@@ -213,6 +213,18 @@ export const dailyMetricValues = sqliteTable('daily_metric_values', {
 	source: text('source').notNull() // 'user' | 'computed' | 'fitbit' | etc.
 });
 
+// Objective reflections (for yearly/monthly objective pages)
+export const objectiveReflections = sqliteTable('objective_reflections', {
+	id: text('id').primaryKey(),
+	userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+	level: text('level', { enum: ['yearly', 'monthly'] }).notNull(),
+	year: integer('year').notNull(),
+	month: integer('month'), // null for yearly
+	reflection: text('reflection').notNull().default(''),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+});
+
 // Type exports for use in the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -228,6 +240,7 @@ export type SavedQuery = typeof savedQueries.$inferSelect;
 export type DashboardWidget = typeof dashboardWidgets.$inferSelect;
 export type MetricsTemplate = typeof metricsTemplates.$inferSelect;
 export type DailyMetricValue = typeof dailyMetricValues.$inferSelect;
+export type ObjectiveReflection = typeof objectiveReflections.$inferSelect;
 
 // Metric definition types for template configuration
 export interface MetricDefinition {

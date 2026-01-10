@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/db/client';
 import { tasks } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { broadcastDataChange } from '$lib/server/events';
 
 // POST /api/tasks/[id]/timer - Start or stop timer
 export const POST: RequestHandler = async ({ locals, params, request }) => {
@@ -64,6 +65,9 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 		const task = await db.query.tasks.findFirst({
 			where: eq(tasks.id, params.id)
 		});
+
+		// Broadcast change to other connected clients
+		broadcastDataChange(locals.user.id, 'data:tasks', 'data:weekly');
 
 		return json({ task });
 	} catch (error) {

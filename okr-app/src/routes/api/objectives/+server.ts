@@ -4,6 +4,7 @@ import { db } from '$lib/db/client';
 import { objectives, keyResults } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { broadcastDataChange } from '$lib/server/events';
 
 // GET /api/objectives - List all objectives for the current user
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -81,6 +82,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		const objective = await db.query.objectives.findFirst({
 			where: eq(objectives.id, id)
 		});
+
+		// Broadcast change to other connected clients
+		broadcastDataChange(locals.user.id, 'data:objectives');
 
 		return json({ objective }, { status: 201 });
 	} catch (error) {

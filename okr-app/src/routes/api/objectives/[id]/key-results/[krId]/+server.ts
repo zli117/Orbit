@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/db/client';
 import { objectives, keyResults } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { broadcastDataChange } from '$lib/server/events';
 
 // PUT /api/objectives/[id]/key-results/[krId] - Update a key result
 export const PUT: RequestHandler = async ({ locals, params, request }) => {
@@ -74,6 +75,9 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 			where: eq(keyResults.id, params.krId)
 		});
 
+		// Broadcast change to other connected clients
+		broadcastDataChange(locals.user.id, 'data:objectives');
+
 		return json({ keyResult: updated });
 	} catch (error) {
 		console.error('Error updating key result:', error);
@@ -106,6 +110,9 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 	}
 
 	await db.delete(keyResults).where(eq(keyResults.id, params.krId));
+
+	// Broadcast change to other connected clients
+	broadcastDataChange(locals.user.id, 'data:objectives');
 
 	return json({ success: true });
 };

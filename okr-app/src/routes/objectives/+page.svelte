@@ -139,6 +139,53 @@
 	const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
 		'July', 'August', 'September', 'October', 'November', 'December'];
 
+	// Reflection state
+	let reflectionText = $state(data.reflection);
+	let reflectionSaving = $state(false);
+	let reflectionSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	// Sync reflection when data changes (year/level switch)
+	$effect(() => {
+		reflectionText = data.reflection;
+	});
+
+	// Debounced save for reflection
+	function handleReflectionChange(text: string) {
+		reflectionText = text;
+
+		if (reflectionSaveTimeout) {
+			clearTimeout(reflectionSaveTimeout);
+		}
+
+		reflectionSaveTimeout = setTimeout(() => {
+			saveReflection(text);
+		}, 1000);
+	}
+
+	async function saveReflection(text: string) {
+		reflectionSaving = true;
+		try {
+			const response = await fetch('/api/objectives/reflections', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					level: data.level,
+					year: data.year,
+					month: data.month,
+					reflection: text
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to save reflection');
+			}
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to save reflection';
+		} finally {
+			reflectionSaving = false;
+		}
+	}
+
 	function changeYear(year: number) {
 		const params = new URLSearchParams({ year: String(year), level: data.level });
 		if (data.level === 'monthly' && data.month) {
@@ -668,6 +715,23 @@
 			+ New Objective
 		</button>
 	{/if}
+
+	<!-- Reflections Section -->
+	<section class="card reflections-section">
+		<div class="reflections-header">
+			<h2 class="section-title">Reflections</h2>
+			{#if reflectionSaving}
+				<span class="saving-indicator">Saving...</span>
+			{/if}
+		</div>
+		<textarea
+			class="input textarea reflections-textarea"
+			placeholder="Write your reflections for {data.level === 'yearly' ? data.year : `${monthNames[(data.month || 1) - 1]} ${data.year}`}..."
+			value={reflectionText}
+			oninput={(e) => handleReflectionChange(e.currentTarget.value)}
+		></textarea>
+		<p class="reflections-hint">Auto-saved as you type</p>
+	</section>
 </div>
 
 {#if isKRModalOpen}
@@ -1252,5 +1316,41 @@
 		color: var(--color-error);
 		margin-top: 2px;
 		cursor: help;
+	}
+
+	/* Reflections section */
+	.reflections-section {
+		margin-top: var(--spacing-lg);
+	}
+
+	.reflections-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: var(--spacing-md);
+	}
+
+	.reflections-header .section-title {
+		font-size: 1.125rem;
+		margin: 0;
+	}
+
+	.saving-indicator {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		font-style: italic;
+	}
+
+	.reflections-textarea {
+		min-height: 150px;
+		resize: vertical;
+		width: 100%;
+	}
+
+	.reflections-hint {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		margin-top: var(--spacing-xs);
+		margin-bottom: 0;
 	}
 </style>

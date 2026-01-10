@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/db/client';
-import { objectives, keyResults, savedQueries } from '$lib/db/schema';
+import { objectives, keyResults, savedQueries, objectiveReflections } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, url, depends }) => {
@@ -85,6 +85,18 @@ export const load: PageServerLoad = async ({ locals, url, depends }) => {
 		availableYears = [...availableYears, year].sort((a, b) => a - b);
 	}
 
+	// Get reflection for current year/level/month
+	const reflection = await db.query.objectiveReflections.findFirst({
+		where: and(
+			eq(objectiveReflections.userId, locals.user.id),
+			eq(objectiveReflections.level, level),
+			eq(objectiveReflections.year, year),
+			level === 'monthly' && month
+				? eq(objectiveReflections.month, month)
+				: eq(objectiveReflections.month, null)
+		)
+	});
+
 	return {
 		year,
 		level,
@@ -92,6 +104,7 @@ export const load: PageServerLoad = async ({ locals, url, depends }) => {
 		objectives: objectivesWithKRs,
 		overallScore,
 		years: availableYears,
-		savedQueries: allSavedQueries.map(q => ({ id: q.id, name: q.name, code: q.code }))
+		savedQueries: allSavedQueries.map(q => ({ id: q.id, name: q.name, code: q.code })),
+		reflection: reflection?.reflection || ''
 	};
 };

@@ -4,6 +4,7 @@ import { db } from '$lib/db/client';
 import { tasks, taskAttributes, taskTags, timePeriods } from '$lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { broadcastDataChange } from '$lib/server/events';
 
 // GET /api/tasks - List tasks with filters
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -127,6 +128,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		const taskAttrs = await db.query.taskAttributes.findMany({
 			where: eq(taskAttributes.taskId, taskId)
 		});
+
+		// Broadcast change to other connected clients
+		broadcastDataChange(locals.user.id, 'data:tasks', 'data:weekly');
 
 		return json(
 			{
