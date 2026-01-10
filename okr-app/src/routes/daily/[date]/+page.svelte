@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import TaskList from '$lib/components/TaskList.svelte';
-	import type { Task } from '$lib/types';
+	import TagInput from '$lib/components/TagInput.svelte';
+	import type { Task, Tag } from '$lib/types';
 	import type { MetricDefinition } from '$lib/db/schema';
 
 	let { data } = $props();
@@ -193,6 +194,37 @@
 			addTask();
 		}
 	}
+
+	// Store local tags state for inline creation
+	let localTags = $state<Tag[]>(data.tags || []);
+
+	// Keep local tags in sync with server data
+	$effect(() => {
+		localTags = data.tags || [];
+	});
+
+	async function createTag(name: string): Promise<Tag | null> {
+		try {
+			const response = await fetch('/api/tags', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to create tag');
+			}
+
+			const { tag } = await response.json();
+			// Add to local tags immediately for better UX
+			localTags = [...localTags, tag];
+			return tag;
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to create tag';
+			return null;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -237,11 +269,12 @@
 
 			<TaskList
 				tasks={data.tasks}
-				tags={data.tags || []}
+				tags={localTags}
 				onToggle={toggleTask}
 				onUpdate={updateTask}
 				onDelete={deleteTask}
 				onTimerToggle={toggleTimer}
+				onCreateTag={createTag}
 			/>
 
 			<form class="add-task-form" onsubmit={(e) => { e.preventDefault(); addTask(); }}>
@@ -296,35 +329,18 @@
 								disabled={loading}
 							/>
 						</div>
-						{#if data.tags && data.tags.length > 0}
-							<div class="option-row option-row-tags">
-								<label class="option-label">Tags</label>
-								<div class="tag-options">
-									{#each data.tags as tag}
-										<label class="tag-option">
-											<input
-												type="checkbox"
-												checked={newTaskTagIds.includes(tag.id)}
-												onchange={() => {
-													if (newTaskTagIds.includes(tag.id)) {
-														newTaskTagIds = newTaskTagIds.filter(id => id !== tag.id);
-													} else {
-														newTaskTagIds = [...newTaskTagIds, tag.id];
-													}
-												}}
-												disabled={loading}
-											/>
-											<span
-												class="tag-chip"
-												style={tag.color ? `background-color: ${tag.color}20; color: ${tag.color}; border-color: ${tag.color}` : ''}
-											>
-												{tag.name}
-											</span>
-										</label>
-									{/each}
-								</div>
-							</div>
-						{/if}
+						<div class="option-row option-row-tags">
+							<label class="option-label">Tags</label>
+							<TagInput
+								tags={localTags}
+								selectedTagIds={newTaskTagIds}
+								onChange={(tagIds) => (newTaskTagIds = tagIds)}
+								placeholder="Search or create tags..."
+								disabled={loading}
+								allowCreate={true}
+								onCreateTag={createTag}
+							/>
+						</div>
 					</div>
 				{/if}
 			</form>
@@ -512,38 +528,6 @@
 	.option-label {
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
-	}
-
-	.tag-options {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--spacing-xs);
-	}
-
-	.tag-option {
-		display: flex;
-		align-items: center;
-		cursor: pointer;
-	}
-
-	.tag-option input {
-		display: none;
-	}
-
-	.tag-chip {
-		display: inline-block;
-		padding: 2px 8px;
-		font-size: 0.75rem;
-		background-color: var(--color-bg-hover);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		transition: all 0.15s ease;
-	}
-
-	.tag-option input:checked + .tag-chip {
-		background-color: var(--color-primary);
-		color: white;
-		border-color: var(--color-primary);
 	}
 
 	.input-sm {

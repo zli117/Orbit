@@ -29,6 +29,7 @@
 		"vite": "^7.2.6"
 	},
 	"dependencies": {
+		"@monaco-editor/loader": "^1.7.0",
 		"@sveltejs/adapter-node": "^5.4.0",
 		"bcrypt": "^6.0.0",
 		"better-sqlite3": "^12.5.0",
@@ -37,7 +38,6 @@
 		"monaco-editor": "^0.55.1",
 		"plotly.js-basic-dist-min": "^3.3.1",
 		"quickjs-emscripten": "^0.31.0",
-		"uuid": "^13.0.0",
-		"vite-plugin-monaco-editor": "^1.1.0"
+		"uuid": "^13.0.0"
 	}
 }

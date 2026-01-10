@@ -16,9 +16,9 @@
 	let isUpdatingFromProp = false;
 
 	onMount(async () => {
-		// Dynamically import Monaco (client-side only)
-		// The vite-plugin-monaco-editor handles worker setup automatically
-		const monaco = await import('monaco-editor');
+		// Use official Monaco loader - handles CDN loading and worker setup
+		const loader = await import('@monaco-editor/loader');
+		const monaco = await loader.default.init();
 
 		// Create the editor instance
 		editor = monaco.editor.create(container, {
@@ -63,7 +63,6 @@
 	// Update editor content when value prop changes externally
 	$effect(() => {
 		// Read value FIRST to ensure it's tracked as a dependency
-		// (if we short-circuit on editor check, value won't be tracked)
 		const currentValue = value;
 
 		if (editor && currentValue !== editor.getValue()) {

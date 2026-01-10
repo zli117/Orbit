@@ -9,9 +9,10 @@
 		onUpdate: (id: string, updates: Partial<Task>) => void;
 		onDelete: (id: string) => void;
 		onTimerToggle: (id: string, action: 'start' | 'stop') => void;
+		onCreateTag?: (name: string) => Promise<Tag | null>;
 	}
 
-	let { tasks, tags = [], onToggle, onUpdate, onDelete, onTimerToggle }: Props = $props();
+	let { tasks, tags = [], onToggle, onUpdate, onDelete, onTimerToggle, onCreateTag }: Props = $props();
 
 	const completedTasks = $derived(tasks.filter((t) => t.completed));
 	const pendingTasks = $derived(tasks.filter((t) => !t.completed));
@@ -36,7 +37,7 @@
 		<ul class="task-list">
 			{#each pendingTasks as task (task.id)}
 				<li>
-					<TaskItem {task} {tags} {onToggle} {onUpdate} {onDelete} {onTimerToggle} />
+					<TaskItem {task} {tags} {onToggle} {onUpdate} {onDelete} {onTimerToggle} {onCreateTag} />
 				</li>
 			{/each}
 			{#if completedTasks.length > 0 && pendingTasks.length > 0}
@@ -46,7 +47,7 @@
 			{/if}
 			{#each completedTasks as task (task.id)}
 				<li>
-					<TaskItem {task} {tags} {onToggle} {onUpdate} {onDelete} {onTimerToggle} />
+					<TaskItem {task} {tags} {onToggle} {onUpdate} {onDelete} {onTimerToggle} {onCreateTag} />
 				</li>
 			{/each}
 		</ul>

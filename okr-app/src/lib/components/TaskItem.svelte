@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Task, Tag } from '$lib/types';
+	import TagInput from './TagInput.svelte';
 
 	interface Props {
 		task: Task;
@@ -8,9 +9,10 @@
 		onUpdate: (id: string, updates: Partial<Task>) => void;
 		onDelete: (id: string) => void;
 		onTimerToggle: (id: string, action: 'start' | 'stop') => void;
+		onCreateTag?: (name: string) => Promise<Tag | null>;
 	}
 
-	let { task, tags = [], onToggle, onUpdate, onDelete, onTimerToggle }: Props = $props();
+	let { task, tags = [], onToggle, onUpdate, onDelete, onTimerToggle, onCreateTag }: Props = $props();
 
 	let editing = $state(false);
 	let editTitle = $state(task.title);
@@ -103,12 +105,8 @@
 		onTimerToggle(task.id, isTimerRunning ? 'stop' : 'start');
 	}
 
-	function handleTagToggle(tagId: string) {
-		const currentTagIds = task.tagIds || [];
-		const newTagIds = currentTagIds.includes(tagId)
-			? currentTagIds.filter((id) => id !== tagId)
-			: [...currentTagIds, tagId];
-		onUpdate(task.id, { tagIds: newTagIds } as Partial<Task>);
+	function handleTagsChange(tagIds: string[]) {
+		onUpdate(task.id, { tagIds } as Partial<Task>);
 	}
 
 	// Get assigned tags
@@ -243,24 +241,14 @@
 
 {#if showTagPicker}
 	<div class="task-tag-picker">
-		<span class="picker-label">Tags:</span>
-		<div class="tag-options">
-			{#each tags as tag}
-				<label class="tag-option">
-					<input
-						type="checkbox"
-						checked={(task.tagIds || []).includes(tag.id)}
-						onchange={() => handleTagToggle(tag.id)}
-					/>
-					<span
-						class="tag-chip"
-						style={tag.color ? `background-color: ${tag.color}20; color: ${tag.color}; border-color: ${tag.color}` : ''}
-					>
-						{tag.name}
-					</span>
-				</label>
-			{/each}
-		</div>
+		<TagInput
+			{tags}
+			selectedTagIds={task.tagIds || []}
+			onChange={handleTagsChange}
+			placeholder="Search or create tags..."
+			allowCreate={!!onCreateTag}
+			onCreateTag={onCreateTag}
+		/>
 	</div>
 {/if}
 
@@ -457,49 +445,9 @@
 	}
 
 	.task-tag-picker {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
 		padding: var(--spacing-sm) 0 var(--spacing-sm) 28px;
 		border-bottom: 1px solid var(--color-border);
 		background-color: var(--color-bg);
-	}
-
-	.picker-label {
-		font-size: 0.75rem;
-		color: var(--color-text-muted);
-	}
-
-	.tag-options {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--spacing-xs);
-	}
-
-	.tag-option {
-		display: flex;
-		align-items: center;
-		cursor: pointer;
-	}
-
-	.tag-option input {
-		display: none;
-	}
-
-	.tag-chip {
-		display: inline-block;
-		padding: 2px 8px;
-		font-size: 0.75rem;
-		background-color: var(--color-bg-hover);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		transition: all 0.15s ease;
-	}
-
-	.tag-option input:checked + .tag-chip {
-		background-color: var(--color-primary);
-		color: white;
-		border-color: var(--color-primary);
 	}
 
 	.task-attribute-editor {

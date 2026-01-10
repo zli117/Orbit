@@ -211,6 +211,15 @@
 			<span class="card-arrow">→</span>
 		</a>
 
+		<a href="/settings/tags" class="card settings-card">
+			<div class="card-icon">🏷️</div>
+			<div class="card-content">
+				<h2>Tags</h2>
+				<p class="text-muted">Manage tags for organizing and categorizing your daily tasks</p>
+			</div>
+			<span class="card-arrow">→</span>
+		</a>
+
 		<!-- Preferences Section -->
 		<div class="card">
 			<h2>Preferences</h2>
