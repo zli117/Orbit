@@ -180,4 +180,4 @@ okr-app/
 
 ## License
 
-Private project.
+GPL 3.0
