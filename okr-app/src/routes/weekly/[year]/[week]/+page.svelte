@@ -1,17 +1,11 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import TaskList from '$lib/components/TaskList.svelte';
-	import TagInput from '$lib/components/TagInput.svelte';
+	import TaskForm from '$lib/components/TaskForm.svelte';
 	import type { Task, Tag } from '$lib/types';
 
 	let { data } = $props();
 
-	// Weekly initiative form state
-	let newInitiativeTitle = $state('');
-	let newInitiativeProgress = $state('');
-	let newInitiativeExpectedHours = $state('');
-	let newInitiativeTagIds = $state<string[]>([]);
-	let initiativeLoading = $state(false);
 	let error = $state('');
 
 	// Store local tags state for inline creation
@@ -21,6 +15,41 @@
 	$effect(() => {
 		localTags = data.tags || [];
 	});
+
+	function handleTagCreated(tag: Tag) {
+		localTags = [...localTags, tag];
+	}
+
+	function handleError(message: string) {
+		error = message;
+	}
+
+	async function handleTaskSuccess() {
+		await invalidateAll();
+	}
+
+	// Create tag for TaskList (TaskForm handles its own tag creation)
+	async function createTag(name: string): Promise<Tag | null> {
+		try {
+			const response = await fetch('/api/tags', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to create tag');
+			}
+
+			const { tag } = await response.json();
+			handleTagCreated(tag);
+			return tag;
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to create tag';
+			return null;
+		}
+	}
 
 	// ISO week number (Monday-first, week 1 contains Jan 4)
 	function getISOWeekNumber(date: Date): number {
@@ -125,56 +154,6 @@
 		}
 	}
 
-	async function addInitiative() {
-		if (!newInitiativeTitle.trim()) return;
-
-		initiativeLoading = true;
-		error = '';
-
-		try {
-			const periodId = await getOrCreateWeeklyPeriod();
-			if (!periodId) {
-				throw new Error('Failed to get weekly period');
-			}
-
-			const attributes: Record<string, string> = {};
-			const progressStr = String(newInitiativeProgress).trim();
-			const expectedHoursStr = String(newInitiativeExpectedHours).trim();
-			if (progressStr && progressStr !== '0') {
-				attributes.progress = progressStr;
-			}
-			if (expectedHoursStr && expectedHoursStr !== '0') {
-				attributes.expected_hours = expectedHoursStr;
-			}
-
-			const response = await fetch('/api/tasks', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					timePeriodId: periodId,
-					title: newInitiativeTitle.trim(),
-					attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
-					tagIds: newInitiativeTagIds.length > 0 ? newInitiativeTagIds : undefined
-				})
-			});
-
-			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to create initiative');
-			}
-
-			newInitiativeTitle = '';
-			newInitiativeProgress = '';
-			newInitiativeExpectedHours = '';
-			newInitiativeTagIds = [];
-			await invalidateAll();
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create initiative';
-		} finally {
-			initiativeLoading = false;
-		}
-	}
-
 	async function toggleInitiative(id: string) {
 		try {
 			const response = await fetch(`/api/tasks/${id}`, { method: 'PATCH' });
@@ -206,35 +185,6 @@
 			await invalidateAll();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to delete initiative';
-		}
-	}
-
-	function handleInitiativeKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter' && !e.shiftKey) {
-			e.preventDefault();
-			addInitiative();
-		}
-	}
-
-	async function createTag(name: string): Promise<Tag | null> {
-		try {
-			const response = await fetch('/api/tags', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name })
-			});
-
-			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to create tag');
-			}
-
-			const { tag } = await response.json();
-			localTags = [...localTags, tag];
-			return tag;
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create tag';
-			return null;
 		}
 	}
 
@@ -326,60 +276,16 @@
 			emptyMessage="No weekly initiatives yet."
 		/>
 
-		<form class="add-initiative-form" onsubmit={(e) => { e.preventDefault(); addInitiative(); }}>
-			<input
-				type="text"
-				class="input"
-				placeholder="Add a weekly initiative..."
-				bind:value={newInitiativeTitle}
-				onkeydown={handleInitiativeKeydown}
-				disabled={initiativeLoading}
-			/>
-			<div class="add-initiative-options">
-				<div class="option-row">
-					<label class="option-label" for="new-initiative-progress">Progress</label>
-					<input
-						id="new-initiative-progress"
-						type="number"
-						class="input input-sm"
-						bind:value={newInitiativeProgress}
-						placeholder="0"
-						min="0"
-						disabled={initiativeLoading}
-					/>
-				</div>
-				<div class="option-row">
-					<label class="option-label" for="new-initiative-hours">Expected Hours</label>
-					<input
-						id="new-initiative-hours"
-						type="number"
-						class="input input-sm"
-						bind:value={newInitiativeExpectedHours}
-						placeholder="0"
-						step="any"
-						min="0"
-						disabled={initiativeLoading}
-					/>
-				</div>
-				<div class="option-row option-row-tags">
-					<span class="option-label">Tags</span>
-					<TagInput
-						tags={localTags}
-						selectedTagIds={newInitiativeTagIds}
-						onChange={(tagIds) => (newInitiativeTagIds = tagIds)}
-						placeholder="Search or create tags..."
-						disabled={initiativeLoading}
-						allowCreate={true}
-						onCreateTag={createTag}
-					/>
-				</div>
-				<div class="option-row option-row-submit">
-					<button class="btn btn-primary" type="submit" disabled={initiativeLoading || !newInitiativeTitle.trim()}>
-						{initiativeLoading ? 'Adding...' : 'Add Initiative'}
-					</button>
-				</div>
-			</div>
-		</form>
+		<TaskForm
+			getPeriodId={getOrCreateWeeklyPeriod}
+			tags={localTags}
+			placeholder="Add a weekly initiative..."
+			buttonLabel="Add Initiative"
+			loadingLabel="Adding..."
+			onSuccess={handleTaskSuccess}
+			onError={handleError}
+			onTagCreated={handleTagCreated}
+		/>
 	</section>
 
 	<h2 class="days-title">Daily Tasks</h2>
@@ -643,53 +549,8 @@
 		margin-bottom: var(--spacing-md);
 	}
 
-	.add-initiative-form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-md);
-		margin-top: var(--spacing-md);
-		padding-top: var(--spacing-md);
-		border-top: 1px solid var(--color-border);
-	}
-
-	.add-initiative-options {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: var(--spacing-sm);
-	}
-
-	.option-row {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-xs);
-	}
-
-	.option-row-tags {
-		grid-column: 1 / -1;
-	}
-
-	.option-row-submit {
-		grid-column: 1 / -1;
-		display: flex;
-		justify-content: flex-end;
-	}
-
-	.option-label {
-		font-size: 0.75rem;
-		color: var(--color-text-muted);
-	}
-
-	.input-sm {
-		padding: var(--spacing-xs) var(--spacing-sm);
-		font-size: 0.875rem;
-	}
-
 	@media (max-width: 768px) {
 		.weekly-stats {
-			grid-template-columns: 1fr;
-		}
-
-		.add-initiative-options {
 			grid-template-columns: 1fr;
 		}
 	}
