@@ -14,6 +14,7 @@ export interface AuthUser {
 	username: string;
 	weekStartDay: 'sunday' | 'monday';
 	timezone: string;
+	isAdmin: boolean;
 }
 
 /**
@@ -51,7 +52,7 @@ export async function createUser(username: string, password: string): Promise<Au
 		passwordHash
 	});
 
-	return { id, username, weekStartDay: 'monday', timezone: 'UTC' };
+	return { id, username, weekStartDay: 'monday', timezone: 'UTC', isAdmin: false };
 }
 
 /**
@@ -69,12 +70,31 @@ export async function authenticateUser(
 		return null;
 	}
 
+	// Check if user is disabled
+	if (user.isDisabled) {
+		return null;
+	}
+
 	const valid = await verifyPassword(password, user.passwordHash);
 	if (!valid) {
 		return null;
 	}
 
-	return { id: user.id, username: user.username, weekStartDay: user.weekStartDay || 'monday', timezone: user.timezone || 'UTC' };
+	// Check if this user should be granted admin via env var
+	let isAdmin = user.isAdmin || false;
+	const adminUsername = process.env.ADMIN_USERNAME;
+	if (adminUsername && user.username === adminUsername && !user.isAdmin) {
+		await db.update(users).set({ isAdmin: true }).where(eq(users.id, user.id));
+		isAdmin = true;
+	}
+
+	return {
+		id: user.id,
+		username: user.username,
+		weekStartDay: user.weekStartDay || 'monday',
+		timezone: user.timezone || 'UTC',
+		isAdmin
+	};
 }
 
 /**
@@ -119,7 +139,19 @@ export async function getUserFromSession(sessionId: string): Promise<AuthUser | 
 		return null;
 	}
 
-	return { id: user.id, username: user.username, weekStartDay: user.weekStartDay || 'monday', timezone: user.timezone || 'UTC' };
+	// Check if user is disabled
+	if (user.isDisabled) {
+		await deleteSession(sessionId);
+		return null;
+	}
+
+	return {
+		id: user.id,
+		username: user.username,
+		weekStartDay: user.weekStartDay || 'monday',
+		timezone: user.timezone || 'UTC',
+		isAdmin: user.isAdmin || false
+	};
 }
 
 /**

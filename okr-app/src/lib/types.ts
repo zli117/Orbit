@@ -4,6 +4,7 @@ export interface User {
 	id: string;
 	username: string;
 	weekStartDay: 'sunday' | 'monday';
+	isAdmin?: boolean;
 }
 
 export interface Task {

@@ -7,6 +7,8 @@ export const users = sqliteTable('users', {
 	passwordHash: text('password_hash').notNull(),
 	weekStartDay: text('week_start_day', { enum: ['sunday', 'monday'] }).notNull().default('monday'),
 	timezone: text('timezone').notNull().default('UTC'), // IANA timezone identifier (e.g., 'America/New_York')
+	isAdmin: integer('is_admin', { mode: 'boolean' }).notNull().default(false),
+	isDisabled: integer('is_disabled', { mode: 'boolean' }).notNull().default(false),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 });
 
@@ -262,6 +264,17 @@ export const friendNotes = sqliteTable('friend_notes', {
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 });
 
+// Query execution logs for security audit trail
+export const queryExecutionLogs = sqliteTable('query_execution_logs', {
+	id: text('id').primaryKey(),
+	userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+	codeSnippet: text('code_snippet').notNull(), // Truncated code for audit (first 1000 chars)
+	success: integer('success', { mode: 'boolean' }).notNull(),
+	errorMessage: text('error_message'),
+	executionTimeMs: integer('execution_time_ms'),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+});
+
 // Type exports for use in the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -281,6 +294,7 @@ export type ObjectiveReflection = typeof objectiveReflections.$inferSelect;
 export type FriendRequest = typeof friendRequests.$inferSelect;
 export type Friendship = typeof friendships.$inferSelect;
 export type FriendNote = typeof friendNotes.$inferSelect;
+export type QueryExecutionLog = typeof queryExecutionLogs.$inferSelect;
 
 // Metric definition types for template configuration
 export interface MetricDefinition {

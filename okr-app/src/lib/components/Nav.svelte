@@ -42,6 +42,9 @@
 		<a href="/queries" class="nav-link" class:active={isActive('/queries')} onclick={closeMenu}>Queries</a>
 		<a href="/friends" class="nav-link" class:active={isActive('/friends')} onclick={closeMenu}>Friends</a>
 		<a href="/settings" class="nav-link" class:active={isActive('/settings')} onclick={closeMenu}>Settings</a>
+		{#if user.isAdmin}
+			<a href="/admin" class="nav-link nav-link-admin" class:active={isActive('/admin')} onclick={closeMenu}>Admin</a>
+		{/if}
 		<span class="nav-separator"></span>
 		<span class="nav-user">{user.username}</span>
 		<button class="btn btn-secondary btn-sm" onclick={handleLogout}>Logout</button>
@@ -137,6 +140,19 @@
 	.nav-link.active {
 		color: var(--color-primary);
 		background-color: rgb(59 130 246 / 0.1);
+	}
+
+	.nav-link-admin {
+		color: var(--color-warning);
+	}
+
+	.nav-link-admin:hover {
+		background-color: rgb(245 158 11 / 0.1);
+	}
+
+	.nav-link-admin.active {
+		color: var(--color-warning);
+		background-color: rgb(245 158 11 / 0.1);
 	}
 
 	.nav-separator {

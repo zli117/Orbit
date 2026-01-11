@@ -80,6 +80,16 @@ export async function executeQuery(
 	let progressValue: number | undefined = undefined;
 
 	try {
+		// Security: Freeze Object.prototype to prevent prototype pollution
+		context.evalCode(`
+			Object.freeze(Object.prototype);
+			Object.freeze(Array.prototype);
+			Object.freeze(Function.prototype);
+			Object.freeze(String.prototype);
+			Object.freeze(Number.prototype);
+			Object.freeze(Boolean.prototype);
+		`);
+
 		// Build the query API and inject it into the context
 		await injectQueryAPI(context, userId);
 
@@ -155,28 +165,51 @@ export async function executeQuery(
 
 /**
  * Extract error message from QuickJS dumped error object
+ * Security: Sanitizes output to remove stack traces and file paths
  */
 function extractErrorMessage(error: unknown): string {
+	let message: string;
+
 	if (typeof error === 'string') {
-		return error;
-	}
-	if (error && typeof error === 'object') {
+		message = error;
+	} else if (error && typeof error === 'object') {
 		// QuickJS errors are dumped as objects with message, name, stack properties
 		const errObj = error as { message?: string; name?: string; stack?: string };
 		if (errObj.message) {
-			return errObj.message;
+			message = errObj.message;
+		} else if (errObj.name) {
+			message = errObj.name;
+		} else {
+			// Don't expose full object structure
+			message = 'Query execution error';
 		}
-		if (errObj.name) {
-			return errObj.name;
-		}
-		// Try JSON stringify as fallback
-		try {
-			return JSON.stringify(error);
-		} catch {
-			return 'Unknown error';
-		}
+	} else {
+		message = 'Unknown error';
 	}
-	return String(error);
+
+	// Security: Sanitize error message
+	// Remove stack traces (lines starting with "at " or containing file paths)
+	message = message
+		.split('\n')
+		.filter(line => {
+			const trimmed = line.trim();
+			// Filter out stack trace lines
+			if (trimmed.startsWith('at ')) return false;
+			// Filter out lines with file paths
+			if (/\.(js|ts|mjs|cjs):\d+/.test(trimmed)) return false;
+			if (trimmed.includes('/node_modules/')) return false;
+			if (trimmed.includes('/src/')) return false;
+			return true;
+		})
+		.join('\n')
+		.trim();
+
+	// Limit message length
+	if (message.length > 500) {
+		message = message.slice(0, 500) + '...';
+	}
+
+	return message || 'Query execution error';
 }
 
 /**
