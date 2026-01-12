@@ -188,7 +188,28 @@ sudo systemctl start cloudflared
 
 Run multiple services behind a single reverse proxy. One Caddy/Nginx instance handles HTTPS for all your apps.
 
-### Caddy: Multiple Domains
+### Caddy: Self-Signed (Local Network)
+
+Simplest option for local-only access. Browser shows warning on first visit.
+
+```
+# /etc/caddy/Caddyfile
+{
+    local_certs
+}
+
+okr.local, 192.168.1.10 {
+    tls internal
+    reverse_proxy localhost:3000
+}
+
+nextcloud.local, 192.168.1.10:8443 {
+    tls internal
+    reverse_proxy localhost:8080
+}
+```
+
+### Caddy: Multiple Domains (Public Certs)
 
 ```
 # /etc/caddy/Caddyfile

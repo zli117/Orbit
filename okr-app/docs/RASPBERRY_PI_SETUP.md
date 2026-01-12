@@ -155,11 +155,87 @@ You should see HTML output. Press `Ctrl+C` to stop.
 
 ---
 
-## Part 3: Local HTTPS with DNS Challenge (Recommended)
+## Part 3: HTTPS Options
+
+Choose one:
+- **Option A: Self-signed** - Simplest, browser warning on first visit
+- **Option B: DNS Challenge** - Valid public cert, no browser warnings
+
+---
+
+### Option A: Self-Signed Certificate (Simplest)
+
+Caddy generates a self-signed cert automatically. Browser shows a warning once, then works fine.
+
+**Step 1: Install Caddy**
+
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install -y caddy
+```
+
+**Step 2: Configure Caddy**
+
+```bash
+sudo tee /etc/caddy/Caddyfile << 'EOF'
+{
+    # Use internal/self-signed certs
+    local_certs
+}
+
+# Use your Pi's hostname or IP
+okr.local, 192.168.1.x {
+    tls internal
+    reverse_proxy localhost:3000
+}
+EOF
+```
+
+Replace `192.168.1.x` with your Pi's actual IP.
+
+**Step 3: Start Caddy**
+
+```bash
+sudo systemctl restart caddy
+```
+
+**Step 4: Update OKR environment**
+
+```bash
+sed -i 's|ORIGIN=.*|ORIGIN=https://192.168.1.x|' /opt/okr-tracker/.env
+
+# Docker: restart container
+docker compose restart okr
+
+# Manual: restart service
+sudo systemctl restart okr-tracker
+```
+
+**Step 5: Trust the certificate (optional)**
+
+On first visit, your browser will warn about the self-signed cert. Click "Advanced" → "Proceed" (or "Accept the Risk").
+
+To avoid the warning permanently, export Caddy's root CA and add it to your devices:
+```bash
+# Find the root CA
+sudo cat /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt
+```
+
+Import this cert as a trusted CA on your devices.
+
+**Done!** Access via `https://192.168.1.x` or `https://okr.local` (if mDNS works).
+
+---
+
+### Option B: DNS Challenge (Valid Public Certificate)
 
 This approach:
 - Gets valid HTTPS certificates without opening any ports
 - Works entirely within your home network
+- No browser warnings
 - Use VPN (Tailscale/WireGuard) for remote access
 
 ### Step 3.1: Choose your DNS provider
