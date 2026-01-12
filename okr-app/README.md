@@ -92,6 +92,10 @@ When that user logs in, they are automatically granted admin status.
 
 ## Production Deployment
 
+For detailed deployment guides including HTTPS, backups, and Nextcloud integration, see:
+- [MAINTENANCE.md](MAINTENANCE.md) - Full operations playbook
+- [docs/RASPBERRY_PI_SETUP.md](docs/RASPBERRY_PI_SETUP.md) - Step-by-step Raspberry Pi guide with Cloudflare Tunnel
+
 ### Docker
 
 ```bash

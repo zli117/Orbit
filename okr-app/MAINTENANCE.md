@@ -589,6 +589,8 @@ echo "Backup complete and synced to Nextcloud"
 
 ## Raspberry Pi Deployment
 
+> **For a complete step-by-step guide**, see [docs/RASPBERRY_PI_SETUP.md](docs/RASPBERRY_PI_SETUP.md) which covers everything from fresh Pi to working HTTPS with Cloudflare Tunnel.
+
 ### Prerequisites
 
 - Raspberry Pi 4 (2GB+ RAM recommended) or Pi 5
