@@ -9,6 +9,7 @@ A self-hosted, open-source goal tracking system that connects your daily tasks t
 Most productivity tools lock you into their workflow. OKR Tracker gives you a structured framework — Objectives and Key Results — while letting you define exactly what you track, how you measure it, and what insights you pull from your data.
 
 - **Your data stays with you.** SQLite database on your own hardware. No cloud accounts, no subscriptions, no tracking.
+- **Use it with family and friends.** Multi-user out of the box. Everyone gets their own account, and you can share dashboards with each other to stay motivated together.
 - **Works on anything.** Runs on a Raspberry Pi, a NAS, or any machine with Node.js. Install as a PWA on your phone for a native app feel.
 - **Built for power users.** Write JavaScript queries against your own data. Build custom dashboards. Define computed metrics. Integrate with Fitbit. The system adapts to you, not the other way around.
 
@@ -39,9 +40,9 @@ All queries run in a **sandboxed QuickJS environment** (WebAssembly) — safe to
 
 Build a personalized dashboard with custom insight cards. Each widget runs a saved query and displays the result inline — charts, tables, or formatted text. See your data the way you want at a glance.
 
-### Friends
+### Multi-User & Friends
 
-Add friends to see their dashboards (read-only). Keep private notes on each friendship. A lightweight social layer for accountability without oversharing.
+Set up accounts for your family, partner, or friends on the same instance. Each person gets their own private workspace. Add each other as friends to view dashboards — see how everyone's tracking toward their goals without exposing the details of individual tasks. Great for households sharing a home server or small teams keeping each other accountable.
 
 ### Admin Dashboard
 
