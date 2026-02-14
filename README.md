@@ -1,182 +1,93 @@
 # OKR Tracker
 
-A personal OKR (Objectives and Key Results) tracking system with daily planning, custom metrics, and flexible data queries. Built with SvelteKit 5 and SQLite.
+A self-hosted, open-source goal tracking system that connects your daily tasks to your big-picture objectives. Plan your day, track what matters, query your data, and see how it all rolls up — from today's to-do list to this year's ambitions.
 
-## Features
+**Built for people who want to own their productivity data.**
 
-- **OKR Management**: Create yearly and monthly objectives with weighted key results
-- **Flexible Key Results**: Score via slider, checkboxes, or custom JavaScript queries
-- **Daily/Weekly Planning**: Track tasks, time spent, and progress
-- **Custom Metrics**: Define your own daily metrics with computed fields
-- **Query System**: Write custom JavaScript queries in a sandboxed QuickJS environment
-- **Fitbit Integration**: Sync sleep, steps, and activity data
-- **Multi-User Support**: Session-based authentication with bcrypt password hashing
-- **Real-Time Sync**: Server-Sent Events for cross-device synchronization
-- **PWA**: Installable as a Progressive Web App
-- **Backup/Restore**: Export and import all your data as JSON
+## Why OKR Tracker?
 
-## Tech Stack
+Most productivity tools lock you into their workflow. OKR Tracker gives you a structured framework — Objectives and Key Results — while letting you define exactly what you track, how you measure it, and what insights you pull from your data.
 
-- **Framework**: SvelteKit 5 with Svelte 5 runes
-- **Database**: SQLite with Drizzle ORM
-- **Query Sandbox**: QuickJS (via quickjs-emscripten)
-- **Charting**: Plotly.js
-- **Code Editor**: Monaco Editor
-- **Authentication**: Session cookies with bcrypt
+- **Your data stays with you.** SQLite database on your own hardware. No cloud accounts, no subscriptions, no tracking.
+- **Works on anything.** Runs on a Raspberry Pi, a NAS, or any machine with Node.js. Install as a PWA on your phone for a native app feel.
+- **Built for power users.** Write JavaScript queries against your own data. Build custom dashboards. Define computed metrics. Integrate with Fitbit. The system adapts to you, not the other way around.
 
-## Local Development
+## Core Features
 
-### Prerequisites
+### Plan Daily, Review Yearly
 
-- Node.js 22+
-- npm
+Track your work at every level — daily tasks with time tracking, weekly initiatives, monthly objectives, and yearly goals. Everything connects: completing today's tasks moves the needle on this month's key results.
 
-### Setup
+### Flexible Key Results
+
+Measure progress your way. Key results can be scored via sliders, checklists, or **custom JavaScript queries** that compute progress from your actual data. Set weights to control how each key result contributes to the overall objective score.
+
+### Custom Metrics
+
+Define your own daily metrics beyond the defaults. Three types:
+- **User Input** — numbers, times, text, or booleans you log each day
+- **Computed** — formulas that derive values from other metrics
+- **External** — pull data from integrations like Fitbit (sleep, steps, activity)
+
+### Query Playground
+
+A full code editor (Monaco) where you write JavaScript to analyze your data. Access your tasks, objectives, metrics, and daily records through a clean API. Render results as markdown, tables, or interactive Plotly charts. Save queries and reuse them across dashboard widgets and key results.
+
+All queries run in a **sandboxed QuickJS environment** (WebAssembly) — safe to run untrusted code without risking your server.
+
+### Dashboard Widgets
+
+Build a personalized dashboard with custom insight cards. Each widget runs a saved query and displays the result inline — charts, tables, or formatted text. See your data the way you want at a glance.
+
+### Friends
+
+Add friends to see their dashboards (read-only). Keep private notes on each friendship. A lightweight social layer for accountability without oversharing.
+
+### Admin Dashboard
+
+User management, query execution logs, security monitoring, and usage statistics. Disable accounts, audit query activity, and track error rates.
+
+## Quick Start
 
 ```bash
 cd okr-app
-
-# Install dependencies
 npm install
-
-# Initialize the database
 npm run db:push
-
-# Start development server
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+Open `http://localhost:5173`. That's it.
 
-### Environment Variables
-
-Create a `.env` file in `okr-app/` for optional configuration:
-
-```env
-# Database location (default: ./data/okr.db)
-DATABASE_PATH=./data/okr.db
-
-# Fitbit OAuth (optional)
-FITBIT_CLIENT_ID=your_client_id
-FITBIT_CLIENT_SECRET=your_client_secret
-PUBLIC_BASE_URL=http://localhost:5173
-```
-
-## Production Deployment
-
-### Using Docker (Recommended)
+For production with Docker:
 
 ```bash
 cd okr-app
-
-# Build and run with Docker Compose
 docker compose up -d
-
-# Or build manually
-docker build -t okr-tracker .
-docker run -d -p 3000:3000 -v okr-data:/app/data okr-tracker
 ```
 
-The app will be available at `http://localhost:3000`.
+See the [Setup Guide](okr-app/docs/SETUP.md) for full configuration options, environment variables, and database management.
 
-### Manual Deployment
+## Deployment
 
-```bash
-cd okr-app
+OKR Tracker is designed to run on modest hardware. A Raspberry Pi 4 with 2GB RAM is plenty.
 
-# Build for production
-npm run build
+| Guide | What it covers |
+|-------|---------------|
+| [Setup Guide](okr-app/docs/SETUP.md) | Local dev, Docker, manual deployment, environment variables, database management |
+| [Raspberry Pi Guide](okr-app/docs/RASPBERRY_PI_SETUP.md) | Step-by-step home server setup with HTTPS (self-signed or DNS challenge) |
+| [Maintenance Playbook](okr-app/docs/MAINTENANCE.md) | HTTPS options, reverse proxy configs, backups, Nextcloud sync, monitoring |
 
-# Set environment variables
-export NODE_ENV=production
-export DATABASE_PATH=/path/to/okr.db
+## Tech Stack
 
-# Run
-node build
-```
-
-### Docker Compose Configuration
-
-The included `docker-compose.yml` supports:
-
-```yaml
-environment:
-  - NODE_ENV=production
-  - DATABASE_PATH=/app/data/okr.db
-  # Fitbit OAuth (optional)
-  - FITBIT_CLIENT_ID=your_client_id
-  - FITBIT_CLIENT_SECRET=your_client_secret
-  - PUBLIC_BASE_URL=https://okr.example.com
-```
-
-## Database Management
-
-### Available Commands
-
-```bash
-# Push schema changes to database (for development)
-npm run db:push
-
-# Generate SQL migration files
-npm run db:generate
-
-# Run migrations
-npm run db:migrate
-
-# Open Drizzle Studio (database browser)
-npm run db:studio
-```
-
-### Database Location
-
-- **Development**: `okr-app/data/okr.db`
-- **Docker**: `/app/data/okr.db` (mounted as `okr-data` volume)
-- **Custom**: Set via `DATABASE_PATH` environment variable
-
-### Reset Database
-
-To start fresh, stop the app and delete the database files:
-
-```bash
-# Stop the app first!
-rm okr-app/data/okr.db okr-app/data/okr.db-wal okr-app/data/okr.db-shm
-
-# Recreate schema
-npm run db:push
-```
-
-The `-wal` and `-shm` files are SQLite WAL (Write-Ahead Logging) files. Always delete all three together.
-
-### Backup and Restore
-
-Use the Settings page in the app to:
-- **Download Backup**: Exports all your data as JSON
-- **Restore Backup**: Import a previously exported JSON file
-
-## Project Structure
-
-```
-okr-app/
-├── src/
-│   ├── lib/
-│   │   ├── components/     # Svelte components
-│   │   ├── db/
-│   │   │   ├── schema.ts   # Database schema (Drizzle)
-│   │   │   └── client.ts   # Database connection
-│   │   └── server/         # Server-side utilities
-│   └── routes/
-│       ├── api/            # API endpoints
-│       ├── daily/          # Daily planning page
-│       ├── weekly/         # Weekly planning page
-│       ├── objectives/     # OKR management
-│       ├── queries/        # Custom queries
-│       └── settings/       # User settings
-├── drizzle/                # Migration files
-├── static/                 # Static assets (icons, manifest)
-├── Dockerfile
-├── docker-compose.yml
-└── drizzle.config.ts
-```
+| Layer | Technology |
+|-------|-----------|
+| Framework | SvelteKit 5 with Svelte 5 runes |
+| Database | SQLite + Drizzle ORM |
+| Query Sandbox | QuickJS (WebAssembly) |
+| Charts | Plotly.js |
+| Code Editor | Monaco Editor |
+| Auth | Session cookies + bcrypt |
+| Deployment | Docker, systemd, or bare Node.js |
 
 ## License
 
