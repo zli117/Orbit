@@ -226,6 +226,15 @@
 			<span class="card-arrow">→</span>
 		</a>
 
+		<a href="/settings/ai" class="card settings-card">
+			<div class="card-icon card-icon-text">AI</div>
+			<div class="card-content">
+				<h2>AI Assistant</h2>
+				<p class="text-muted">Configure LLM provider for AI-powered code generation in the Query Builder</p>
+			</div>
+			<span class="card-arrow">→</span>
+		</a>
+
 		<!-- Preferences Section -->
 		<div class="card">
 			<h2>Preferences</h2>
@@ -373,6 +382,12 @@
 		transform: translateY(-2px);
 		box-shadow: var(--shadow-md);
 		text-decoration: none;
+	}
+
+	.card-icon-text {
+		font-size: 1.125rem;
+		font-weight: 700;
+		color: var(--color-primary);
 	}
 
 	.card-icon {

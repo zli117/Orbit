@@ -202,6 +202,19 @@ export const systemConfig = sqliteTable('system_config', {
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 });
 
+// User AI configuration for LLM-powered query generation
+export const userAiConfig = sqliteTable('user_ai_config', {
+	id: text('id').primaryKey(),
+	userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+	provider: text('provider', {
+		enum: ['anthropic', 'openai', 'gemini', 'openrouter', 'ollama']
+	}).notNull().default('anthropic'),
+	providersConfig: text('providers_config'), // JSON: { anthropic: { apiKey, model? }, openai: { apiKey, model? }, ... }
+	customSystemPrompt: text('custom_system_prompt'), // null = use default
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+});
+
 // Metrics templates (per-user, versioned by effective date)
 export const metricsTemplates = sqliteTable('metrics_templates', {
 	id: text('id').primaryKey(),
@@ -304,6 +317,7 @@ export type Friendship = typeof friendships.$inferSelect;
 export type FriendNote = typeof friendNotes.$inferSelect;
 export type QueryExecutionLog = typeof queryExecutionLogs.$inferSelect;
 export type SystemConfig = typeof systemConfig.$inferSelect;
+export type UserAiConfig = typeof userAiConfig.$inferSelect;
 
 // Metric definition types for template configuration
 export interface MetricDefinition {

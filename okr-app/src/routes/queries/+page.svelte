@@ -3,6 +3,7 @@
 	import { tick } from 'svelte';
 	import { marked } from 'marked';
 	import MonacoEditor from '$lib/components/MonacoEditor.svelte';
+	import AiChat from '$lib/components/AiChat.svelte';
 
 	interface RenderOutput {
 		type: 'markdown' | 'table' | 'plotly';
@@ -246,6 +247,10 @@ render.table({
 	function formatResult(value: unknown): string {
 		return JSON.stringify(value, null, 2);
 	}
+
+	function handleCopyToEditor(codeText: string) {
+		code = codeText;
+	}
 </script>
 
 <svelte:head>
@@ -263,6 +268,75 @@ render.table({
 	{/if}
 
 	<div class="query-layout">
+		<div class="sidebar-section">
+			<div class="card">
+				<h2>Saved Queries</h2>
+
+				{#if data.savedQueries.length === 0}
+					<p class="text-muted">No saved queries yet</p>
+				{:else}
+					<ul class="saved-queries-list">
+						{#each data.savedQueries as query}
+							<li class:active={selectedQuery?.id === query.id}>
+								<button class="query-item" onclick={() => loadQuery(query)}>
+									<span class="query-name">{query.name}</span>
+									{#if query.description}
+										<span class="query-desc">{query.description}</span>
+									{/if}
+								</button>
+								<button
+									class="btn-icon btn-icon-sm"
+									onclick={() => deleteQuery(query.id)}
+									title="Delete"
+								>
+									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<line x1="18" y1="6" x2="6" y2="18"/>
+										<line x1="6" y1="6" x2="18" y2="18"/>
+									</svg>
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+
+			<div class="card">
+				<h2>API Quick Reference</h2>
+				<div class="api-docs">
+					<h3>Data Fetching</h3>
+					<code>q.daily(&#123; year, month, ... &#125;)</code>
+					<code>q.tasks(&#123; year, tag, ... &#125;)</code>
+					<code>q.objectives(&#123; year, level &#125;)</code>
+					<code>q.today() → &#123; year, month, day, date, week &#125;</code>
+
+					<h3>Rendering</h3>
+					<code>render.markdown(text)</code>
+					<code>render.table(&#123; headers, rows &#125;)</code>
+					<code>render.plot.bar/line/pie/multi(...)</code>
+
+					<h3>Helpers</h3>
+					<code>q.sum(items, 'field')</code>
+					<code>q.avg(items, 'field')</code>
+					<code>q.count(items)</code>
+					<code>q.parseTime('7:30')</code>
+					<code>q.formatDuration(450)</code>
+
+					<h3>Progress</h3>
+					<code>progress.set(value)</code>
+					<p>Set KR progress (0-1)</p>
+
+					<a href="/queries/api-reference" target="_blank" rel="noopener" class="api-ref-link">
+						Full API Reference
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+							<polyline points="15 3 21 3 21 9"/>
+							<line x1="10" y1="14" x2="21" y2="3"/>
+						</svg>
+					</a>
+				</div>
+			</div>
+		</div>
+
 		<div class="editor-section">
 			<div class="card editor-card">
 				<div class="editor-header">
@@ -375,80 +449,20 @@ render.table({
 			</div>
 		</div>
 
-		<div class="saved-section">
-			<div class="card">
-				<h2>Saved Queries</h2>
-
-				{#if data.savedQueries.length === 0}
-					<p class="text-muted">No saved queries yet</p>
-				{:else}
-					<ul class="saved-queries-list">
-						{#each data.savedQueries as query}
-							<li class:active={selectedQuery?.id === query.id}>
-								<button class="query-item" onclick={() => loadQuery(query)}>
-									<span class="query-name">{query.name}</span>
-									{#if query.description}
-										<span class="query-desc">{query.description}</span>
-									{/if}
-								</button>
-								<button
-									class="btn-icon btn-icon-sm"
-									onclick={() => deleteQuery(query.id)}
-									title="Delete"
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-										<line x1="18" y1="6" x2="6" y2="18"/>
-										<line x1="6" y1="6" x2="18" y2="18"/>
-									</svg>
-								</button>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</div>
-
-			<div class="card">
-				<h2>API Quick Reference</h2>
-				<div class="api-docs">
-					<h3>Data Fetching</h3>
-					<code>q.daily(&#123; year, month, ... &#125;)</code>
-					<code>q.tasks(&#123; year, tag, ... &#125;)</code>
-					<code>q.objectives(&#123; year, level &#125;)</code>
-					<code>q.today() → &#123; year, month, day, date, week &#125;</code>
-
-					<h3>Rendering</h3>
-					<code>render.markdown(text)</code>
-					<code>render.table(&#123; headers, rows &#125;)</code>
-					<code>render.plot.bar/line/pie/multi(...)</code>
-
-					<h3>Helpers</h3>
-					<code>q.sum(items, 'field')</code>
-					<code>q.avg(items, 'field')</code>
-					<code>q.count(items)</code>
-					<code>q.parseTime('7:30')</code>
-					<code>q.formatDuration(450)</code>
-
-					<h3>Progress</h3>
-					<code>progress.set(value)</code>
-					<p>Set KR progress (0-1)</p>
-
-					<a href="/queries/api-reference" target="_blank" rel="noopener" class="api-ref-link">
-						Full API Reference
-						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-							<polyline points="15 3 21 3 21 9"/>
-							<line x1="10" y1="14" x2="21" y2="3"/>
-						</svg>
-					</a>
-				</div>
-			</div>
+		<div class="ai-section">
+			<AiChat
+				onCopyToEditor={handleCopyToEditor}
+				hasConfig={data.hasAiConfig}
+				configuredProviders={data.configuredProviders}
+				activeProvider={data.activeProvider}
+			/>
 		</div>
 	</div>
 </div>
 
 <style>
 	.queries-page {
-		max-width: 1400px;
+		max-width: 1800px;
 		margin: 0 auto;
 		padding: var(--spacing-lg);
 	}
@@ -472,13 +486,27 @@ render.table({
 
 	.query-layout {
 		display: grid;
-		grid-template-columns: 1fr 300px;
+		grid-template-columns: 260px 1fr 340px;
 		gap: var(--spacing-lg);
+	}
+
+	@media (max-width: 1400px) {
+		.query-layout {
+			grid-template-columns: 1fr 340px;
+		}
+
+		.sidebar-section {
+			display: none;
+		}
 	}
 
 	@media (max-width: 1024px) {
 		.query-layout {
 			grid-template-columns: 1fr;
+		}
+
+		.ai-section {
+			display: none;
 		}
 	}
 
@@ -541,15 +569,19 @@ render.table({
 		word-break: break-word;
 	}
 
-	.saved-section {
+	.sidebar-section {
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-lg);
 	}
 
-	.saved-section h2 {
+	.sidebar-section h2 {
 		margin: 0 0 var(--spacing-md);
 		font-size: 1rem;
+	}
+
+	.ai-section {
+		min-height: 0;
 	}
 
 	.saved-queries-list {
@@ -571,8 +603,8 @@ render.table({
 
 	.saved-queries-list li.active {
 		background-color: rgb(59 130 246 / 0.1);
-		margin: 0 calc(-1 * var(--spacing-lg));
-		padding: 0 var(--spacing-lg);
+		margin: 0 calc(-1 * var(--spacing-md));
+		padding: 0 var(--spacing-md);
 	}
 
 	.query-item {
