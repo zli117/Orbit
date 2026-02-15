@@ -4,7 +4,7 @@
 
 import type { DataImportPlugin, PluginConfig, OAuthCredentials, SyncResult, ImportedDataRecord } from './types';
 import { db } from '$lib/db/client';
-import { plugins, dailyMetrics, timePeriods } from '$lib/db/schema';
+import { plugins, dailyMetrics, timePeriods, dailyMetricValues } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -161,7 +161,7 @@ export async function syncPluginData(
 
 	for (const record of records) {
 		try {
-			await importDailyMetrics(userId, record);
+			await importDailyMetrics(userId, pluginId, record);
 			importedCount++;
 		} catch (error) {
 			errors.push(`Failed to import ${record.date}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -185,9 +185,11 @@ export async function syncPluginData(
 }
 
 /**
- * Import daily metrics from plugin data
+ * Import daily metrics from plugin data.
+ * Writes to both the legacy dailyMetrics table and the new dailyMetricValues table
+ * so the flexible template system can read synced data.
  */
-async function importDailyMetrics(userId: string, record: ImportedDataRecord): Promise<void> {
+async function importDailyMetrics(userId: string, pluginId: string, record: ImportedDataRecord): Promise<void> {
 	// Find or create the time period for this date
 	let period = await db.query.timePeriods.findFirst({
 		where: and(
@@ -269,6 +271,39 @@ async function importDailyMetrics(userId: string, record: ImportedDataRecord): P
 			timePeriodId: period.id,
 			...metricsData
 		});
+	}
+
+	// Also write to dailyMetricValues for the flexible template system.
+	// Each field is stored with the source key "pluginId.fieldId" (e.g. "fitbit.sleepLength")
+	// so the template system can find them via external source references.
+	for (const [fieldId, value] of Object.entries(record.fields)) {
+		if (value === undefined) continue;
+
+		const metricName = `${pluginId}.${fieldId}`;
+		const stringValue = value === null ? null : String(value);
+
+		const existingValue = await db.query.dailyMetricValues.findFirst({
+			where: and(
+				eq(dailyMetricValues.userId, userId),
+				eq(dailyMetricValues.date, record.date),
+				eq(dailyMetricValues.metricName, metricName)
+			)
+		});
+
+		if (existingValue) {
+			await db.update(dailyMetricValues)
+				.set({ value: stringValue })
+				.where(eq(dailyMetricValues.id, existingValue.id));
+		} else {
+			await db.insert(dailyMetricValues).values({
+				id: uuidv4(),
+				userId,
+				date: record.date,
+				metricName,
+				value: stringValue,
+				source: pluginId
+			});
+		}
 	}
 }
 

@@ -85,7 +85,7 @@
 
 <div class="settings-page">
 	<header class="page-header">
-		<a href="/settings" class="back-link">← Settings</a>
+		<a href="/settings" class="back-link">&larr; Settings</a>
 		<h1>Integrations</h1>
 		<p class="text-muted">Connect external services to automatically import your health and fitness data.</p>
 	</header>
@@ -131,9 +131,7 @@
 							<p class="plugin-desc">{plugin.description}</p>
 						</div>
 						<div class="plugin-status">
-							{#if !plugin.configured && data.isAdmin}
-								<span class="status-badge not-configured">Not Configured</span>
-							{:else if plugin.connected}
+							{#if plugin.connected}
 								<span class="status-badge connected">Connected</span>
 							{:else}
 								<span class="status-badge disconnected">Not Connected</span>
@@ -141,11 +139,7 @@
 						</div>
 					</div>
 
-					{#if !plugin.configured && data.isAdmin}
-						<div class="plugin-unconfigured">
-							<p class="text-muted">This plugin requires environment variables to be set before users can connect.</p>
-						</div>
-					{:else if plugin.connected}
+					{#if plugin.connected}
 						<div class="plugin-details">
 							<div class="sync-info">
 								<span class="sync-label">Last sync:</span>
@@ -207,30 +201,6 @@
 				</div>
 			{/each}
 		</div>
-	{/if}
-
-	{#if data.isAdmin}
-		<section class="setup-info card">
-			<h2>Admin: Setup Instructions</h2>
-			<p class="text-muted mb-md">To enable the Fitbit integration for all users:</p>
-			<ol>
-				<li>Create a Fitbit Developer account at <a href="https://dev.fitbit.com" target="_blank" rel="noopener">dev.fitbit.com</a></li>
-				<li>Register a new application with:
-					<ul>
-						<li>OAuth 2.0 Application Type: <strong>Personal</strong></li>
-						<li>Callback URL: <code>YOUR_DOMAIN/api/plugins/fitbit/callback</code></li>
-					</ul>
-				</li>
-				<li>Add the following environment variables and restart the server:
-					<ul>
-						<li><code>FITBIT_CLIENT_ID</code> - Your Fitbit OAuth 2.0 Client ID</li>
-						<li><code>FITBIT_CLIENT_SECRET</code> - Your Fitbit Client Secret</li>
-						<li><code>PUBLIC_BASE_URL</code> - Your app's public URL (e.g., https://okr.example.com)</li>
-					</ul>
-				</li>
-			</ol>
-			<p class="text-muted" style="margin-top: var(--spacing-md);">Once configured, all users will be able to connect their own Fitbit accounts.</p>
-		</section>
 	{/if}
 </div>
 
@@ -301,7 +271,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-md);
-		margin-bottom: var(--spacing-xl);
 	}
 
 	.plugin-card {
@@ -357,17 +326,6 @@
 	.status-badge.disconnected {
 		background-color: var(--color-bg-hover);
 		color: var(--color-text-muted);
-	}
-
-	.status-badge.not-configured {
-		background-color: #fef3c7;
-		color: #92400e;
-	}
-
-	.plugin-unconfigured {
-		padding-top: var(--spacing-md);
-		border-top: 1px solid var(--color-border);
-		font-size: 0.875rem;
 	}
 
 	.empty-state {
@@ -437,39 +395,5 @@
 		gap: var(--spacing-sm);
 		padding-top: var(--spacing-md);
 		border-top: 1px solid var(--color-border);
-	}
-
-	.setup-info {
-		font-size: 0.875rem;
-	}
-
-	.setup-info h2 {
-		font-size: 1rem;
-		margin: 0 0 var(--spacing-md);
-	}
-
-	.setup-info ol {
-		margin: 0;
-		padding-left: var(--spacing-lg);
-	}
-
-	.setup-info li {
-		margin-bottom: var(--spacing-sm);
-	}
-
-	.setup-info ul {
-		margin: var(--spacing-xs) 0;
-		padding-left: var(--spacing-md);
-	}
-
-	.setup-info code {
-		background-color: var(--color-bg);
-		padding: 2px 6px;
-		border-radius: var(--radius-sm);
-		font-size: 0.8125rem;
-	}
-
-	.setup-info a {
-		color: var(--color-primary);
 	}
 </style>

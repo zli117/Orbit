@@ -38,7 +38,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 	try {
 		// Exchange code for tokens
-		const config = fitbitPlugin.getOAuthConfig();
+		const config = await fitbitPlugin.getOAuthConfig();
 		const credentials = await exchangeCodeForTokens(config, code, pending.codeVerifier);
 
 		// Save credentials

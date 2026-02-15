@@ -51,7 +51,6 @@ export const load: PageServerLoad = async ({ params, locals, fetch, depends }) =
 			date: dateStr,
 			period: null,
 			tasks: [],
-			metrics: null,
 			flexibleMetrics: null,
 			weeklyInitiatives: [],
 			weeklyPeriod: null,
@@ -101,7 +100,6 @@ export const load: PageServerLoad = async ({ params, locals, fetch, depends }) =
 		date: dateStr,
 		period: data.period,
 		tasks: data.tasks || [],
-		metrics: data.metrics,
 		tags: tagsData.tags || [],
 		// Flexible metrics system
 		flexibleMetrics: flexResponse.ok ? {

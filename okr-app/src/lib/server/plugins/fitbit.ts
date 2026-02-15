@@ -2,9 +2,9 @@
  * Fitbit Plugin - Import health and fitness data from Fitbit
  */
 
-import type { DataImportPlugin, OAuthConfig, OAuthCredentials, DataFieldDescriptor, ImportedDataRecord } from './types';
+import type { DataImportPlugin, OAuthConfig, OAuthCredentials, DataFieldDescriptor, ImportedDataRecord, AdminConfigField, SetupInfoItem } from './types';
 import { refreshAccessToken } from './oauth';
-import { env } from '$env/dynamic/private';
+import { getConfigValue } from '$lib/server/config';
 
 const FITBIT_API_BASE = 'https://api.fitbit.com';
 
@@ -14,15 +14,51 @@ export const fitbitPlugin: DataImportPlugin = {
 	description: 'Import sleep, activity, and health data from Fitbit',
 	icon: '⌚',
 
-	isConfigured(): boolean {
-		return !!(env.FITBIT_CLIENT_ID && env.FITBIT_CLIENT_SECRET);
+	getAdminConfigFields(): AdminConfigField[] {
+		return [
+			{
+				key: 'client_id',
+				label: 'Client ID',
+				description: 'OAuth 2.0 Client ID from dev.fitbit.com',
+				type: 'text',
+				required: true,
+				placeholder: 'e.g., 23ABCD'
+			},
+			{
+				key: 'client_secret',
+				label: 'Client Secret',
+				description: 'OAuth 2.0 Client Secret from dev.fitbit.com',
+				type: 'password',
+				required: true,
+				placeholder: '••••••••'
+			}
+		];
 	},
 
-	getOAuthConfig(): OAuthConfig {
-		const baseUrl = env.PUBLIC_BASE_URL || 'http://localhost:5173';
+	getSetupInfo(configValues: Record<string, string>): SetupInfoItem[] {
+		const baseUrl = configValues['global.base_url'] || 'http://localhost:5173';
+		return [
+			{
+				label: 'OAuth Callback URL',
+				value: `${baseUrl}/api/plugins/fitbit/callback`,
+				copyable: true
+			}
+		];
+	},
+
+	async isConfigured(): Promise<boolean> {
+		const clientId = await getConfigValue('plugin.fitbit.client_id');
+		const clientSecret = await getConfigValue('plugin.fitbit.client_secret');
+		return !!(clientId && clientSecret);
+	},
+
+	async getOAuthConfig(): Promise<OAuthConfig> {
+		const baseUrl = (await getConfigValue('global.base_url')) || 'http://localhost:5173';
+		const clientId = (await getConfigValue('plugin.fitbit.client_id')) || '';
+		const clientSecret = (await getConfigValue('plugin.fitbit.client_secret')) || '';
 		return {
-			clientId: env.FITBIT_CLIENT_ID || '',
-			clientSecret: env.FITBIT_CLIENT_SECRET || '',
+			clientId,
+			clientSecret,
 			authorizationUrl: 'https://www.fitbit.com/oauth2/authorize',
 			tokenUrl: 'https://api.fitbit.com/oauth2/token',
 			scopes: ['sleep', 'activity', 'heartrate', 'profile'],
@@ -98,7 +134,7 @@ export const fitbitPlugin: DataImportPlugin = {
 	},
 
 	async refreshTokens(credentials: OAuthCredentials): Promise<OAuthCredentials> {
-		const config = this.getOAuthConfig();
+		const config = await this.getOAuthConfig();
 		return refreshAccessToken(config, credentials.refreshToken);
 	},
 

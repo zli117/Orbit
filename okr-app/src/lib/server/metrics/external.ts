@@ -1,7 +1,13 @@
 /**
  * External Sources - Fetches metric values from external plugins (Fitbit, etc.)
+ *
+ * First checks dailyMetricValues for previously synced data.
+ * Falls back to live API calls only for missing values.
  */
 
+import { db } from '$lib/db/client';
+import { dailyMetricValues } from '$lib/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import { getPlugin, getUserPluginConfig } from '$lib/server/plugins/manager';
 import type { MetricValues } from './evaluator';
 
@@ -23,7 +29,8 @@ function parseSource(source: string): ExternalSourceConfig | null {
 }
 
 /**
- * Fetch external metric values for a specific date
+ * Fetch external metric values for a specific date.
+ * Reads from dailyMetricValues (synced data) first, then falls back to live API.
  */
 export async function fetchExternalMetrics(
 	userId: string,
@@ -32,9 +39,41 @@ export async function fetchExternalMetrics(
 ): Promise<MetricValues> {
 	const values: MetricValues = {};
 
-	// Group sources by plugin
-	const sourcesByPlugin = new Map<string, string[]>();
+	if (sourceIds.length === 0) return values;
+
+	// Check dailyMetricValues for already-synced data
+	const storedValues = await db.query.dailyMetricValues.findMany({
+		where: and(
+			eq(dailyMetricValues.userId, userId),
+			eq(dailyMetricValues.date, date),
+			inArray(dailyMetricValues.metricName, sourceIds)
+		)
+	});
+
+	const storedMap = new Map(storedValues.map(v => [v.metricName, v.value]));
+
+	// Identify which source IDs still need fetching
+	const missingSourceIds = sourceIds.filter(id => !storedMap.has(id));
+
+	// Use stored values
 	for (const sourceId of sourceIds) {
+		if (storedMap.has(sourceId)) {
+			const raw = storedMap.get(sourceId);
+			// Try to parse as number if it looks numeric
+			if (raw !== null && raw !== undefined && raw !== '' && !isNaN(Number(raw))) {
+				values[sourceId] = Number(raw);
+			} else {
+				values[sourceId] = raw ?? null;
+			}
+		}
+	}
+
+	// If all values were found in DB, skip live API calls
+	if (missingSourceIds.length === 0) return values;
+
+	// Group missing sources by plugin for live fetch
+	const sourcesByPlugin = new Map<string, string[]>();
+	for (const sourceId of missingSourceIds) {
 		const config = parseSource(sourceId);
 		if (!config) continue;
 
@@ -43,7 +82,7 @@ export async function fetchExternalMetrics(
 		sourcesByPlugin.set(config.pluginId, fields);
 	}
 
-	// Fetch data from each plugin
+	// Fetch missing data from each plugin via live API
 	for (const [pluginId, fields] of sourcesByPlugin) {
 		const plugin = getPlugin(pluginId);
 		if (!plugin) continue;
@@ -52,7 +91,6 @@ export async function fetchExternalMetrics(
 		if (!config || !config.credentials) continue;
 
 		try {
-			// Fetch data for this specific date
 			const records = await plugin.fetchData(
 				config.credentials,
 				date,
@@ -60,7 +98,6 @@ export async function fetchExternalMetrics(
 				fields
 			);
 
-			// Find the record for this date
 			const record = records.find(r => r.date === date);
 			if (record) {
 				for (const fieldId of fields) {
@@ -70,7 +107,6 @@ export async function fetchExternalMetrics(
 			}
 		} catch (error) {
 			console.error(`Error fetching data from ${pluginId}:`, error);
-			// Set null values for failed fields
 			for (const fieldId of fields) {
 				values[`${pluginId}.${fieldId}`] = null;
 			}

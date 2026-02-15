@@ -359,47 +359,8 @@
 						</div>
 					{/each}
 				</div>
-			{:else if data.metrics}
-				<div class="metrics-grid">
-					{#if data.metrics.sleepLength}
-						<div class="metric-item">
-							<span class="metric-label">Sleep</span>
-							<span class="metric-value">{data.metrics.sleepLength}</span>
-						</div>
-					{/if}
-					{#if data.metrics.wakeUpTime}
-						<div class="metric-item">
-							<span class="metric-label">Wake Up</span>
-							<span class="metric-value">{data.metrics.wakeUpTime}</span>
-						</div>
-					{/if}
-					{#if data.metrics.steps}
-						<div class="metric-item">
-							<span class="metric-label">Steps</span>
-							<span class="metric-value">{data.metrics.steps.toLocaleString()}</span>
-						</div>
-					{/if}
-					{#if data.metrics.cardioLoad}
-						<div class="metric-item">
-							<span class="metric-label">Cardio Load</span>
-							<span class="metric-value">{data.metrics.cardioLoad}</span>
-						</div>
-					{/if}
-					{#if data.metrics.fitbitReadiness}
-						<div class="metric-item">
-							<span class="metric-label">Readiness</span>
-							<span class="metric-value">{data.metrics.fitbitReadiness}</span>
-						</div>
-					{/if}
-					{#if data.metrics.restingHeartRate}
-						<div class="metric-item">
-							<span class="metric-label">Resting HR</span>
-							<span class="metric-value">{data.metrics.restingHeartRate} bpm</span>
-						</div>
-					{/if}
-				</div>
 			{:else}
-				<p class="text-muted text-sm">No metrics recorded for this day.</p>
+				<p class="text-muted text-sm">No metrics template configured. <a href="/settings/metrics">Create one</a> to start tracking.</p>
 			{/if}
 		</section>
 

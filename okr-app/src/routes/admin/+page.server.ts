@@ -3,6 +3,8 @@ import { redirect, error } from '@sveltejs/kit';
 import { db } from '$lib/db/client';
 import { users, queryExecutionLogs } from '$lib/db/schema';
 import { desc, gte, eq } from 'drizzle-orm';
+import { getAllConfig, GLOBAL_CONFIG_FIELDS } from '$lib/server/config';
+import { getRegisteredPlugins, initializePlugins } from '$lib/server/plugins';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -95,10 +97,38 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	};
 
+	// Get system configuration for config tab
+	initializePlugins();
+	const allConfig = await getAllConfig();
+	const allPlugins = getRegisteredPlugins();
+
+	// Build a config key→value map for getSetupInfo
+	const configMap: Record<string, string> = {};
+	for (const entry of allConfig) {
+		if (!entry.isSecret) {
+			configMap[entry.key] = entry.value;
+		}
+	}
+
+	const pluginConfigs = await Promise.all(
+		allPlugins.map(async (plugin) => ({
+			id: plugin.id,
+			name: plugin.name,
+			description: plugin.description,
+			icon: plugin.icon,
+			configured: await plugin.isConfigured(),
+			adminFields: plugin.getAdminConfigFields(),
+			setupInfo: plugin.getSetupInfo(configMap)
+		}))
+	);
+
 	return {
 		user: locals.user,
 		users: safeUsers,
 		logs: enrichedLogs,
-		stats
+		stats,
+		systemConfig: allConfig,
+		pluginConfigs,
+		globalFields: GLOBAL_CONFIG_FIELDS
 	};
 };

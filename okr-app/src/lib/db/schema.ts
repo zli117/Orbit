@@ -194,6 +194,14 @@ export const plugins = sqliteTable('plugins', {
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 });
 
+// System-wide configuration (admin-managed, replaces environment variables)
+export const systemConfig = sqliteTable('system_config', {
+	key: text('key').primaryKey(),
+	value: text('value').notNull(),
+	isSecret: integer('is_secret', { mode: 'boolean' }).notNull().default(false),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+});
+
 // Metrics templates (per-user, versioned by effective date)
 export const metricsTemplates = sqliteTable('metrics_templates', {
 	id: text('id').primaryKey(),
@@ -295,6 +303,7 @@ export type FriendRequest = typeof friendRequests.$inferSelect;
 export type Friendship = typeof friendships.$inferSelect;
 export type FriendNote = typeof friendNotes.$inferSelect;
 export type QueryExecutionLog = typeof queryExecutionLogs.$inferSelect;
+export type SystemConfig = typeof systemConfig.$inferSelect;
 
 // Metric definition types for template configuration
 export interface MetricDefinition {

@@ -10,7 +10,7 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	const config = fitbitPlugin.getOAuthConfig();
+	const config = await fitbitPlugin.getOAuthConfig();
 
 	if (!config.clientId) {
 		return json({ error: 'Fitbit not configured. Set FITBIT_CLIENT_ID and FITBIT_CLIENT_SECRET environment variables.' }, { status: 500 });

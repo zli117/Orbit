@@ -22,12 +22,120 @@
 		createdAt: Date;
 	}
 
+	interface AdminConfigField {
+		key: string;
+		label: string;
+		description?: string;
+		type: 'text' | 'password' | 'url';
+		required: boolean;
+		placeholder?: string;
+	}
+
+	interface PluginConfigData {
+		id: string;
+		name: string;
+		description: string;
+		icon?: string;
+		configured: boolean;
+		adminFields: AdminConfigField[];
+	}
+
 	let { data } = $props();
 
-	let activeTab = $state<'users' | 'logs'>('users');
+	let activeTab = $state<'config' | 'users' | 'logs'>('config');
 	let loading = $state(false);
 	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let expandedLogId = $state<string | null>(null);
+
+	// Config tab state
+	let configValues = $state<Record<string, string>>({});
+	let savingConfig = $state(false);
+
+	// Initialize config values from server data
+	$effect.pre(() => {
+		const values: Record<string, string> = {};
+		for (const entry of data.systemConfig || []) {
+			values[entry.key] = entry.value;
+		}
+		configValues = values;
+	});
+
+	function getConfigValue(key: string): string {
+		return configValues[key] || '';
+	}
+
+	function setConfigFieldValue(key: string, value: string) {
+		configValues = { ...configValues, [key]: value };
+	}
+
+	async function saveGlobalConfig() {
+		savingConfig = true;
+		message = null;
+
+		try {
+			const entries = (data.globalFields || []).map((field: AdminConfigField) => ({
+				key: `global.${field.key}`,
+				value: getConfigValue(`global.${field.key}`),
+				isSecret: field.type === 'password'
+			}));
+
+			const response = await fetch('/api/admin/config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ entries })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to save');
+			}
+
+			message = { type: 'success', text: 'Global configuration saved' };
+			await invalidateAll();
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to save' };
+		} finally {
+			savingConfig = false;
+		}
+	}
+
+	async function savePluginConfig(plugin: PluginConfigData) {
+		savingConfig = true;
+		message = null;
+
+		try {
+			const entries = plugin.adminFields.map((field) => ({
+				key: `plugin.${plugin.id}.${field.key}`,
+				value: getConfigValue(`plugin.${plugin.id}.${field.key}`),
+				isSecret: field.type === 'password'
+			}));
+
+			const response = await fetch('/api/admin/config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ entries })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to save');
+			}
+
+			message = { type: 'success', text: `${plugin.name} configuration saved` };
+			await invalidateAll();
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to save' };
+		} finally {
+			savingConfig = false;
+		}
+	}
+
+	function hasSecretSet(key: string): boolean {
+		// If the key exists in systemConfig and is a secret, it means it's set
+		return (data.systemConfig || []).some(
+			(entry: { key: string; isSecret: boolean }) => entry.key === key && entry.isSecret
+		);
+	}
 
 	function formatDate(date: Date | string) {
 		const d = new Date(date);
@@ -174,6 +282,9 @@
 
 	<!-- Tabs -->
 	<div class="tabs">
+		<button class="tab" class:active={activeTab === 'config'} onclick={() => (activeTab = 'config')}>
+			Configuration
+		</button>
 		<button class="tab" class:active={activeTab === 'users'} onclick={() => (activeTab = 'users')}>
 			Users ({data.users.length})
 		</button>
@@ -181,6 +292,103 @@
 			Query Logs ({data.logs.length})
 		</button>
 	</div>
+
+	<!-- Configuration Tab -->
+	{#if activeTab === 'config'}
+		<div class="config-section">
+			<!-- Global Configuration -->
+			<div class="config-card">
+				<div class="config-card-header">
+					<h2>Global Configuration</h2>
+				</div>
+				<form onsubmit={(e) => { e.preventDefault(); saveGlobalConfig(); }}>
+					{#each data.globalFields || [] as field}
+						<div class="form-group">
+							<label for="global-{field.key}" class="form-label">{field.label}</label>
+							{#if field.description}
+								<p class="form-help">{field.description}</p>
+							{/if}
+							<input
+								id="global-{field.key}"
+								type={field.type === 'password' ? 'password' : 'text'}
+								class="form-input"
+								value={getConfigValue(`global.${field.key}`)}
+								oninput={(e) => setConfigFieldValue(`global.${field.key}`, e.currentTarget.value)}
+								placeholder={field.placeholder || ''}
+							/>
+						</div>
+					{/each}
+					<div class="config-actions">
+						<button type="submit" class="btn btn-primary" disabled={savingConfig}>
+							{savingConfig ? 'Saving...' : 'Save'}
+						</button>
+					</div>
+				</form>
+			</div>
+
+			<!-- Plugin Configuration -->
+			{#each data.pluginConfigs || [] as plugin}
+				<div class="config-card">
+					<div class="config-card-header">
+						<div class="config-card-title">
+							{#if plugin.icon}
+								<span class="config-icon">{plugin.icon}</span>
+							{/if}
+							<div>
+								<h2>{plugin.name}</h2>
+								<p class="text-muted config-desc">{plugin.description}</p>
+							</div>
+						</div>
+						{#if plugin.configured}
+							<span class="badge badge-active">Configured</span>
+						{:else}
+							<span class="badge badge-not-configured">Not Configured</span>
+						{/if}
+					</div>
+					{#if plugin.setupInfo?.length}
+						<div class="setup-info">
+							{#each plugin.setupInfo as info}
+								<div class="setup-info-item">
+									<span class="setup-info-label">{info.label}</span>
+									{#if info.copyable}
+										<button type="button" class="setup-info-value copyable" title="Click to copy"
+											onclick={() => { navigator.clipboard.writeText(info.value); }}
+										>{info.value}</button>
+									{:else}
+										<span class="setup-info-value">{info.value}</span>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+					<form onsubmit={(e) => { e.preventDefault(); savePluginConfig(plugin); }}>
+						{#each plugin.adminFields as field}
+							{@const fullKey = `plugin.${plugin.id}.${field.key}`}
+							<div class="form-group">
+								<label for="plugin-{plugin.id}-{field.key}" class="form-label">{field.label}</label>
+								{#if field.description}
+									<p class="form-help">{field.description}</p>
+								{/if}
+								<input
+									id="plugin-{plugin.id}-{field.key}"
+									type={field.type === 'password' ? 'password' : 'text'}
+									class="form-input"
+									value={getConfigValue(fullKey)}
+									oninput={(e) => setConfigFieldValue(fullKey, e.currentTarget.value)}
+									placeholder={field.type === 'password' && hasSecretSet(fullKey) ? 'Currently set (leave blank to keep)' : field.placeholder || ''}
+								/>
+							</div>
+						{/each}
+						<div class="config-actions">
+							<button type="submit" class="btn btn-primary" disabled={savingConfig}>
+								{savingConfig ? 'Saving...' : 'Save'}
+							</button>
+						</div>
+					</form>
+				</div>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Users Tab -->
 	{#if activeTab === 'users'}
@@ -609,5 +817,136 @@
 		background-color: #fef2f2;
 		border-color: #fecaca;
 		color: var(--color-error);
+	}
+
+	/* Configuration Tab */
+	.config-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-lg);
+	}
+
+	.config-card {
+		background-color: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		padding: var(--spacing-lg);
+	}
+
+	.config-card-header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: var(--spacing-md);
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.config-card-header h2 {
+		margin: 0;
+		font-size: 1.125rem;
+	}
+
+	.config-card-title {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--spacing-sm);
+	}
+
+	.config-icon {
+		font-size: 1.5rem;
+		flex-shrink: 0;
+	}
+
+	.config-desc {
+		margin: var(--spacing-xs) 0 0;
+		font-size: 0.875rem;
+	}
+
+	.badge-not-configured {
+		background-color: #fef3c7;
+		color: #92400e;
+		white-space: nowrap;
+	}
+
+	.form-group {
+		margin-bottom: var(--spacing-md);
+	}
+
+	.form-label {
+		display: block;
+		font-weight: 500;
+		font-size: 0.875rem;
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.form-help {
+		margin: 0 0 var(--spacing-xs);
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+
+	.form-input {
+		width: 100%;
+		padding: var(--spacing-sm) var(--spacing-md);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		font-size: 0.875rem;
+		background-color: var(--color-bg);
+		color: var(--color-text);
+	}
+
+	.form-input:focus {
+		outline: none;
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+	}
+
+	.setup-info {
+		background-color: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-sm) var(--spacing-md);
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.setup-info-item {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		font-size: 0.875rem;
+	}
+
+	.setup-info-item + .setup-info-item {
+		margin-top: var(--spacing-xs);
+	}
+
+	.setup-info-label {
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+
+	.setup-info-value {
+		font-weight: 500;
+	}
+
+	.setup-info-value.copyable {
+		background-color: var(--color-bg-hover);
+		padding: 2px var(--spacing-xs);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		user-select: all;
+		word-break: break-all;
+		font-size: 0.8125rem;
+	}
+
+	.setup-info-value.copyable:hover {
+		background-color: var(--color-border);
+	}
+
+	.config-actions {
+		display: flex;
+		justify-content: flex-end;
+		padding-top: var(--spacing-md);
+		border-top: 1px solid var(--color-border);
 	}
 </style>

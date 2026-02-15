@@ -49,6 +49,22 @@ export interface SyncResult {
 	lastSyncDate?: string;
 }
 
+export interface AdminConfigField {
+	key: string;
+	label: string;
+	description?: string;
+	type: 'text' | 'password' | 'url';
+	required: boolean;
+	placeholder?: string;
+}
+
+export interface SetupInfoItem {
+	label: string;
+	value: string;
+	/** If true, the value is rendered as a copyable code snippet */
+	copyable?: boolean;
+}
+
 /**
  * Base interface for data import plugins
  */
@@ -58,11 +74,17 @@ export interface DataImportPlugin {
 	description: string;
 	icon?: string;
 
-	// Check if plugin has been configured by admin (e.g. OAuth credentials set)
-	isConfigured(): boolean;
+	// Admin config fields this plugin requires (e.g. client_id, client_secret)
+	getAdminConfigFields(): AdminConfigField[];
 
-	// OAuth configuration
-	getOAuthConfig(): OAuthConfig;
+	// Dynamic info items shown in the admin config form (e.g. computed callback URL)
+	getSetupInfo(configValues: Record<string, string>): SetupInfoItem[];
+
+	// Check if plugin has been configured by admin (reads from DB/env)
+	isConfigured(): Promise<boolean>;
+
+	// OAuth configuration (reads from DB/env)
+	getOAuthConfig(): Promise<OAuthConfig>;
 
 	// Available data fields this plugin can import
 	getAvailableFields(): DataFieldDescriptor[];
