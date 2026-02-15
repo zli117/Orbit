@@ -165,6 +165,7 @@
 				<button
 					type="button"
 					class="tag-remove"
+					aria-label="Remove {tag.name}"
 					onclick={() => removeTag(tag.id)}
 					{disabled}
 					tabindex="-1"

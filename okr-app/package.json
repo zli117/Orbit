@@ -39,5 +39,11 @@
 		"plotly.js-basic-dist-min": "^3.3.1",
 		"quickjs-emscripten": "^0.31.0",
 		"uuid": "^13.0.0"
+	},
+	"overrides": {
+		"cookie": "^1.1.1",
+		"@esbuild-kit/core-utils": {
+			"esbuild": "^0.25.0"
+		}
 	}
 }

@@ -8,9 +8,9 @@
 	let addFriendSuccess = $state('');
 
 	// Local state for optimistic updates
-	let friends = $state(data.friends);
-	let incomingRequests = $state(data.requests.incoming);
-	let outgoingRequests = $state(data.requests.outgoing);
+	let friends = $state<any[]>([]);
+	let incomingRequests = $state<any[]>([]);
+	let outgoingRequests = $state<any[]>([]);
 
 	// Sync from server data
 	$effect.pre(() => {

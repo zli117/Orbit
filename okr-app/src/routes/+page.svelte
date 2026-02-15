@@ -12,23 +12,21 @@
 	let { data } = $props();
 
 	// Month selector state
-	let selectedMonth = $state(data.currentMonth || new Date().getMonth() + 1);
+	let selectedMonth = $state(new Date().getMonth() + 1);
 
 	const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
 		'July', 'August', 'September', 'October', 'November', 'December'];
 
 	// Monthly objectives - local state for when user changes month
-	let monthlyObjectives = $state(data.monthlyObjectives || []);
+	let monthlyObjectives = $state<any[]>([]);
 	let loadingMonthly = $state(false);
 
 	// Dashboard widgets state
-	let widgets = $state<Widget[]>(data.widgets || []);
+	let widgets = $state<Widget[]>([]);
 
-	// Sync when server data changes
-	$effect(() => {
-		if (data.currentMonth) {
-			selectedMonth = data.currentMonth;
-		}
+	// Sync from server data (handles both initial load and subsequent updates)
+	$effect.pre(() => {
+		selectedMonth = data.currentMonth || new Date().getMonth() + 1;
 		monthlyObjectives = data.monthlyObjectives || [];
 		widgets = data.widgets || [];
 	});

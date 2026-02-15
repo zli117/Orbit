@@ -9,16 +9,20 @@
 	let success = $state('');
 
 	// Form values - initialized from server data
-	let formValues = $state<Record<string, string | number | boolean | null>>({ ...data.values });
+	let formValues = $state<Record<string, string | number | boolean | null>>({});
 
 	// Computed values (read-only, updated after save)
-	let computedValues = $state<Record<string, string | number | boolean | null>>(
-		Object.fromEntries(
+	let computedValues = $state<Record<string, string | number | boolean | null>>({});
+
+	// Sync from server data
+	$effect.pre(() => {
+		formValues = { ...data.values };
+		computedValues = Object.fromEntries(
 			data.metricsDefinition
 				.filter((m: MetricDefinition) => m.type === 'computed' || m.type === 'external')
 				.map((m: MetricDefinition) => [m.name, data.values[m.name] ?? null])
-		)
-	);
+		);
+	});
 
 	const dateObj = $derived(new Date(data.date + 'T00:00:00'));
 	const formattedDate = $derived(

@@ -749,7 +749,7 @@
 
 {#if isKRModalOpen}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="modal-overlay" onclick={closeKRModal} onkeydown={(e) => e.key === 'Escape' && closeKRModal()} role="dialog" aria-modal="true" aria-labelledby="kr-modal-title">
+	<div class="modal-overlay" onclick={closeKRModal} onkeydown={(e) => e.key === 'Escape' && closeKRModal()} role="dialog" aria-modal="true" aria-labelledby="kr-modal-title" tabindex="-1">
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="modal" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 			<div class="modal-header">

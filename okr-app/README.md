@@ -96,6 +96,7 @@ For detailed deployment guides including HTTPS, backups, and Nextcloud integrati
 - [Maintenance Playbook](docs/MAINTENANCE.md) - HTTPS, backups, Nextcloud sync, monitoring
 - [Raspberry Pi Guide](docs/RASPBERRY_PI_SETUP.md) - Step-by-step home server setup with HTTPS
 - [Setup Guide](docs/SETUP.md) - Local dev, Docker, environment variables, database management
+- [Query API Reference](docs/QUERY_API_REFERENCE.md) - Complete JavaScript query sandbox API reference
 
 ### Docker
 

@@ -34,7 +34,9 @@
 
 	let { title, code, savedQueries = [], onSave, onDelete }: Props = $props();
 
+	// svelte-ignore state_referenced_locally
 	let localTitle = $state(title);
+	// svelte-ignore state_referenced_locally
 	let localCode = $state(code);
 	let selectedQueryId = $state<string | null>(null);
 	let editing = $state(false);
@@ -207,7 +209,7 @@
 				<div class="error">{error}</div>
 			{:else if renders.length === 0}
 				{#if !localCode.trim()}
-					<div class="empty" onclick={startEditing}>Click to add a query</div>
+					<button type="button" class="empty" onclick={startEditing}>Click to add a query</button>
 				{:else}
 					<div class="empty">No output - use render.* functions</div>
 				{/if}

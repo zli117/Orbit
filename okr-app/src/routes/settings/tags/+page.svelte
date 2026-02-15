@@ -228,8 +228,8 @@
 					/>
 				</div>
 				<div class="form-group">
-					<label class="label">Color</label>
-					<div class="color-picker">
+					<span class="label" id="new-tag-color-label">Color</span>
+					<div class="color-picker" role="group" aria-labelledby="new-tag-color-label">
 						{#each presetColors as color}
 							<button
 								type="button"
@@ -237,6 +237,7 @@
 								class:selected={newTagColor === color}
 								style="background-color: {color}"
 								onclick={() => newTagColor = color}
+								aria-label="Select color {color}"
 							></button>
 						{/each}
 					</div>
@@ -284,11 +285,13 @@
 </div>
 
 {#if editingTag}
-	<div class="modal-overlay" onclick={closeEditTag}>
-		<div class="modal" onclick={(e) => e.stopPropagation()}>
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="modal-overlay" onclick={closeEditTag} onkeydown={(e) => e.key === 'Escape' && closeEditTag()} role="dialog" aria-modal="true" tabindex="-1">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="modal" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 			<div class="modal-header">
 				<h3>Edit Tag</h3>
-				<button class="action-btn" onclick={closeEditTag}>
+				<button class="action-btn" onclick={closeEditTag} aria-label="Close">
 					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<line x1="18" y1="6" x2="6" y2="18"/>
 						<line x1="6" y1="6" x2="18" y2="18"/>
@@ -306,8 +309,8 @@
 					/>
 				</div>
 				<div class="form-group">
-					<label class="label">Color</label>
-					<div class="color-picker">
+					<span class="label" id="edit-tag-color-label">Color</span>
+					<div class="color-picker" role="group" aria-labelledby="edit-tag-color-label">
 						{#each presetColors as color}
 							<button
 								type="button"
@@ -315,6 +318,7 @@
 								class:selected={editTagColor === color}
 								style="background-color: {color}"
 								onclick={() => editTagColor = color}
+								aria-label="Select color {color}"
 							></button>
 						{/each}
 					</div>

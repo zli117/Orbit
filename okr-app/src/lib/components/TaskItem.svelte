@@ -17,8 +17,11 @@
 	let { task, tags = [], onToggle, onUpdate, onDelete, onTimerToggle, onCreateTag, hideTimer = false, readOnly = false }: Props = $props();
 
 	let editing = $state(false);
+	// svelte-ignore state_referenced_locally
 	let editTitle = $state(task.title);
+	// svelte-ignore state_referenced_locally
 	let editProgress = $state(task.attributes?.progress || '');
+	// svelte-ignore state_referenced_locally
 	let editExpectedHours = $state(task.attributes?.expected_hours || '');
 	let showTagPicker = $state(false);
 
@@ -288,8 +291,9 @@
 {#if editing && !readOnly}
 	<div class="task-edit-panel">
 		<div class="edit-row edit-row-title">
-			<label class="label">Title</label>
+			<label class="label" for="edit-title-{task.id}">Title</label>
 			<input
+				id="edit-title-{task.id}"
 				type="text"
 				class="input"
 				bind:value={editTitle}
@@ -299,8 +303,9 @@
 		</div>
 		<div class="edit-row-group">
 			<div class="edit-row">
-				<label class="label">Progress</label>
+				<label class="label" for="edit-progress-{task.id}">Progress</label>
 				<input
+					id="edit-progress-{task.id}"
 					type="number"
 					class="input input-sm"
 					bind:value={editProgress}
@@ -310,8 +315,9 @@
 				/>
 			</div>
 			<div class="edit-row">
-				<label class="label">Expected Hours</label>
+				<label class="label" for="edit-hours-{task.id}">Expected Hours</label>
 				<input
+					id="edit-hours-{task.id}"
 					type="number"
 					class="input input-sm"
 					bind:value={editExpectedHours}

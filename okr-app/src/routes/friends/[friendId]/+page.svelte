@@ -4,14 +4,14 @@
 	let { data } = $props();
 
 	// Month selector state
-	let selectedMonth = $state(data.currentMonth);
+	let selectedMonth = $state(new Date().getMonth() + 1);
 	let loadingMonthly = $state(false);
-	let monthlyObjectives = $state(data.monthlyObjectives);
+	let monthlyObjectives = $state<any[]>([]);
 
 	// Note state
-	let note = $state(data.note);
+	let note = $state('');
 	let editingNote = $state(false);
-	let noteValue = $state(data.note);
+	let noteValue = $state('');
 	let savingNote = $state(false);
 
 	const monthNames = [

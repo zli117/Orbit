@@ -8,8 +8,14 @@
 	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 
 	// Preferences
-	let weekStartDay = $state<'sunday' | 'monday'>(data.user?.weekStartDay || 'monday');
-	let timezone = $state(data.user?.timezone || 'UTC');
+	let weekStartDay = $state<'sunday' | 'monday'>('monday');
+	let timezone = $state('UTC');
+
+	// Sync from server data
+	$effect.pre(() => {
+		weekStartDay = data.user?.weekStartDay || 'monday';
+		timezone = data.user?.timezone || 'UTC';
+	});
 
 	// Common timezones grouped by region
 	const timezones = [

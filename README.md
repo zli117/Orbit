@@ -30,7 +30,7 @@ Define your own daily metrics beyond the defaults. Three types:
 - **Computed** — formulas that derive values from other metrics
 - **External** — pull data from integrations like Fitbit (sleep, steps, activity)
 
-### Query Playground
+### Query Builder
 
 A full code editor (Monaco) where you write JavaScript to analyze your data. Access your tasks, objectives, metrics, and daily records through a clean API. Render results as markdown, tables, or interactive Plotly charts. Save queries and reuse them across dashboard widgets and key results.
 
@@ -77,6 +77,7 @@ OKR Tracker is designed to run on modest hardware. A Raspberry Pi 4 with 2GB RAM
 | [Setup Guide](okr-app/docs/SETUP.md) | Local dev, Docker, manual deployment, environment variables, database management |
 | [Raspberry Pi Guide](okr-app/docs/RASPBERRY_PI_SETUP.md) | Step-by-step home server setup with HTTPS (self-signed or DNS challenge) |
 | [Maintenance Playbook](okr-app/docs/MAINTENANCE.md) | HTTPS options, reverse proxy configs, backups, Nextcloud sync, monitoring |
+| [Query API Reference](okr-app/docs/QUERY_API_REFERENCE.md) | Complete reference for the JavaScript query sandbox API |
 
 ## Tech Stack
 

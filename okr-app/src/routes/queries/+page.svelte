@@ -22,10 +22,10 @@
 	let { data } = $props();
 
 	// Plotly containers for charts
-	let plotContainers: Record<number, HTMLDivElement> = {};
+	let plotContainers = $state<Record<number, HTMLDivElement>>({});
 
 	// Sample code showing all APIs
-	const sampleCode = `// Query Playground - Write JavaScript to analyze your data
+	const sampleCode = `// Query Builder - Write JavaScript to analyze your data
 //
 // Data Fetching:
 //   q.daily({ year, month, week, from, to }) - Daily records with metrics
@@ -246,12 +246,12 @@ render.plot.bar({
 </script>
 
 <svelte:head>
-	<title>Query Playground - OKR Tracker</title>
+	<title>Query Builder - OKR Tracker</title>
 </svelte:head>
 
 <div class="queries-page">
 	<header class="page-header">
-		<h1>Query Playground</h1>
+		<h1>Query Builder</h1>
 		<p class="text-muted">Write custom JavaScript queries to analyze your OKR data</p>
 	</header>
 
@@ -405,31 +405,17 @@ render.plot.bar({
 			</div>
 
 			<div class="card">
-				<h2>API Reference</h2>
+				<h2>API Quick Reference</h2>
 				<div class="api-docs">
-					<h3>Render API</h3>
-					<code>render.markdown(text)</code>
-					<p>Render markdown text</p>
-
-					<code>render.table(&#123; headers, rows &#125;)</code>
-					<p>Render a structured table</p>
-
-					<code>render.plot.bar/line/pie/multi(...)</code>
-					<p>Render Plotly charts</p>
-
-					<h3>Progress API</h3>
-					<code>progress.set(value)</code>
-					<p>Set KR progress (0-1)</p>
-
 					<h3>Data Fetching</h3>
 					<code>q.daily(&#123; year, month, ... &#125;)</code>
-					<p>Get daily records</p>
-
 					<code>q.tasks(&#123; year, tag, ... &#125;)</code>
-					<p>Get tasks with attributes</p>
-
 					<code>q.objectives(&#123; year, level &#125;)</code>
-					<p>Get objectives with KRs</p>
+
+					<h3>Rendering</h3>
+					<code>render.markdown(text)</code>
+					<code>render.table(&#123; headers, rows &#125;)</code>
+					<code>render.plot.bar/line/pie/multi(...)</code>
 
 					<h3>Helpers</h3>
 					<code>q.sum(items, 'field')</code>
@@ -437,6 +423,19 @@ render.plot.bar({
 					<code>q.count(items)</code>
 					<code>q.parseTime('7:30')</code>
 					<code>q.formatDuration(450)</code>
+
+					<h3>Progress</h3>
+					<code>progress.set(value)</code>
+					<p>Set KR progress (0-1)</p>
+
+					<a href="/queries/api-reference" target="_blank" rel="noopener" class="api-ref-link">
+						Full API Reference
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+							<polyline points="15 3 21 3 21 9"/>
+							<line x1="10" y1="14" x2="21" y2="3"/>
+						</svg>
+					</a>
 				</div>
 			</div>
 		</div>
@@ -656,6 +655,25 @@ render.plot.bar({
 		margin: 0 0 var(--spacing-sm);
 		color: var(--color-text-muted);
 		font-size: 0.75rem;
+	}
+
+	.api-ref-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		margin-top: var(--spacing-sm);
+		padding: var(--spacing-xs) var(--spacing-sm);
+		background: var(--color-primary);
+		color: white;
+		border-radius: var(--radius-sm);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		text-decoration: none;
+		transition: background 0.15s ease;
+	}
+
+	.api-ref-link:hover {
+		background: var(--color-primary-hover, #2563eb);
 	}
 
 	/* Progress result styles */
