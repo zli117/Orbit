@@ -31,6 +31,7 @@
 //   q.daily({ year, month, week, from, to }) - Daily records with metrics
 //   q.tasks({ year, tag, completed }) - Tasks with attributes
 //   q.objectives({ year, level }) - Objectives with key results
+//   q.today() - Current date: { year, month, day, date, week }
 //
 // Output (Render API):
 //   render.markdown(text) - Render markdown content
@@ -40,25 +41,27 @@
 // Progress (for Key Results):
 //   progress.set(value) - Set progress value (0 to 1)
 
-// Example: Show recent sleep data
-const days = await q.daily({ year: 2025, month: 1 });
-const sleepData = days.filter(d => d.sleepLength).slice(-7);
+// Example: Show this month's metrics
+const { year, month } = q.today();
+const days = await q.daily({ year, month });
 
-render.markdown('## Recent Sleep');
+// List available metric keys
+const allKeys = new Set();
+days.forEach(d => Object.keys(d.metrics).forEach(k => allKeys.add(k)));
+render.markdown('## Available metrics: ' + [...allKeys].join(', '));
 
+// Show task completion
 render.table({
-  headers: ['Date', 'Sleep Duration'],
-  rows: sleepData.map(d => [d.date, d.sleepLength])
-});
-
-render.plot.bar({
-  x: sleepData.map(d => d.date),
-  y: sleepData.map(d => q.parseTime(d.sleepLength) / 60),
-  title: 'Hours of Sleep'
+  headers: ['Date', 'Tasks', 'Hours'],
+  rows: days.map(d => [
+    d.date,
+    d.completedTasks + '/' + d.totalTasks,
+    d.totalHours.toFixed(1)
+  ])
 });
 
 // For Key Results, use progress.set():
-// const tasks = await q.tasks({ tag: 'My_Goal', year: 2025 });
+// const tasks = await q.tasks({ tag: 'My_Goal', year });
 // const completed = tasks.filter(t => t.completed).length;
 // progress.set(completed / tasks.length);`;
 
@@ -411,6 +414,7 @@ render.plot.bar({
 					<code>q.daily(&#123; year, month, ... &#125;)</code>
 					<code>q.tasks(&#123; year, tag, ... &#125;)</code>
 					<code>q.objectives(&#123; year, level &#125;)</code>
+					<code>q.today() → &#123; year, month, day, date, week &#125;</code>
 
 					<h3>Rendering</h3>
 					<code>render.markdown(text)</code>

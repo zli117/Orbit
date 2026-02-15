@@ -1,8 +1,10 @@
 import { getQuickJS, type QuickJSContext, type QuickJSHandle } from 'quickjs-emscripten';
 import type { QueryAPI, QueryFilters, DailyRecord, WeeklyRecord, TaskRecord, ObjectiveRecord } from './types';
 import { db } from '$lib/db/client';
-import { timePeriods, tasks, taskAttributes, dailyMetrics, objectives, keyResults, tags, taskTags } from '$lib/db/schema';
-import { eq, and, gte, lte, between } from 'drizzle-orm';
+import { timePeriods, tasks, taskAttributes, dailyMetricValues, metricsTemplates, objectives, keyResults, tags, taskTags } from '$lib/db/schema';
+import type { MetricDefinition } from '$lib/db/schema';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { evaluateMetrics, type MetricValues } from '$lib/server/metrics/evaluator';
 
 const EXECUTION_TIMEOUT_MS = 5000;
 const MAX_MEMORY_BYTES = 128 * 1024 * 1024; // 128MB
@@ -285,6 +287,19 @@ async function injectQueryAPI(context: QuickJSContext, userId: string) {
 	});
 	context.setProp(qHandle, 'objectives', objectivesFn);
 	objectivesFn.dispose();
+
+	// Add today() method — returns current date info
+	const todayFn = context.newFunction('today', () => {
+		const now = new Date();
+		const year = now.getFullYear();
+		const month = now.getMonth() + 1;
+		const day = now.getDate();
+		const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+		const week = getISOWeekNumber(now);
+		return jsonToHandle(context, { year, month, day, date, week });
+	});
+	context.setProp(qHandle, 'today', todayFn);
+	todayFn.dispose();
 
 	// Add helper functions
 	addHelperFunctions(context, qHandle);
@@ -587,6 +602,79 @@ function jsonToHandle(context: QuickJSContext, value: unknown): QuickJSHandle {
 
 // ============= Data Fetching Functions =============
 
+/**
+ * Resolve metrics for a date through the template system.
+ * Maps raw DB keys (e.g., "fitbit.sleepLength") to template names (e.g., "sleep"),
+ * includes user-input metrics, and evaluates computed metrics.
+ * Falls back to raw DB values if no template is active.
+ */
+async function resolveMetricsForDate(
+	userId: string,
+	date: string,
+	templates: { effectiveFrom: string; metricsDefinition: string }[]
+): Promise<Record<string, string | number | null>> {
+	// Get raw stored values from DB
+	const metricRows = await db.query.dailyMetricValues.findMany({
+		where: and(
+			eq(dailyMetricValues.userId, userId),
+			eq(dailyMetricValues.date, date)
+		)
+	});
+
+	const rawValues: MetricValues = {};
+	for (const row of metricRows) {
+		rawValues[row.metricName] = row.value;
+	}
+
+	// Find the active template for this date
+	const template = templates.find(t => t.effectiveFrom <= date);
+	if (!template) {
+		// No template — return raw values with numeric parsing
+		const metrics: Record<string, string | number | null> = {};
+		for (const [key, val] of Object.entries(rawValues)) {
+			if (val === null || val === undefined) {
+				metrics[key] = null;
+			} else {
+				const num = Number(val);
+				metrics[key] = isNaN(num) ? val : num;
+			}
+		}
+		return metrics;
+	}
+
+	const metricsDefinition: MetricDefinition[] = JSON.parse(template.metricsDefinition);
+
+	// Map external values: "fitbit.sleepLength" → template name "sleep"
+	const mappedExternalValues: MetricValues = {};
+	for (const metric of metricsDefinition) {
+		if (metric.type === 'external' && metric.source) {
+			mappedExternalValues[metric.name] = rawValues[metric.source] ?? null;
+		}
+	}
+
+	// Evaluate all metrics (input from rawValues, external mapped, computed evaluated)
+	const { values } = await evaluateMetrics(
+		metricsDefinition,
+		rawValues,
+		mappedExternalValues,
+		date
+	);
+
+	// Convert to the expected return type (no booleans)
+	const metrics: Record<string, string | number | null> = {};
+	for (const [key, val] of Object.entries(values)) {
+		if (val === null || val === undefined) {
+			metrics[key] = null;
+		} else if (typeof val === 'boolean') {
+			metrics[key] = val ? 1 : 0;
+		} else {
+			metrics[key] = val;
+		}
+	}
+
+	return metrics;
+}
+
 async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyRecord[]> {
 	const conditions = [
 		eq(timePeriods.userId, userId),
@@ -611,16 +699,17 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 		where: and(...conditions)
 	});
 
+	// Load all user templates (ordered by effectiveFrom desc) for metric resolution
+	const allTemplates = await db.query.metricsTemplates.findMany({
+		where: eq(metricsTemplates.userId, userId),
+		orderBy: [desc(metricsTemplates.effectiveFrom)]
+	});
+
 	const results: DailyRecord[] = [];
 
 	for (const period of periods) {
-		// Get metrics for this period
-		const metrics = await db.query.dailyMetrics.findFirst({
-			where: and(
-				eq(dailyMetrics.timePeriodId, period.id),
-				eq(dailyMetrics.userId, userId)
-			)
-		});
+		// Resolve metrics through the template system
+		const metrics = await resolveMetricsForDate(userId, period.day!, allTemplates);
 
 		// Get tasks for this period
 		const periodTasks = await db.query.tasks.findMany({
@@ -648,13 +737,7 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 			year: period.year,
 			month: period.month!,
 			week: period.week!,
-			sleepLength: metrics?.sleepLength || null,
-			wakeUpTime: metrics?.wakeUpTime || null,
-			bedTime: metrics?.previousNightBedTime || null,
-			steps: metrics?.steps || null,
-			cardioLoad: metrics?.cardioLoad || null,
-			fitbitReadiness: metrics?.fitbitReadiness || null,
-			restingHeartRate: metrics?.restingHeartRate || null,
+			metrics,
 			tasks: tasksWithAttrs,
 			completedTasks: tasksWithAttrs.filter(t => t.completed).length,
 			totalTasks: tasksWithAttrs.length,
@@ -797,4 +880,15 @@ async function fetchObjectives(userId: string, filters: QueryFilters): Promise<O
 	);
 
 	return results;
+}
+
+/**
+ * Get ISO week number for a date
+ */
+function getISOWeekNumber(date: Date): number {
+	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+	const dayNum = d.getUTCDay() || 7;
+	d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+	return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }

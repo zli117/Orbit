@@ -19,13 +19,7 @@ export interface DailyRecord {
 	year: number;
 	month: number;
 	week: number;
-	sleepLength: string | null;
-	wakeUpTime: string | null;
-	bedTime: string | null;
-	steps: number | null;
-	cardioLoad: number | null;
-	fitbitReadiness: number | null;
-	restingHeartRate: number | null;
+	metrics: Record<string, string | number | null>;
 	tasks: TaskWithAttributes[];
 	completedTasks: number;
 	totalTasks: number;
@@ -84,11 +78,22 @@ export interface KeyResultRecord {
 	expectedHours: number | null;
 }
 
+export interface TodayResult {
+	year: number;
+	month: number;
+	day: number;
+	date: string; // YYYY-MM-DD
+	week: number; // ISO week 1-53
+}
+
 export interface QueryAPI {
 	daily(filters?: QueryFilters): Promise<DailyRecord[]>;
 	weekly(filters?: QueryFilters): Promise<WeeklyRecord[]>;
 	tasks(filters?: QueryFilters): Promise<TaskRecord[]>;
 	objectives(filters?: QueryFilters): Promise<ObjectiveRecord[]>;
+
+	// Date helpers
+	today(): TodayResult;
 
 	// Aggregations
 	sum(items: unknown[], field: string): number;

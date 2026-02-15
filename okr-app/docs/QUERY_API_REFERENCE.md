@@ -132,14 +132,11 @@ interface DailyRecord {
   month: number;             // 1-12
   week: number;              // ISO week 1-53
 
-  // Health metrics (null if not recorded)
-  sleepLength: string | null;      // "HH:MM" format (e.g., "7:30")
-  wakeUpTime: string | null;       // "HH:MM" format (e.g., "6:45")
-  bedTime: string | null;          // Previous night bed time, "HH:MM"
-  steps: number | null;            // Step count
-  cardioLoad: number | null;       // Fitbit cardio load score
-  fitbitReadiness: number | null;  // Fitbit readiness score (0-100)
-  restingHeartRate: number | null; // Resting heart rate (bpm)
+  // Metrics from your metrics template (Settings > Metrics).
+  // Keys depend on your configured template and connected plugins.
+  // Numbers are auto-parsed; time strings (e.g., "7:30") stay as strings.
+  // Example keys: "sleep", "steps", "fitbit.sleepLength", etc.
+  metrics: Record<string, string | number | null>;
 
   // Tasks for this day
   tasks: TaskWithAttributes[];     // See schema below
@@ -168,8 +165,9 @@ interface TaskWithAttributes {
 **Examples:**
 
 ```javascript
-// Get all daily records for January 2025
-const days = await q.daily({ year: 2025, month: 1 });
+// Get current month's daily records
+const { year, month } = q.today();
+const days = await q.daily({ year, month });
 
 // Get records for a date range
 const week = await q.daily({
@@ -177,25 +175,28 @@ const week = await q.daily({
   to: '2025-01-12'
 });
 
-// Calculate average sleep over a month
-const jan = await q.daily({ year: 2025, month: 1 });
-const sleepDays = jan.filter(d => d.sleepLength);
+// Calculate average sleep (assuming a "sleep" metric in HH:MM format)
+const sleepDays = days.filter(d => d.metrics.sleep);
 const avgSleepMin = sleepDays.reduce(
-  (sum, d) => sum + q.parseTime(d.sleepLength),
+  (sum, d) => sum + q.parseTime(d.metrics.sleep),
   0
 ) / sleepDays.length;
 render.markdown(`Average sleep: ${q.formatDuration(avgSleepMin)}`);
 
 // Show daily task completion rate
-const days2 = await q.daily({ year: 2025, month: 1 });
 render.plot.line({
-  x: days2.map(d => d.date),
-  y: days2.map(d =>
+  x: days.map(d => d.date),
+  y: days.map(d =>
     d.totalTasks > 0 ? d.completedTasks / d.totalTasks * 100 : 0
   ),
   title: 'Daily Completion Rate (%)',
   yLabel: 'Completion %'
 });
+
+// Discover available metric keys
+const allKeys = new Set();
+days.forEach(d => Object.keys(d.metrics).forEach(k => allKeys.add(k)));
+render.markdown('Available metrics: ' + [...allKeys].join(', '));
 ```
 
 ---
@@ -416,7 +417,7 @@ const done = q.count(tasks.filter(t => t.completed)); // e.g., 85
 
 ### `q.parseTime(timeStr)`
 
-Parse an "HH:MM" time string into total minutes. Useful for working with `sleepLength`, `wakeUpTime`, and `bedTime` fields.
+Parse an "HH:MM" time string into total minutes. Useful for working with time-format metrics (e.g., sleep duration, wake-up time).
 
 ```javascript
 // Parameters
@@ -431,11 +432,12 @@ q.parseTime(null)     // 0
 // Convert to hours
 const hours = q.parseTime('7:30') / 60;  // 7.5
 
-// Average sleep in hours
-const days = await q.daily({ year: 2025, month: 1 });
-const sleepDays = days.filter(d => d.sleepLength);
+// Average sleep in hours (assuming a "sleep" metric in HH:MM format)
+const { year, month } = q.today();
+const days = await q.daily({ year, month });
+const sleepDays = days.filter(d => d.metrics.sleep);
 const avgSleepHrs = sleepDays.reduce(
-  (sum, d) => sum + q.parseTime(d.sleepLength) / 60,
+  (sum, d) => sum + q.parseTime(d.metrics.sleep) / 60,
   0
 ) / sleepDays.length;
 ```
@@ -548,12 +550,13 @@ render.plot.bar(options: {
   color?: string;          // Bar color (hex or CSS name, e.g., "#3b82f6")
 }): void
 
-// Example: Steps per day
-const days = await q.daily({ year: 2025, month: 1 });
+// Example: Steps per day (assumes a "steps" or "fitbit.steps" metric)
+const { year, month } = q.today();
+const days = await q.daily({ year, month });
 render.plot.bar({
   x: days.map(d => d.date),
-  y: days.map(d => d.steps || 0),
-  title: 'Daily Steps - January 2025',
+  y: days.map(d => d.metrics.steps || d.metrics['fitbit.steps'] || 0),
+  title: 'Daily Steps',
   yLabel: 'Steps',
   color: '#22c55e'
 });
@@ -589,19 +592,20 @@ render.plot.line(options: {
   color?: string;          // Line/marker color
 }): void
 
-// Example: Sleep trend
-const days = await q.daily({ year: 2025, month: 1 });
-const sleepDays = days.filter(d => d.sleepLength);
+// Example: Sleep trend (assumes a "sleep" metric in HH:MM format)
+const { year, month } = q.today();
+const days = await q.daily({ year, month });
+const sleepDays = days.filter(d => d.metrics.sleep);
 render.plot.line({
   x: sleepDays.map(d => d.date),
-  y: sleepDays.map(d => q.parseTime(d.sleepLength) / 60),
+  y: sleepDays.map(d => q.parseTime(d.metrics.sleep) / 60),
   title: 'Sleep Duration Over Time',
   yLabel: 'Hours',
   color: '#8b5cf6'
 });
 
 // Example: Cumulative hours worked
-const days2 = await q.daily({ year: 2025, month: 1 });
+const days2 = await q.daily({ year, month });
 let cumulative = 0;
 render.plot.line({
   x: days2.map(d => d.date),
@@ -669,13 +673,14 @@ render.plot.multi(options: {
 }): void
 
 // Example: Compare sleep vs. productivity
-const days = await q.daily({ year: 2025, month: 1 });
-const valid = days.filter(d => d.sleepLength && d.totalTasks > 0);
+const { year, month } = q.today();
+const days = await q.daily({ year, month });
+const valid = days.filter(d => d.metrics.sleep && d.totalTasks > 0);
 render.plot.multi({
   series: [
     {
       x: valid.map(d => d.date),
-      y: valid.map(d => q.parseTime(d.sleepLength) / 60),
+      y: valid.map(d => q.parseTime(d.metrics.sleep) / 60),
       name: 'Sleep (hours)',
       color: '#8b5cf6'
     },
@@ -846,19 +851,15 @@ Objectives are yearly or monthly goals. Each has weighted key results. KR measur
 
 ### Daily metrics
 
-Health and activity metrics recorded each day. Built-in fields:
+Metrics are defined by your **metrics template** (Settings > Metrics). Each metric has a `name` used as the key in `DailyRecord.metrics`. Three metric types are supported:
 
-| Field | Format | Source |
-|-------|--------|--------|
-| `sleepLength` | "HH:MM" | User input or Fitbit |
-| `wakeUpTime` | "HH:MM" | User input or Fitbit |
-| `bedTime` | "HH:MM" | User input or Fitbit (previous night) |
-| `steps` | integer | Fitbit |
-| `cardioLoad` | integer | Fitbit |
-| `fitbitReadiness` | integer (0-100) | Fitbit |
-| `restingHeartRate` | integer (bpm) | Fitbit |
+| Type | Description | Example key |
+|------|-------------|-------------|
+| `input` | User-entered value (number, time, text, boolean) | `sleep`, `mood` |
+| `computed` | Calculated from other metrics via a JS expression | `sleepScore` |
+| `external` | Synced from a plugin (e.g., Fitbit) | `fitbit.steps` |
 
-Users can also define **custom metrics** (input, computed, or external) via the Settings page. These are stored separately in the `daily_metric_values` table.
+Use `Object.keys(day.metrics)` to discover which metrics are available for a given day. Numeric values are auto-parsed; time strings like "7:30" remain as strings (use `q.parseTime()` to convert).
 
 ---
 
@@ -867,28 +868,29 @@ Users can also define **custom metrics** (input, computed, or external) via the 
 ### Weekly productivity report
 
 ```javascript
-const days = await q.daily({
-  from: '2025-01-06',
-  to: '2025-01-12'
-});
+const { year, week } = q.today();
+const days = await q.daily({ year, week });
 
 const totalHours = q.sum(days, 'totalHours');
 const totalCompleted = q.sum(days, 'completedTasks');
 const totalTasks = q.sum(days, 'totalTasks');
-const avgSleep = days
-  .filter(d => d.sleepLength)
-  .reduce((s, d) => s + q.parseTime(d.sleepLength) / 60, 0)
-  / days.filter(d => d.sleepLength).length;
+
+// Sleep average (if you have a "sleep" metric)
+const sleepDays = days.filter(d => d.metrics.sleep);
+const avgSleep = sleepDays.length > 0
+  ? sleepDays.reduce((s, d) => s + q.parseTime(d.metrics.sleep) / 60, 0)
+    / sleepDays.length
+  : 0;
 
 render.markdown(`
-# Week of Jan 6 - Jan 12
+# Week ${week} Report
 
 | Metric | Value |
 |--------|-------|
 | Hours worked | ${totalHours.toFixed(1)} |
 | Tasks completed | ${totalCompleted}/${totalTasks} |
 | Completion rate | ${q.formatPercent(totalCompleted, totalTasks)} |
-| Avg sleep | ${avgSleep.toFixed(1)}h |
+${avgSleep ? '| Avg sleep | ' + avgSleep.toFixed(1) + 'h |' : ''}
 `);
 
 render.plot.bar({
@@ -974,14 +976,15 @@ if (total === 0) {
 ### Sleep quality correlation
 
 ```javascript
-const days = await q.daily({ year: 2025 });
+const { year } = q.today();
+const days = await q.daily({ year });
 const valid = days.filter(d =>
-  d.sleepLength && d.totalTasks > 0
+  d.metrics.sleep && d.totalTasks > 0
 );
 
 // Scatter-style analysis using multi-line
-const shortSleep = valid.filter(d => q.parseTime(d.sleepLength) / 60 < 7);
-const goodSleep = valid.filter(d => q.parseTime(d.sleepLength) / 60 >= 7);
+const shortSleep = valid.filter(d => q.parseTime(d.metrics.sleep) / 60 < 7);
+const goodSleep = valid.filter(d => q.parseTime(d.metrics.sleep) / 60 >= 7);
 
 const avgProdShort = shortSleep.length > 0
   ? shortSleep.reduce((s, d) => s + d.totalHours, 0) / shortSleep.length
@@ -1003,7 +1006,7 @@ render.plot.multi({
   series: [
     {
       x: valid.map(d => d.date),
-      y: valid.map(d => q.parseTime(d.sleepLength) / 60),
+      y: valid.map(d => q.parseTime(d.metrics.sleep) / 60),
       name: 'Sleep (hours)',
       color: '#8b5cf6'
     },
@@ -1032,11 +1035,12 @@ if (days.length === 0) {
     ? (day.completedTasks / day.totalTasks * 100).toFixed(0)
     : '0';
 
+  const m = day.metrics;
   render.markdown(`
 **${day.completedTasks}/${day.totalTasks}** tasks done (${pct}%)
 | ${day.totalHours.toFixed(1)}h logged
-${day.sleepLength ? '| Sleep: ' + day.sleepLength : ''}
-${day.steps ? '| Steps: ' + day.steps.toLocaleString() : ''}
+${m.sleep ? '| Sleep: ' + m.sleep : ''}
+${m.steps || m['fitbit.steps'] ? '| Steps: ' + (m.steps || m['fitbit.steps']) : ''}
   `);
 }
 ```
