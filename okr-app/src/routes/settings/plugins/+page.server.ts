@@ -11,7 +11,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	initializePlugins();
 
 	// Get all registered plugins
-	const plugins = getRegisteredPlugins();
+	const allPlugins = getRegisteredPlugins();
+
+	// Non-admin users only see plugins the admin has configured
+	const isAdmin = locals.user.isAdmin;
+	const plugins = isAdmin ? allPlugins : allPlugins.filter(p => p.isConfigured());
 
 	// Get user's plugin configurations
 	const pluginStatuses = await Promise.all(
@@ -23,6 +27,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				description: plugin.description,
 				icon: plugin.icon,
 				fields: plugin.getAvailableFields(),
+				configured: plugin.isConfigured(),
 				connected: !!(config?.credentials),
 				enabled: config?.enabled ?? false,
 				lastSync: config?.lastSync ?? null
@@ -36,6 +41,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	return {
 		plugins: pluginStatuses,
+		isAdmin,
 		success,
 		error
 	};

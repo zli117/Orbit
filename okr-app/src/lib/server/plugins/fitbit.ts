@@ -14,6 +14,10 @@ export const fitbitPlugin: DataImportPlugin = {
 	description: 'Import sleep, activity, and health data from Fitbit',
 	icon: '⌚',
 
+	isConfigured(): boolean {
+		return !!(env.FITBIT_CLIENT_ID && env.FITBIT_CLIENT_SECRET);
+	},
+
 	getOAuthConfig(): OAuthConfig {
 		const baseUrl = env.PUBLIC_BASE_URL || 'http://localhost:5173';
 		return {

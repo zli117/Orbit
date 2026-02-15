@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import type { Cookies } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 
 const SALT_ROUNDS = 12;
 const SESSION_COOKIE_NAME = 'session_id';
@@ -82,7 +83,7 @@ export async function authenticateUser(
 
 	// Check if this user should be granted admin via env var
 	let isAdmin = user.isAdmin || false;
-	const adminUsername = process.env.ADMIN_USERNAME;
+	const adminUsername = env.ADMIN_USERNAME;
 	if (adminUsername && user.username === adminUsername && !user.isAdmin) {
 		await db.update(users).set({ isAdmin: true }).where(eq(users.id, user.id));
 		isAdmin = true;

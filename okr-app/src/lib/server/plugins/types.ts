@@ -58,6 +58,9 @@ export interface DataImportPlugin {
 	description: string;
 	icon?: string;
 
+	// Check if plugin has been configured by admin (e.g. OAuth credentials set)
+	isConfigured(): boolean;
+
 	// OAuth configuration
 	getOAuthConfig(): OAuthConfig;
 

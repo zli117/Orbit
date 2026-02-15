@@ -116,107 +116,122 @@
 		</div>
 	{/if}
 
-	<div class="plugins-list">
-		{#each data.plugins as plugin}
-			<div class="card plugin-card">
-				<div class="plugin-header">
-					<div class="plugin-icon">{plugin.icon || '🔌'}</div>
-					<div class="plugin-info">
-						<h2 class="plugin-name">{plugin.name}</h2>
-						<p class="plugin-desc">{plugin.description}</p>
+	{#if data.plugins.length === 0}
+		<div class="card empty-state">
+			<p class="text-muted">No integrations are available yet. An administrator needs to configure them first.</p>
+		</div>
+	{:else}
+		<div class="plugins-list">
+			{#each data.plugins as plugin}
+				<div class="card plugin-card">
+					<div class="plugin-header">
+						<div class="plugin-icon">{plugin.icon || '🔌'}</div>
+						<div class="plugin-info">
+							<h2 class="plugin-name">{plugin.name}</h2>
+							<p class="plugin-desc">{plugin.description}</p>
+						</div>
+						<div class="plugin-status">
+							{#if !plugin.configured && data.isAdmin}
+								<span class="status-badge not-configured">Not Configured</span>
+							{:else if plugin.connected}
+								<span class="status-badge connected">Connected</span>
+							{:else}
+								<span class="status-badge disconnected">Not Connected</span>
+							{/if}
+						</div>
 					</div>
-					<div class="plugin-status">
-						{#if plugin.connected}
-							<span class="status-badge connected">Connected</span>
-						{:else}
-							<span class="status-badge disconnected">Not Connected</span>
-						{/if}
-					</div>
-				</div>
 
-				{#if plugin.connected}
-					<div class="plugin-details">
-						<div class="sync-info">
-							<span class="sync-label">Last sync:</span>
-							<span class="sync-value">{formatDate(plugin.lastSync)}</span>
+					{#if !plugin.configured && data.isAdmin}
+						<div class="plugin-unconfigured">
+							<p class="text-muted">This plugin requires environment variables to be set before users can connect.</p>
+						</div>
+					{:else if plugin.connected}
+						<div class="plugin-details">
+							<div class="sync-info">
+								<span class="sync-label">Last sync:</span>
+								<span class="sync-value">{formatDate(plugin.lastSync)}</span>
+							</div>
+
+							<div class="plugin-fields">
+								<h3>Available Data</h3>
+								<div class="fields-grid">
+									{#each plugin.fields as field}
+										<div class="field-item">
+											<span class="field-name">{field.name}</span>
+											{#if field.unit}
+												<span class="field-unit">{field.unit}</span>
+											{/if}
+										</div>
+									{/each}
+								</div>
+							</div>
 						</div>
 
+						<div class="plugin-actions">
+							<button
+								class="btn btn-primary"
+								onclick={() => syncPlugin(plugin.id)}
+								disabled={syncing === plugin.id}
+							>
+								{syncing === plugin.id ? 'Syncing...' : 'Sync Now'}
+							</button>
+							<button
+								class="btn btn-secondary"
+								onclick={() => disconnectPlugin(plugin.id)}
+							>
+								Disconnect
+							</button>
+						</div>
+					{:else}
 						<div class="plugin-fields">
 							<h3>Available Data</h3>
 							<div class="fields-grid">
 								{#each plugin.fields as field}
 									<div class="field-item">
 										<span class="field-name">{field.name}</span>
-										{#if field.unit}
-											<span class="field-unit">{field.unit}</span>
-										{/if}
+										<span class="field-desc">{field.description}</span>
 									</div>
 								{/each}
 							</div>
 						</div>
-					</div>
 
-					<div class="plugin-actions">
-						<button
-							class="btn btn-primary"
-							onclick={() => syncPlugin(plugin.id)}
-							disabled={syncing === plugin.id}
-						>
-							{syncing === plugin.id ? 'Syncing...' : 'Sync Now'}
-						</button>
-						<button
-							class="btn btn-secondary"
-							onclick={() => disconnectPlugin(plugin.id)}
-						>
-							Disconnect
-						</button>
-					</div>
-				{:else}
-					<div class="plugin-fields">
-						<h3>Available Data</h3>
-						<div class="fields-grid">
-							{#each plugin.fields as field}
-								<div class="field-item">
-									<span class="field-name">{field.name}</span>
-									<span class="field-desc">{field.description}</span>
-								</div>
-							{/each}
+						<div class="plugin-actions">
+							<button
+								class="btn btn-primary"
+								onclick={() => connectPlugin(plugin.id)}
+							>
+								Connect {plugin.name}
+							</button>
 						</div>
-					</div>
+					{/if}
+				</div>
+			{/each}
+		</div>
+	{/if}
 
-					<div class="plugin-actions">
-						<button
-							class="btn btn-primary"
-							onclick={() => connectPlugin(plugin.id)}
-						>
-							Connect {plugin.name}
-						</button>
-					</div>
-				{/if}
-			</div>
-		{/each}
-	</div>
-
-	<section class="setup-info card">
-		<h2>Setup Instructions</h2>
-		<p class="text-muted mb-md">To use the Fitbit integration, you need to:</p>
-		<ol>
-			<li>Create a Fitbit Developer account at <a href="https://dev.fitbit.com" target="_blank" rel="noopener">dev.fitbit.com</a></li>
-			<li>Register a new application with:
-				<ul>
-					<li>OAuth 2.0 Application Type: <strong>Personal</strong></li>
-					<li>Callback URL: <code>YOUR_DOMAIN/api/plugins/fitbit/callback</code></li>
-				</ul>
-			</li>
-			<li>Add the following environment variables:
-				<ul>
-					<li><code>FITBIT_CLIENT_ID</code> - Your Fitbit OAuth 2.0 Client ID</li>
-					<li><code>FITBIT_CLIENT_SECRET</code> - Your Fitbit Client Secret</li>
-					<li><code>PUBLIC_BASE_URL</code> - Your app's public URL (e.g., https://okr.example.com)</li>
-				</ul>
-			</li>
-		</ol>
-	</section>
+	{#if data.isAdmin}
+		<section class="setup-info card">
+			<h2>Admin: Setup Instructions</h2>
+			<p class="text-muted mb-md">To enable the Fitbit integration for all users:</p>
+			<ol>
+				<li>Create a Fitbit Developer account at <a href="https://dev.fitbit.com" target="_blank" rel="noopener">dev.fitbit.com</a></li>
+				<li>Register a new application with:
+					<ul>
+						<li>OAuth 2.0 Application Type: <strong>Personal</strong></li>
+						<li>Callback URL: <code>YOUR_DOMAIN/api/plugins/fitbit/callback</code></li>
+					</ul>
+				</li>
+				<li>Add the following environment variables and restart the server:
+					<ul>
+						<li><code>FITBIT_CLIENT_ID</code> - Your Fitbit OAuth 2.0 Client ID</li>
+						<li><code>FITBIT_CLIENT_SECRET</code> - Your Fitbit Client Secret</li>
+						<li><code>PUBLIC_BASE_URL</code> - Your app's public URL (e.g., https://okr.example.com)</li>
+					</ul>
+				</li>
+			</ol>
+			<p class="text-muted" style="margin-top: var(--spacing-md);">Once configured, all users will be able to connect their own Fitbit accounts.</p>
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -342,6 +357,22 @@
 	.status-badge.disconnected {
 		background-color: var(--color-bg-hover);
 		color: var(--color-text-muted);
+	}
+
+	.status-badge.not-configured {
+		background-color: #fef3c7;
+		color: #92400e;
+	}
+
+	.plugin-unconfigured {
+		padding-top: var(--spacing-md);
+		border-top: 1px solid var(--color-border);
+		font-size: 0.875rem;
+	}
+
+	.empty-state {
+		text-align: center;
+		padding: var(--spacing-xl);
 	}
 
 	.plugin-details {
