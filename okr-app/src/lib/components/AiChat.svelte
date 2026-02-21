@@ -284,8 +284,7 @@
 	.ai-chat {
 		display: flex;
 		flex-direction: column;
-		height: calc(100vh - 160px);
-		min-height: 400px;
+		height: 100%;
 		background: var(--color-surface, white);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
@@ -368,8 +367,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: var(--spacing-lg) var(--spacing-md);
-		gap: var(--spacing-md);
+		padding: var(--spacing-md);
+		gap: var(--spacing-sm);
 	}
 
 	.welcome-text {

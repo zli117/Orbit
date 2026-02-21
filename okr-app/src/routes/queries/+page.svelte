@@ -486,13 +486,16 @@ render.table({
 
 	.query-layout {
 		display: grid;
-		grid-template-columns: 260px 1fr 340px;
+		grid-template-columns: 260px 1fr 420px;
+		grid-template-rows: minmax(0, 1fr);
 		gap: var(--spacing-lg);
+		height: calc(100vh - 180px);
+		min-height: 500px;
 	}
 
 	@media (max-width: 1400px) {
 		.query-layout {
-			grid-template-columns: 1fr 340px;
+			grid-template-columns: 1fr 420px;
 		}
 
 		.sidebar-section {
@@ -514,6 +517,8 @@ render.table({
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-lg);
+		overflow-y: auto;
+		min-height: 0;
 	}
 
 	.editor-card {
@@ -573,6 +578,8 @@ render.table({
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-lg);
+		overflow-y: auto;
+		min-height: 0;
 	}
 
 	.sidebar-section h2 {
@@ -582,6 +589,7 @@ render.table({
 
 	.ai-section {
 		min-height: 0;
+		overflow: hidden;
 	}
 
 	.saved-queries-list {

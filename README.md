@@ -1,52 +1,97 @@
-# OKR Tracker
+# Orbit
 
-A self-hosted, open-source goal tracking system that connects your daily tasks to your big-picture objectives. Plan your day, track what matters, query your data, and see how it all rolls up — from today's to-do list to this year's ambitions.
+**Track goals. Connect your data. Query your life — with the help of AI.**
 
-**Built for people who want to own their productivity data.**
+Orbit is a self-hosted personal productivity framework that connects your yearly ambitions to today's to-do list. Define objectives, measure key results, pull in data from services like Fitbit, and write JavaScript queries to analyze it all — or ask AI to write them for you.
 
-## Why OKR Tracker?
+Your data. Your rules. Runs on a Raspberry Pi.
 
-Most productivity tools lock you into their workflow. OKR Tracker gives you a structured framework — Objectives and Key Results — while letting you define exactly what you track, how you measure it, and what insights you pull from your data.
+---
 
-- **Your data stays with you.** SQLite database on your own hardware. No cloud accounts, no subscriptions, no tracking.
-- **Use it with family and friends.** Multi-user out of the box. Everyone gets their own account, and you can share dashboards with each other to stay motivated together.
-- **Works on anything.** Runs on a Raspberry Pi, a NAS, or any machine with Node.js. Install as a PWA on your phone for a native app feel.
-- **Built for power users.** Write JavaScript queries against your own data. Build custom dashboards. Define computed metrics. Integrate with Fitbit. The system adapts to you, not the other way around.
+## What Makes Orbit Different
 
-## Core Features
+Most productivity tools give you a checklist. Orbit gives you a **programmable system**.
 
-### Plan Daily, Review Yearly
+**Plan at every level.** Set yearly objectives, break them into monthly key results, plan weekly initiatives, and track daily tasks with a built-in time tracker. Everything rolls up — completing today's work moves the needle on this year's goals.
 
-Track your work at every level — daily tasks with time tracking, weekly initiatives, monthly objectives, and yearly goals. Everything connects: completing today's tasks moves the needle on this month's key results.
+**Query anything.** Write JavaScript against your own life data — tasks, metrics, sleep patterns, activity levels, objective scores — in a sandboxed code editor with full autocomplete. Render results as markdown, tables, or interactive charts. Use queries to power dashboard widgets and automatically score key results.
 
-### Flexible Key Results
+**Let AI write the code.** Don't know where to start? Describe what you want to see in plain English, and the AI assistant generates the query for you. Supports Claude, GPT, Gemini, local models via Ollama, and any OpenRouter provider.
 
-Measure progress your way. Key results can be scored via sliders, checklists, or **custom JavaScript queries** that compute progress from your actual data. Set weights to control how each key result contributes to the overall objective score.
+**Own your data.** SQLite on your own hardware. No cloud accounts, no subscriptions, no telemetry. Export everything as JSON anytime.
+
+---
+
+## Features
+
+### Multi-Level Planning
+
+| Level | What you track |
+|-------|---------------|
+| **Yearly** | High-level objectives with weighted key results |
+| **Monthly** | Focused objectives that ladder up to yearly goals |
+| **Weekly** | Initiatives and task batches |
+| **Daily** | Tasks with time tracking, custom metrics, and daily review |
+
+Objectives are scored automatically based on their key results. Key results can be measured three ways: manual sliders, checklists, or **custom JavaScript queries** that compute progress from your actual data.
 
 ### Custom Metrics
 
-Define your own daily metrics beyond the defaults. Three types:
-- **User Input** — numbers, times, text, or booleans you log each day
-- **Computed** — formulas that derive values from other metrics
-- **External** — pull data from integrations like Fitbit (sleep, steps, activity)
+Define what you track each day. Three types:
+
+- **Input** — numbers, times, text, or booleans you log manually (e.g., mood, caffeine, focus hours)
+- **Computed** — formulas derived from other metrics (e.g., sleep efficiency = time asleep / time in bed)
+- **External** — data pulled automatically from plugins like Fitbit (sleep, steps, heart rate, readiness)
+
+Metrics are versioned — change your tracking template anytime without losing historical data.
 
 ### Query Builder
 
-A full code editor (Monaco) where you write JavaScript to analyze your data. Access your tasks, objectives, metrics, and daily records through a clean API. Render results as markdown, tables, or interactive Plotly charts. Save queries and reuse them across dashboard widgets and key results.
+A full code editor (Monaco) where you analyze your data with JavaScript. The query API gives you access to:
 
-All queries run in a **sandboxed QuickJS environment** (WebAssembly) — safe to run untrusted code without risking your server.
+- Daily records with all metrics
+- Tasks with tags, time logs, and attributes
+- Objectives and key results with scores
+- Helper functions for aggregation, time parsing, and formatting
 
-### Dashboard Widgets
+Render results as markdown, data tables, or interactive Plotly charts (bar, line, pie, multi-series). Save queries and reuse them as dashboard widgets or key result scorers.
 
-Build a personalized dashboard with custom insight cards. Each widget runs a saved query and displays the result inline — charts, tables, or formatted text. See your data the way you want at a glance.
+All code runs in a **sandboxed QuickJS environment** (WebAssembly) — isolated from the server, memory-limited, and time-capped.
+
+### AI-Powered Code Generation
+
+An AI chat panel sits alongside the query editor. Describe what you want to analyze — *"show my sleep trends this month"*, *"which tags take the most time?"*, *"plot task completion rate by day of week"* — and the assistant generates working query code.
+
+Copy the generated code to the editor with one click, run it, and iterate.
+
+Bring your own API key. Supports:
+- **Anthropic** (Claude)
+- **OpenAI** (GPT)
+- **Google** (Gemini)
+- **OpenRouter** (hundreds of models)
+- **Ollama** (fully local, no API key needed)
+
+### Personalized Dashboard
+
+Build your own dashboard with custom widget cards. Each widget runs a saved query and displays the result inline — charts, tables, or formatted text. See your data the way you want at a glance.
+
+### Plugins & Integrations
+
+Connect external data sources. Currently supported:
+
+- **Fitbit** — sleep duration, bed/wake times, steps, resting heart rate, cardio load, readiness score. Syncs automatically every hour via OAuth2.
+
+The plugin system is extensible — see the [Plugin Development Guide](okr-app/docs/PLUGINS.md) for adding new integrations.
 
 ### Multi-User & Friends
 
-Set up accounts for your family, partner, or friends on the same instance. Each person gets their own private workspace. Add each other as friends to view dashboards — see how everyone's tracking toward their goals without exposing the details of individual tasks. Great for households sharing a home server or small teams keeping each other accountable.
+Run a single instance for your household. Each person gets a private workspace. Add friends to view each other's dashboards — see progress without exposing task details. Great for accountability partners or families sharing a home server.
 
-### Admin Dashboard
+### Admin Tools
 
-User management, query execution logs, security monitoring, and usage statistics. Disable accounts, audit query activity, and track error rates.
+User management, query execution logs, security monitoring, and system configuration — all from the browser.
+
+---
 
 ## Quick Start
 
@@ -59,25 +104,27 @@ npm run dev
 
 Open `http://localhost:5173`. That's it.
 
-For production with Docker:
+With Docker:
 
 ```bash
 cd okr-app
 docker compose up -d
 ```
 
-See the [Setup Guide](okr-app/docs/SETUP.md) for full configuration options, environment variables, and database management.
+---
 
 ## Deployment
 
-OKR Tracker is designed to run on modest hardware. A Raspberry Pi 4 with 2GB RAM is plenty.
+Orbit runs on modest hardware. A Raspberry Pi 4 with 2GB RAM is plenty.
 
 | Guide | What it covers |
 |-------|---------------|
-| [Setup Guide](okr-app/docs/SETUP.md) | Local dev, Docker, manual deployment, environment variables, database management |
-| [Raspberry Pi Guide](okr-app/docs/RASPBERRY_PI_SETUP.md) | Step-by-step home server setup with HTTPS (self-signed or DNS challenge) |
-| [Maintenance Playbook](okr-app/docs/MAINTENANCE.md) | HTTPS options, reverse proxy configs, backups, Nextcloud sync, monitoring |
-| [Query API Reference](okr-app/docs/QUERY_API_REFERENCE.md) | Complete reference for the JavaScript query sandbox API |
+| [Setup Guide](okr-app/docs/SETUP.md) | Local dev, Docker, environment variables, database management |
+| [Raspberry Pi Guide](okr-app/docs/RASPBERRY_PI_SETUP.md) | Step-by-step home server setup with HTTPS |
+| [Maintenance Playbook](okr-app/docs/MAINTENANCE.md) | Reverse proxy, backups, monitoring |
+| [Query API Reference](okr-app/docs/QUERY_API_REFERENCE.md) | Complete JavaScript query sandbox API |
+
+---
 
 ## Tech Stack
 
@@ -86,11 +133,14 @@ OKR Tracker is designed to run on modest hardware. A Raspberry Pi 4 with 2GB RAM
 | Framework | SvelteKit 5 with Svelte 5 runes |
 | Database | SQLite + Drizzle ORM |
 | Query Sandbox | QuickJS (WebAssembly) |
+| AI Providers | Anthropic, OpenAI, Gemini, OpenRouter, Ollama |
 | Charts | Plotly.js |
 | Code Editor | Monaco Editor |
 | Auth | Session cookies + bcrypt |
 | Deployment | Docker, systemd, or bare Node.js |
 
+---
+
 ## License
 
-GPL 3.0
+GPL-3.0
