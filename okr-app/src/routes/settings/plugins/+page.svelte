@@ -80,7 +80,7 @@
 </script>
 
 <svelte:head>
-	<title>Plugin Settings - OKR Tracker</title>
+	<title>Plugin Settings - Orbit</title>
 </svelte:head>
 
 <div class="settings-page">

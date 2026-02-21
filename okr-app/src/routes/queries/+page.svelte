@@ -254,13 +254,13 @@ render.table({
 </script>
 
 <svelte:head>
-	<title>Query Builder - OKR Tracker</title>
+	<title>Query Builder - Orbit</title>
 </svelte:head>
 
 <div class="queries-page">
 	<header class="page-header">
 		<h1>Query Builder</h1>
-		<p class="text-muted">Write custom JavaScript queries to analyze your OKR data</p>
+		<p class="text-muted">Write custom JavaScript queries to analyze your data</p>
 	</header>
 
 	{#if error}

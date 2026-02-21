@@ -241,7 +241,7 @@
 </script>
 
 <svelte:head>
-	<title>Admin Dashboard | OKR Tracker</title>
+	<title>Admin Dashboard | Orbit</title>
 </svelte:head>
 
 <main class="main-content">

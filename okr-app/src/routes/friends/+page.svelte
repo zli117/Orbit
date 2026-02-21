@@ -196,7 +196,7 @@
 </script>
 
 <svelte:head>
-	<title>Friends | OKR Tracker</title>
+	<title>Friends | Orbit</title>
 </svelte:head>
 
 <div class="friends-page">

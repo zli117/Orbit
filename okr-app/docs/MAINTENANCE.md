@@ -1,6 +1,6 @@
-# OKR Tracker - Maintenance Playbook
+# Orbit - Maintenance Playbook
 
-Operations guide for deploying, maintaining, and backing up the OKR Tracker.
+Operations guide for deploying, maintaining, and backing up the Orbit.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ Operations guide for deploying, maintaining, and backing up the OKR Tracker.
 
 ```bash
 # Clone and enter directory
-cd /opt/okr-tracker
+cd /opt/orbit
 
 # Create data directory
 mkdir -p data
@@ -61,17 +61,17 @@ services:
 
 ### Systemd Service (Without Docker)
 
-Create `/etc/systemd/system/okr-tracker.service`:
+Create `/etc/systemd/system/orbit.service`:
 
 ```ini
 [Unit]
-Description=OKR Tracker
+Description=Orbit
 After=network.target
 
 [Service]
 Type=simple
 User=okr
-WorkingDirectory=/opt/okr-tracker
+WorkingDirectory=/opt/orbit
 ExecStart=/usr/bin/node build
 Restart=on-failure
 RestartSec=10
@@ -86,8 +86,8 @@ WantedBy=multi-user.target
 ```bash
 # Enable and start
 sudo systemctl daemon-reload
-sudo systemctl enable okr-tracker
-sudo systemctl start okr-tracker
+sudo systemctl enable orbit
+sudo systemctl start orbit
 ```
 
 ---
@@ -164,7 +164,7 @@ sudo dpkg -i cloudflared.deb
 cloudflared tunnel login
 
 # Create tunnel
-cloudflared tunnel create okr-tracker
+cloudflared tunnel create orbit
 
 # Configure tunnel
 cat > ~/.cloudflared/config.yml << 'EOF'
@@ -239,7 +239,7 @@ Caddy automatically obtains and renews SSL certificates for each domain.
 # /etc/caddy/Caddyfile
 
 yourdomain.com {
-    # OKR Tracker at /okr
+    # Orbit at /okr
     handle /okr/* {
         uri strip_prefix /okr
         reverse_proxy localhost:3000
@@ -257,7 +257,7 @@ yourdomain.com {
 }
 ```
 
-**Note:** Path-based routing requires apps to support running under a subpath. OKR Tracker needs `ORIGIN=https://yourdomain.com/okr` in this case.
+**Note:** Path-based routing requires apps to support running under a subpath. Orbit needs `ORIGIN=https://yourdomain.com/okr` in this case.
 
 ### Nginx: Multiple Domains
 
@@ -368,7 +368,7 @@ services:
       - caddy_config:/config
 
   okr:
-    build: ./okr-tracker
+    build: ./orbit
     restart: unless-stopped
     expose:
       - "3000"
@@ -407,7 +407,7 @@ Keep track of which ports your services use:
 
 | Service | Port | Domain |
 |---------|------|--------|
-| OKR Tracker | 3000 | okr.yourdomain.com |
+| Orbit | 3000 | okr.yourdomain.com |
 | Nextcloud | 8080 | nextcloud.yourdomain.com |
 | Home Assistant | 8123 | ha.yourdomain.com |
 | Grafana | 3001 | grafana.yourdomain.com |
@@ -431,14 +431,14 @@ cp ./data/okr.db ./backups/okr-$(date +%Y%m%d-%H%M%S).db
 
 ### Automated Backup Script
 
-Create `/opt/okr-tracker/backup.sh`:
+Create `/opt/orbit/backup.sh`:
 
 ```bash
 #!/bin/bash
 set -e
 
-DB_PATH="/opt/okr-tracker/data/okr.db"
-BACKUP_DIR="/opt/okr-tracker/backups"
+DB_PATH="/opt/orbit/data/okr.db"
+BACKUP_DIR="/opt/orbit/backups"
 RETENTION_DAYS=30
 
 mkdir -p "$BACKUP_DIR"
@@ -460,7 +460,7 @@ echo "Backup created: ${BACKUP_FILE}.gz"
 ```
 
 ```bash
-chmod +x /opt/okr-tracker/backup.sh
+chmod +x /opt/orbit/backup.sh
 ```
 
 ### Cron Schedule
@@ -470,20 +470,20 @@ chmod +x /opt/okr-tracker/backup.sh
 crontab -e
 
 # Add daily backup at 3 AM
-0 3 * * * /opt/okr-tracker/backup.sh >> /var/log/okr-backup.log 2>&1
+0 3 * * * /opt/orbit/backup.sh >> /var/log/okr-backup.log 2>&1
 ```
 
 ### Restore from Backup
 
 ```bash
 # Stop the service
-sudo systemctl stop okr-tracker
+sudo systemctl stop orbit
 
 # Restore
 gunzip -c backups/okr-20250111-030000.db.gz > data/okr.db
 
 # Start the service
-sudo systemctl start okr-tracker
+sudo systemctl start orbit
 ```
 
 ---
@@ -503,7 +503,7 @@ mkdir -p ~/.config/Nextcloud
 
 # Sync backups to Nextcloud
 nextcloudcmd -u YOUR_USERNAME -p YOUR_PASSWORD \
-  /opt/okr-tracker/backups \
+  /opt/orbit/backups \
   https://your-nextcloud.com/remote.php/webdav/OKR-Backups/
 ```
 
@@ -536,7 +536,7 @@ Update backup script to use Nextcloud:
 #!/bin/bash
 set -e
 
-DB_PATH="/opt/okr-tracker/data/okr.db"
+DB_PATH="/opt/orbit/data/okr.db"
 BACKUP_DIR="/mnt/nextcloud/OKR-Backups"
 RETENTION_DAYS=30
 
@@ -577,7 +577,7 @@ rclone config
 rclone ls nextcloud:
 
 # Sync backups
-rclone sync /opt/okr-tracker/backups nextcloud:OKR-Backups/
+rclone sync /opt/orbit/backups nextcloud:OKR-Backups/
 ```
 
 Backup script with rclone:
@@ -586,8 +586,8 @@ Backup script with rclone:
 #!/bin/bash
 set -e
 
-DB_PATH="/opt/okr-tracker/data/okr.db"
-LOCAL_BACKUP="/opt/okr-tracker/backups"
+DB_PATH="/opt/orbit/data/okr.db"
+LOCAL_BACKUP="/opt/orbit/backups"
 
 mkdir -p "$LOCAL_BACKUP"
 
@@ -632,12 +632,12 @@ sudo apt install -y nodejs
 sudo apt install -y build-essential python3
 
 # Create user and directory
-sudo useradd -r -m -d /opt/okr-tracker okr
-sudo -u okr mkdir -p /opt/okr-tracker
+sudo useradd -r -m -d /opt/orbit okr
+sudo -u okr mkdir -p /opt/orbit
 
 # Clone or copy your app
-cd /opt/okr-tracker
-sudo -u okr git clone https://github.com/yourusername/okr-tracker.git .
+cd /opt/orbit
+sudo -u okr git clone https://github.com/yourusername/orbit.git .
 
 # Install dependencies
 sudo -u okr npm ci
@@ -654,10 +654,10 @@ sudo -u okr npm run db:push
 ```bash
 # Use external SSD for database (recommended)
 # Mount SSD to /mnt/ssd, then symlink data directory
-sudo -u okr ln -s /mnt/ssd/okr-data /opt/okr-tracker/data
+sudo -u okr ln -s /mnt/ssd/okr-data /opt/orbit/data
 
 # Reduce memory usage - add to .env
-echo "NODE_OPTIONS=--max-old-space-size=512" >> /opt/okr-tracker/.env
+echo "NODE_OPTIONS=--max-old-space-size=512" >> /opt/orbit/.env
 
 # Enable swap if needed
 sudo dphys-swapfile swapoff
@@ -788,7 +788,7 @@ curl http://localhost:3000/api/health
 docker compose logs -f okr
 
 # Systemd
-sudo journalctl -u okr-tracker -f
+sudo journalctl -u orbit -f
 ```
 
 ### Database Maintenance
@@ -830,7 +830,7 @@ sqlite3 ./data/okr.db "PRAGMA wal_checkpoint(TRUNCATE);"
 free -h
 
 # Restart the service
-sudo systemctl restart okr-tracker
+sudo systemctl restart orbit
 ```
 
 **SSL certificate issues:**
@@ -848,13 +848,13 @@ sudo certbot renew --dry-run
 
 | Task | Command |
 |------|---------|
-| Start service | `docker compose up -d` or `sudo systemctl start okr-tracker` |
-| Stop service | `docker compose down` or `sudo systemctl stop okr-tracker` |
-| View logs | `docker compose logs -f` or `journalctl -u okr-tracker -f` |
-| Backup now | `/opt/okr-tracker/backup.sh` |
+| Start service | `docker compose up -d` or `sudo systemctl start orbit` |
+| Stop service | `docker compose down` or `sudo systemctl stop orbit` |
+| View logs | `docker compose logs -f` or `journalctl -u orbit -f` |
+| Backup now | `/opt/orbit/backup.sh` |
 | Restore backup | `gunzip -c backup.db.gz > data/okr.db` |
 | Check DB health | `sqlite3 data/okr.db "PRAGMA integrity_check;"` |
-| Update app | `git pull && npm ci && npm run build && sudo systemctl restart okr-tracker` |
+| Update app | `git pull && npm ci && npm run build && sudo systemctl restart orbit` |
 
 ---
 

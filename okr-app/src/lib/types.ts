@@ -1,4 +1,4 @@
-// Shared types for the OKR app
+// Shared types for Orbit
 
 export interface User {
 	id: string;

@@ -149,7 +149,7 @@
 </script>
 
 <svelte:head>
-	<title>Tags - Settings - OKR Tracker</title>
+	<title>Tags - Settings - Orbit</title>
 </svelte:head>
 
 <div class="tags-page">

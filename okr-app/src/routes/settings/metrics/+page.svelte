@@ -194,7 +194,7 @@
 </script>
 
 <svelte:head>
-	<title>Metrics Template - Settings - OKR Tracker</title>
+	<title>Metrics Template - Settings - Orbit</title>
 </svelte:head>
 
 <div class="metrics-page">

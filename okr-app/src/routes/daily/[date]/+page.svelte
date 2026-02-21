@@ -269,7 +269,7 @@
 </script>
 
 <svelte:head>
-	<title>{formattedDate} - OKR Tracker</title>
+	<title>{formattedDate} - Orbit</title>
 </svelte:head>
 
 <div class="daily-page">

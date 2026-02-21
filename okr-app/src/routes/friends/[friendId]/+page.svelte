@@ -90,7 +90,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.friend.username}'s Dashboard | OKR Tracker</title>
+	<title>{data.friend.username}'s Dashboard | Orbit</title>
 </svelte:head>
 
 <main class="main-content">

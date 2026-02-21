@@ -31,15 +31,15 @@ WORKDIR /app
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S okr -u 1001 -G nodejs
+    adduser -S orbit -u 1001 -G nodejs
 
 # Copy built application
-COPY --from=builder --chown=okr:nodejs /app/build ./build
-COPY --from=builder --chown=okr:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=okr:nodejs /app/package.json ./
+COPY --from=builder --chown=orbit:nodejs /app/build ./build
+COPY --from=builder --chown=orbit:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=orbit:nodejs /app/package.json ./
 
 # Create data directory for SQLite database
-RUN mkdir -p /app/data && chown okr:nodejs /app/data
+RUN mkdir -p /app/data && chown orbit:nodejs /app/data
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -51,7 +51,7 @@ ENV DATABASE_PATH=/app/data/okr.db
 EXPOSE 3000
 
 # Switch to non-root user
-USER okr
+USER orbit
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

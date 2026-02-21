@@ -1,7 +1,7 @@
 {
-	"name": "OKR Tracker",
-	"short_name": "OKR",
-	"description": "Personal OKR tracking and goal management system",
+	"name": "Orbit",
+	"short_name": "Orbit",
+	"description": "Track goals. Connect your data. Query your life.",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#f8fafc",

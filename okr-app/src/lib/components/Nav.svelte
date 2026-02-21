@@ -26,7 +26,7 @@
 
 <nav class="nav">
 	<div class="nav-header">
-		<a href="/" class="nav-brand">OKR Tracker</a>
+		<a href="/" class="nav-brand">Orbit</a>
 		<button class="menu-toggle" onclick={() => menuOpen = !menuOpen} aria-label="Toggle menu">
 			<span class="menu-icon" class:open={menuOpen}>
 				<span></span>

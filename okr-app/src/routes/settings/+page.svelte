@@ -183,7 +183,7 @@
 </script>
 
 <svelte:head>
-	<title>Settings - OKR Tracker</title>
+	<title>Settings - Orbit</title>
 </svelte:head>
 
 <div class="settings-page">

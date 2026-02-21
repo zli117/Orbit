@@ -196,7 +196,7 @@
 			</div>
 		{:else if messages.length === 0}
 			<div class="welcome">
-				<p class="welcome-text">Ask me to write queries for your OKR data.</p>
+				<p class="welcome-text">Ask me to write queries for your data.</p>
 				<div class="suggestions">
 					{#each suggestions as suggestion}
 						<button class="suggestion-btn" onclick={() => sendMessage(suggestion)}>
@@ -259,7 +259,7 @@
 	<div class="chat-input">
 		<textarea
 			bind:value={inputText}
-			placeholder={hasConfig ? 'Ask about your OKR data...' : 'Configure AI provider first'}
+			placeholder={hasConfig ? 'Ask about your data...' : 'Configure AI provider first'}
 			onkeydown={handleKeydown}
 			disabled={loading || !hasConfig}
 			rows="2"

@@ -1,6 +1,6 @@
 # Query Builder API Reference
 
-Complete reference for writing JavaScript queries in OKR Tracker's sandboxed environment.
+Complete reference for writing JavaScript queries in Orbit's sandboxed environment.
 
 ## Contents
 
@@ -34,7 +34,7 @@ Complete reference for writing JavaScript queries in OKR Tracker's sandboxed env
 
 ## Overview
 
-The Query Builder lets you write JavaScript code that runs in a sandboxed **QuickJS** environment (WebAssembly). Your code can fetch your OKR data, compute aggregations, and render results as markdown, tables, or interactive charts.
+The Query Builder lets you write JavaScript code that runs in a sandboxed **QuickJS** environment (WebAssembly). Your code can fetch your data, compute aggregations, and render results as markdown, tables, or interactive charts.
 
 Queries are used in three contexts:
 

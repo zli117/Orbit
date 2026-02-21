@@ -278,9 +278,9 @@
 {:else}
 	<div class="auth-page">
 		<div class="auth-card card text-center">
-			<h1 class="mb-md">OKR Tracker</h1>
+			<h1 class="mb-md">Orbit</h1>
 			<p class="text-muted mb-lg">
-				Personal objectives and key results tracking system with Fitbit integration.
+				Track goals. Connect your data. Query your life.
 			</p>
 			<div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
 				<a href="/login" class="btn btn-primary">Login</a>

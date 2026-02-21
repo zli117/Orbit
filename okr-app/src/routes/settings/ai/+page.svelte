@@ -144,7 +144,7 @@
 </script>
 
 <svelte:head>
-	<title>AI Assistant Settings - OKR Tracker</title>
+	<title>AI Assistant Settings - Orbit</title>
 </svelte:head>
 
 <div class="settings-page">

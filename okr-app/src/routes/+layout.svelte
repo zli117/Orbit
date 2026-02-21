@@ -35,8 +35,8 @@
 </script>
 
 <svelte:head>
-	<title>OKR Tracker</title>
-	<meta name="description" content="Personal OKR tracking system" />
+	<title>Orbit</title>
+	<meta name="description" content="Track goals. Connect your data. Query your life." />
 </svelte:head>
 
 {#if data.user}

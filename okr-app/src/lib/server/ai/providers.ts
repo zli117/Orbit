@@ -163,8 +163,8 @@ async function sendOpenRouterMessage(
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${config.apiKey}`,
-			'HTTP-Referer': 'https://okr-tracker.app',
-			'X-Title': 'OKR Tracker'
+			'HTTP-Referer': 'https://getorbit.app',
+			'X-Title': 'Orbit'
 		},
 		body: JSON.stringify({
 			model: config.model,

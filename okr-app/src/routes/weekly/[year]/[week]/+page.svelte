@@ -196,7 +196,7 @@
 </script>
 
 <svelte:head>
-	<title>Week {data.week}, {data.year} - OKR Tracker</title>
+	<title>Week {data.week}, {data.year} - Orbit</title>
 </svelte:head>
 
 <div class="weekly-page">
