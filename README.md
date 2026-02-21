@@ -93,7 +93,7 @@ User management, query execution logs, security monitoring, and system configura
 
 ---
 
-## Quick Start
+## Quick Start (Development)
 
 ```bash
 cd okr-app
@@ -102,14 +102,7 @@ npm run db:push
 npm run dev
 ```
 
-Open `http://localhost:5173`. That's it.
-
-With Docker:
-
-```bash
-cd okr-app
-docker compose up -d
-```
+Opens on `http://localhost:5173`.
 
 ---
 
@@ -119,9 +112,8 @@ Orbit runs on modest hardware. A Raspberry Pi 4 with 2GB RAM is plenty.
 
 | Guide | What it covers |
 |-------|---------------|
-| [Setup Guide](okr-app/docs/SETUP.md) | Local dev, Docker, environment variables, database management |
-| [Raspberry Pi Guide](okr-app/docs/RASPBERRY_PI_SETUP.md) | Step-by-step home server setup with HTTPS |
-| [Maintenance Playbook](okr-app/docs/MAINTENANCE.md) | Reverse proxy, backups, monitoring |
+| [Setup Guide](okr-app/docs/SETUP.md) | Raspberry Pi deployment with Docker, Caddy, HTTPS, DNS, backups |
+| [Maintenance Playbook](okr-app/docs/MAINTENANCE.md) | Reverse proxy configs, monitoring, troubleshooting |
 | [Query API Reference](okr-app/docs/QUERY_API_REFERENCE.md) | Complete JavaScript query sandbox API |
 
 ---

@@ -1,201 +1,166 @@
 # Setup Guide
 
-## Prerequisites
+Orbit is designed to run on a Raspberry Pi (or any Linux machine) behind a Caddy reverse proxy, with each service in its own Docker Compose and a shared Docker network.
 
-- Node.js 20+
-- npm
-
-## Local Development
+## Quick Start (Development)
 
 ```bash
 cd okr-app
-
-# Install dependencies
 npm install
-
-# Initialize the database
 npm run db:push
-
-# Start development server
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+Opens on `http://localhost:5173` with hot reload.
+
+## Deployment
+
+### 1. One-time setup: create the shared network
+
+```bash
+docker network create proxy
+```
+
+### 2. Set up Caddy (if you haven't already)
+
+Create a directory for Caddy (e.g. `~/caddy`) with:
+
+**`docker-compose.yml`**:
+
+```yaml
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - proxy
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  proxy:
+    external: true
+```
+
+**`Caddyfile`**:
+
+```caddyfile
+{
+    local_certs
+}
+
+https://orbit.rpi-01.lan {
+    reverse_proxy orbit:3000
+}
+
+# Add more services here:
+# https://photos.rpi-01.lan {
+#     reverse_proxy photos:8080
+# }
+```
+
+Start Caddy:
+
+```bash
+cd ~/caddy && docker compose up -d
+```
+
+### 3. Set up DNS
+
+You need `*.rpi-01.lan` to resolve to your Pi's IP. Options:
+
+- **Router DNS**: Add entries in your router's DNS settings (if supported)
+- **Pi-hole / dnsmasq**: Add a wildcard rule on the Pi:
+  ```bash
+  echo "address=/.rpi-01.lan/YOUR_PI_IP" | sudo tee /etc/dnsmasq.d/rpi-wildcard.conf
+  sudo systemctl restart dnsmasq
+  ```
+  Then set your router's DHCP DNS server to the Pi's IP.
+
+### 4. Trust the self-signed certificate (one-time)
+
+After Caddy starts, extract its root CA and install it on your devices:
+
+```bash
+cd ~/caddy
+docker compose exec caddy cat /data/caddy/pki/authorities/local/root.crt > caddy-root.crt
+```
+
+Transfer `caddy-root.crt` to your phones/laptops and install it as a trusted certificate. After this, all `*.rpi-01.lan` sites show a green lock.
+
+### 5. Deploy Orbit
+
+```bash
+cd okr-app
+docker compose up -d --build
+```
+
+That's it. Access the app at `https://orbit.rpi-01.lan`.
+
+### Adding more services
+
+1. Add `networks: [proxy]` to the new service's compose file (no `ports` needed)
+2. Add a block to the Caddyfile
+3. `docker compose restart` Caddy
 
 ## Environment Variables
 
-Create a `.env` file in the `okr-app/` directory:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_PATH` | `/app/data/okr.db` | Path to SQLite database inside the container |
+| `ADMIN_USERNAME` | *(none)* | Username that gets admin privileges on login |
 
-```env
-# Database location (default: ./data/okr.db)
-DATABASE_PATH=./data/okr.db
+Plugin credentials (Fitbit client ID/secret, base URL) are configured through the admin UI at `/admin` — no environment variables needed.
 
-# Admin user — this username gets admin privileges on login
-ADMIN_USERNAME=youruser
+## Admin
 
-# Fitbit OAuth (optional)
-FITBIT_CLIENT_ID=your_client_id
-FITBIT_CLIENT_SECRET=your_client_secret
-PUBLIC_BASE_URL=http://localhost:5173
-```
-
-## Production Deployment
-
-### Docker (Recommended)
-
-```bash
-cd okr-app
-
-# Build and run with Docker Compose
-docker compose up -d
-
-# Or build manually
-docker build -t okr-tracker .
-docker run -d -p 3000:3000 -v okr-data:/app/data okr-tracker
-```
-
-The app will be available at `http://localhost:3000`.
-
-#### Docker Compose Configuration
-
-The included `docker-compose.yml` supports:
+Set `ADMIN_USERNAME` in your docker-compose environment to grant admin privileges to that user:
 
 ```yaml
 environment:
-  - NODE_ENV=production
-  - DATABASE_PATH=/app/data/okr.db
   - ADMIN_USERNAME=youruser
-  # Fitbit OAuth (optional)
-  - FITBIT_CLIENT_ID=your_client_id
-  - FITBIT_CLIENT_SECRET=your_client_secret
-  - PUBLIC_BASE_URL=https://okr.example.com
 ```
 
-### Manual Deployment
+The admin dashboard at `/admin` gives you:
+- **User management** — view, disable/enable, delete accounts
+- **Plugin configuration** — set up Fitbit OAuth credentials, base URL
+- **Query execution logs** — filter by user, success/failure, date range
+- **Statistics** — user counts, query executions, error rates
+
+## Database
+
+All data lives in a single SQLite file at `DATABASE_PATH`.
+
+**Backup:**
 
 ```bash
-cd okr-app
-
-# Build for production
-npm run build
-
-# Set environment variables
-export NODE_ENV=production
-export DATABASE_PATH=/path/to/okr.db
-
-# Run
-node build
+# Docker volume path (find it with: docker volume inspect okr-app_okr-data)
+cp /var/lib/docker/volumes/okr-app_okr-data/_data/okr.db ~/backups/orbit-$(date +%F).db
 ```
 
-## Admin Dashboard
+Or use the in-app backup: Settings > Download Backup (exports as JSON).
 
-Set the `ADMIN_USERNAME` environment variable to the username that should have admin privileges:
-
-```env
-ADMIN_USERNAME=youruser
-```
-
-When that user logs in, they are automatically granted admin status.
-
-### Admin Features
-
-- **User Management** — view, disable/enable, and delete user accounts
-- **Query Execution Logs** — filter by user, success/failure, date range; see execution times and errors
-- **Statistics** — total users, query executions (24h/7d), error rates, average execution times
-
-### Security
-
-- All admin endpoints require `isAdmin: true`
-- Cannot disable/delete your own account
-- Disabling a user invalidates all their sessions
-- Query code is sandboxed with QuickJS (WASM)
-- Rate limiting: 30 queries/minute per user
-- Code size limit: 100KB max
-
-## Database Management
-
-### Commands
+**Reset:**
 
 ```bash
-# Push schema changes to database (for development)
-npm run db:push
-
-# Generate SQL migration files
-npm run db:generate
-
-# Run migrations
-npm run db:migrate
-
-# Open Drizzle Studio (database browser)
-npm run db:studio
+docker compose down
+docker volume rm okr-app_okr-data
+docker compose up -d --build
 ```
 
-### Database Location
+## First Time Setup
 
-- **Development**: `okr-app/data/okr.db`
-- **Docker**: `/app/data/okr.db` (mounted as `okr-data` volume)
-- **Custom**: Set via `DATABASE_PATH` environment variable
-
-### Reset Database
-
-To start fresh, stop the app and delete the database files:
-
-```bash
-# Stop the app first!
-rm data/okr.db data/okr.db-wal data/okr.db-shm
-
-# Recreate schema
-npm run db:push
-```
-
-The `-wal` and `-shm` files are SQLite WAL (Write-Ahead Logging) files. Always delete all three together.
-
-### Backup and Restore
-
-Use the Settings page in the app to:
-- **Download Backup**: Exports all your data as JSON
-- **Restore Backup**: Import a previously exported JSON file
-
-For automated backups and Nextcloud sync, see the [Maintenance Playbook](MAINTENANCE.md).
-
-## Development
-
-```bash
-# Development server
-npm run dev
-
-# Type check
-npm run check
-
-# Build
-npm run build
-
-# Preview production build
-npm run preview
-```
-
-## Project Structure
-
-```
-okr-app/
-├── src/
-│   ├── lib/
-│   │   ├── components/     # Svelte components
-│   │   ├── db/
-│   │   │   ├── schema.ts   # Database schema (Drizzle)
-│   │   │   └── client.ts   # Database connection
-│   │   └── server/         # Server-side utilities
-│   └── routes/
-│       ├── api/            # API endpoints
-│       ├── daily/          # Daily planning page
-│       ├── weekly/         # Weekly planning page
-│       ├── objectives/     # OKR management
-│       ├── queries/        # Custom queries
-│       └── settings/       # User settings
-├── docs/                   # Documentation
-├── drizzle/                # Migration files
-├── static/                 # Static assets (icons, manifest)
-├── Dockerfile
-├── docker-compose.yml
-└── drizzle.config.ts
-```
+1. Open the app in your browser
+2. Click "Create Account" — pick a username and password
+3. Go to Settings to configure your metrics, tags, and integrations
+4. Set yearly objectives at `/objectives`, then break them into monthly goals
+5. Use `/daily` to plan each day
