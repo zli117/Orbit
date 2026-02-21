@@ -81,7 +81,7 @@ Connect external data sources. Currently supported:
 
 - **Fitbit** — sleep duration, bed/wake times, steps, resting heart rate, cardio load, readiness score. Syncs automatically every hour via OAuth2.
 
-The plugin system is extensible — see the [Plugin Development Guide](okr-app/docs/PLUGINS.md) for adding new integrations.
+The plugin system is extensible — the [Plugin Development Guide](okr-app/docs/PLUGINS.md) covers everything needed to add a new integration. It also doubles as an AI coding skill — point Claude Code or Cursor at it and ask for a new plugin.
 
 ### Multi-User & Friends
 
