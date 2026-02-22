@@ -53,6 +53,7 @@
 	</div>
 </nav>
 
+
 <style>
 	.nav {
 		background-color: var(--color-bg-card);
@@ -187,11 +188,12 @@
 	/* Mobile styles */
 	@media (max-width: 768px) {
 		.nav {
-			padding: var(--spacing-sm) var(--spacing-md);
+			padding: var(--spacing-sm) 5%;
 		}
 
 		.nav-inner {
-			flex-wrap: wrap;
+			padding-left: 0;
+			padding-right: 0;
 		}
 
 		.menu-toggle {
@@ -199,16 +201,28 @@
 		}
 
 		.nav-links {
-			display: none;
+			position: fixed;
+			top: 0;
+			right: 0;
+			width: 280px;
+			height: 100vh;
+			background: var(--color-bg-card);
+			border-left: 1px solid var(--color-border);
+			box-shadow: -4px 0 20px rgb(0 0 0 / 0.1);
+			z-index: 200;
 			flex-direction: column;
-			width: 100%;
-			padding-top: var(--spacing-md);
+			padding: var(--spacing-xl) var(--spacing-lg);
 			gap: var(--spacing-xs);
 			justify-content: flex-start;
+			transform: translateX(100%);
+			transition: transform 0.25s ease;
+			overflow-y: auto;
+			visibility: hidden;
 		}
 
 		.nav-links.open {
-			display: flex;
+			transform: translateX(0);
+			visibility: visible;
 		}
 
 		.nav-link {
@@ -218,6 +232,7 @@
 			min-height: 48px;
 			display: flex;
 			align-items: center;
+			border-radius: var(--radius-md);
 		}
 
 		.nav-separator {

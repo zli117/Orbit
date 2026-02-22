@@ -362,7 +362,7 @@ render.table({
 			<div class="editor-card">
 				<CodeWithAi
 					bind:value={code}
-					editorHeight="400px"
+					editorHeight="100%"
 					hasAiConfig={data.aiConfig.hasAiConfig}
 					configuredProviders={data.aiConfig.configuredProviders}
 					activeProvider={data.aiConfig.activeProvider}
@@ -482,7 +482,7 @@ render.table({
 		grid-template-columns: 260px 1fr;
 		grid-template-rows: minmax(0, 1fr);
 		gap: var(--spacing-lg);
-		height: calc(100vh - 180px);
+		height: calc(75vh - 135px);
 		min-height: 500px;
 	}
 
@@ -505,7 +505,8 @@ render.table({
 	}
 
 	.editor-card {
-		min-height: 480px;
+		flex: 1;
+		min-height: 0;
 	}
 
 	.save-form {
