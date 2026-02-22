@@ -17,6 +17,7 @@
 		hasConfig,
 		configuredProviders = [],
 		activeProvider = 'anthropic',
+		providerModels = {},
 		pendingCode = $bindable(''),
 		context = 'query'
 	}: {
@@ -24,6 +25,7 @@
 		hasConfig: boolean;
 		configuredProviders: string[];
 		activeProvider: string;
+		providerModels?: Record<string, string[]>;
 		pendingCode?: string;
 		context?: 'query' | 'kr_progress' | 'widget';
 	} = $props();
@@ -33,8 +35,19 @@
 	let loading = $state(false);
 	let error = $state('');
 	let selectedProvider = $state(activeProvider);
+	let selectedModel = $state('');
 	let messagesContainer = $state<HTMLDivElement | null>(null);
 	let inputTextarea = $state<HTMLTextAreaElement | null>(null);
+
+	let currentModels = $derived(providerModels[selectedProvider] || []);
+
+	// Set initial model when provider changes
+	$effect(() => {
+		const models = providerModels[selectedProvider] || [];
+		if (models.length > 0 && !models.includes(selectedModel)) {
+			selectedModel = models[0];
+		}
+	});
 
 	// When editor sends code to AI, populate the input
 	$effect(() => {
@@ -135,6 +148,7 @@
 				body: JSON.stringify({
 					messages,
 					provider: selectedProvider !== activeProvider ? selectedProvider : undefined,
+					model: selectedModel || undefined,
 					context
 				})
 			});
@@ -197,6 +211,19 @@
 				</select>
 			{:else if configuredProviders.length === 1}
 				<span class="provider-label">{providerLabels[configuredProviders[0]] || configuredProviders[0]}</span>
+			{/if}
+			{#if currentModels.length > 1}
+				<select
+					class="provider-select"
+					value={selectedModel}
+					onchange={(e) => selectedModel = e.currentTarget.value}
+				>
+					{#each currentModels as m}
+						<option value={m}>{m.split('/').pop()}</option>
+					{/each}
+				</select>
+			{:else if currentModels.length === 1}
+				<span class="provider-label">{currentModels[0].split('/').pop()}</span>
 			{/if}
 			{#if messages.length > 0}
 				<button class="btn-icon" onclick={clearChat} title="New chat">

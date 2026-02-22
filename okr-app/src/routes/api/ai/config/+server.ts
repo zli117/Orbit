@@ -11,6 +11,19 @@ function maskApiKey(key: string): string {
 	return '***';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeProviderConfig(conf: Record<string, any>): Record<string, any> {
+	// Migrate old `model` (string) → `models` (array)
+	if (conf.model && !conf.models) {
+		conf.models = [conf.model];
+		delete conf.model;
+	}
+	if (!conf.models) {
+		conf.models = [];
+	}
+	return conf;
+}
+
 // GET /api/ai/config - Get current AI config (masked keys)
 export const GET: RequestHandler = async ({ locals }) => {
 	if (!locals.user) {
@@ -25,16 +38,19 @@ export const GET: RequestHandler = async ({ locals }) => {
 		return json({ config: null, providerDefaults: PROVIDER_DEFAULTS });
 	}
 
-	// Mask API keys
-	const providersConfig: Record<string, Record<string, string>> = config.providersConfig
+	// Mask API keys and normalize models
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const providersConfig: Record<string, Record<string, any>> = config.providersConfig
 		? JSON.parse(config.providersConfig)
 		: {};
 
-	const masked: Record<string, Record<string, string>> = {};
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const masked: Record<string, Record<string, any>> = {};
 	for (const [provider, conf] of Object.entries(providersConfig)) {
-		masked[provider] = { ...conf };
+		masked[provider] = normalizeProviderConfig({ ...conf });
 		if (masked[provider].apiKey) {
-			masked[provider].apiKey = maskApiKey(masked[provider].apiKey);
+			masked[provider].apiKeyMasked = maskApiKey(masked[provider].apiKey);
+			delete masked[provider].apiKey;
 		}
 	}
 
@@ -44,7 +60,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 			providersConfig: masked,
 			customSystemPrompt: config.customSystemPrompt
 		},
-		providerDefaults: PROVIDER_DEFAULTS
+		providerDefaults: PROVIDER_DEFAULTS,
+		suggestedModels: SUGGESTED_MODELS
 	});
 };
 
@@ -59,10 +76,14 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 		const {
 			provider,
 			providerConfig,
+			deleteProvider,
+			clearApiKey,
 			customSystemPrompt
 		} = body as {
 			provider?: AiProvider;
-			providerConfig?: { apiKey?: string; model?: string; baseUrl?: string };
+			providerConfig?: { apiKey?: string; models?: string[]; baseUrl?: string };
+			deleteProvider?: AiProvider;
+			clearApiKey?: AiProvider;
 			customSystemPrompt?: string | null;
 		};
 
@@ -71,27 +92,35 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 			where: eq(userAiConfig.userId, locals.user.id)
 		});
 
-		const existingProvidersConfig: Record<string, Record<string, string>> = existing?.providersConfig
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const existingProvidersConfig: Record<string, Record<string, any>> = existing?.providersConfig
 			? JSON.parse(existing.providersConfig)
 			: {};
 
+		// Handle provider deletion
+		if (deleteProvider) {
+			delete existingProvidersConfig[deleteProvider];
+		}
+
+		// Handle API key removal
+		if (clearApiKey && existingProvidersConfig[clearApiKey]) {
+			delete existingProvidersConfig[clearApiKey].apiKey;
+		}
+
 		// Merge provider config (only update the specific provider being configured)
 		if (provider && providerConfig) {
-			const existingProviderConf = existingProvidersConfig[provider] || {};
+			const existingProviderConf = normalizeProviderConfig(existingProvidersConfig[provider] || {});
 			const merged = { ...existingProviderConf };
 
-			// Only update fields that are provided and non-empty
+			// Only update API key if provided and non-empty
 			if (providerConfig.apiKey !== undefined && providerConfig.apiKey !== '') {
 				merged.apiKey = providerConfig.apiKey;
 			}
-			// Allow clearing model/baseUrl by setting empty string, or updating
-			if (providerConfig.model !== undefined) {
-				if (providerConfig.model === '') {
-					delete merged.model;
-				} else {
-					merged.model = providerConfig.model;
-				}
+			// Replace models array if provided
+			if (providerConfig.models !== undefined) {
+				merged.models = providerConfig.models;
 			}
+			// Handle baseUrl
 			if (providerConfig.baseUrl !== undefined) {
 				if (providerConfig.baseUrl === '') {
 					delete merged.baseUrl;
@@ -99,6 +128,9 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 					merged.baseUrl = providerConfig.baseUrl;
 				}
 			}
+
+			// Clean up old `model` field if it exists
+			delete merged.model;
 
 			existingProvidersConfig[provider] = merged;
 		}

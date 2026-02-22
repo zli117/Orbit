@@ -19,13 +19,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 		where: eq(userAiConfig.userId, locals.user.id)
 	});
 
-	// Mask API keys for client-side display
-	let maskedProvidersConfig: Record<string, Record<string, string>> | null = null;
+	// Mask API keys and normalize models for client-side display
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let maskedProvidersConfig: Record<string, Record<string, any>> | null = null;
 	if (config?.providersConfig) {
-		const parsed: Record<string, Record<string, string>> = JSON.parse(config.providersConfig);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const parsed: Record<string, Record<string, any>> = JSON.parse(config.providersConfig);
 		maskedProvidersConfig = {};
 		for (const [provider, conf] of Object.entries(parsed)) {
 			maskedProvidersConfig[provider] = { ...conf };
+			// Normalize old model → models
+			if (maskedProvidersConfig[provider].model && !maskedProvidersConfig[provider].models) {
+				maskedProvidersConfig[provider].models = [maskedProvidersConfig[provider].model];
+				delete maskedProvidersConfig[provider].model;
+			}
+			if (!maskedProvidersConfig[provider].models) {
+				maskedProvidersConfig[provider].models = [];
+			}
+			// Mask API key
 			if (maskedProvidersConfig[provider].apiKey) {
 				maskedProvidersConfig[provider].apiKeyMasked = maskApiKey(
 					maskedProvidersConfig[provider].apiKey

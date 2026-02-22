@@ -29,6 +29,25 @@ export const PROVIDER_DEFAULTS: Record<AiProvider, { model?: string; baseUrl?: s
 	ollama: { baseUrl: 'http://localhost:11434', label: 'Ollama' }
 };
 
+export const SUGGESTED_MODELS: Record<AiProvider, { id: string; label: string }[]> = {
+	anthropic: [
+		{ id: 'claude-opus-4-6', label: 'Opus' },
+		{ id: 'claude-sonnet-4-5-20250929', label: 'Sonnet' },
+		{ id: 'claude-haiku-4-5-20251001', label: 'Haiku' }
+	],
+	openai: [
+		{ id: 'gpt-4o', label: 'GPT-4o' },
+		{ id: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+		{ id: 'o1', label: 'o1' }
+	],
+	gemini: [
+		{ id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+		{ id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }
+	],
+	openrouter: [],
+	ollama: []
+};
+
 const TIMEOUT_MS = 60_000;
 
 async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {

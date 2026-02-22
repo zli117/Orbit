@@ -378,6 +378,7 @@ render.table({
 					hasAiConfig={data.aiConfig.hasAiConfig}
 					configuredProviders={data.aiConfig.configuredProviders}
 					activeProvider={data.aiConfig.activeProvider}
+					providerModels={data.aiConfig.providerModels}
 					context="query"
 				>
 					{#snippet headerSnippet()}

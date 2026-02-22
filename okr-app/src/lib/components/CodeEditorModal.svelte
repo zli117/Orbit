@@ -8,6 +8,7 @@
 		hasAiConfig: boolean;
 		configuredProviders: string[];
 		activeProvider: string;
+		providerModels?: Record<string, string[]>;
 		onSave?: (code: string) => void;
 		context?: 'query' | 'kr_progress' | 'widget';
 	}
@@ -19,6 +20,7 @@
 		hasAiConfig,
 		configuredProviders,
 		activeProvider,
+		providerModels = {},
 		onSave,
 		context = 'query'
 	}: Props = $props();
@@ -61,6 +63,7 @@
 					{hasAiConfig}
 					{configuredProviders}
 					{activeProvider}
+					{providerModels}
 					aiCollapsed={false}
 					{context}
 				/>

@@ -10,6 +10,7 @@
 		hasAiConfig: boolean;
 		configuredProviders: string[];
 		activeProvider: string;
+		providerModels?: Record<string, string[]>;
 		aiCollapsed?: boolean;
 		headerSnippet?: Snippet;
 		context?: 'query' | 'kr_progress' | 'widget';
@@ -22,6 +23,7 @@
 		hasAiConfig,
 		configuredProviders,
 		activeProvider,
+		providerModels = {},
 		aiCollapsed: initialCollapsed = false,
 		headerSnippet,
 		context = 'query'
@@ -87,6 +89,7 @@
 				hasConfig={hasAiConfig}
 				{configuredProviders}
 				{activeProvider}
+				{providerModels}
 				bind:pendingCode
 				{context}
 			/>

@@ -33,9 +33,10 @@
 		hasAiConfig?: boolean;
 		configuredProviders?: string[];
 		activeProvider?: string;
+		providerModels?: Record<string, string[]>;
 	}
 
-	let { title, code, savedQueries = [], onSave, onDelete, hasAiConfig = false, configuredProviders = [], activeProvider = 'anthropic' }: Props = $props();
+	let { title, code, savedQueries = [], onSave, onDelete, hasAiConfig = false, configuredProviders = [], activeProvider = 'anthropic', providerModels = {} }: Props = $props();
 
 	// svelte-ignore state_referenced_locally
 	let localTitle = $state(title);
@@ -265,6 +266,7 @@
 	{hasAiConfig}
 	{configuredProviders}
 	{activeProvider}
+	{providerModels}
 	context="widget"
 />
 

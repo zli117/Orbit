@@ -13,9 +13,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 	try {
 		const body = await request.json();
-		const { messages, provider: overrideProvider, context } = body as {
+		const { messages, provider: overrideProvider, model: overrideModel, context } = body as {
 			messages: AiMessage[];
 			provider?: AiProvider;
+			model?: string;
 			context?: AiChatContext;
 		};
 
@@ -35,7 +36,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			);
 		}
 
-		const providersConfig: Record<string, { apiKey?: string; model?: string; baseUrl?: string }> =
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const providersConfig: Record<string, Record<string, any>> =
 			config.providersConfig ? JSON.parse(config.providersConfig) : {};
 
 		// Use override provider if specified, otherwise use the default active provider
@@ -47,12 +49,16 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			return json({ error: `API key not configured for ${PROVIDER_DEFAULTS[provider]?.label || provider}` }, { status: 400 });
 		}
 
+		// Resolve model: explicit override > first in models array > old model field > provider default
+		const models: string[] = providerConfig.models || (providerConfig.model ? [providerConfig.model] : []);
+		const resolvedModel = overrideModel || models[0] || PROVIDER_DEFAULTS[provider]?.model;
+
 		// Apply defaults
 		const defaults = PROVIDER_DEFAULTS[provider];
 		const finalConfig = {
 			...defaults,
 			...providerConfig,
-			model: providerConfig.model || defaults?.model
+			model: resolvedModel
 		};
 
 		// Build system prompt

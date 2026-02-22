@@ -1,55 +1,38 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
+
 	let { data } = $props();
 
 	type Provider = 'anthropic' | 'openai' | 'gemini' | 'openrouter' | 'ollama';
 
-	const providers: { id: Provider; label: string; needsApiKey: boolean; needsBaseUrl: boolean; modelRequired: boolean }[] = [
-		{ id: 'anthropic', label: 'Anthropic', needsApiKey: true, needsBaseUrl: false, modelRequired: false },
-		{ id: 'openai', label: 'OpenAI', needsApiKey: true, needsBaseUrl: false, modelRequired: false },
-		{ id: 'gemini', label: 'Gemini', needsApiKey: true, needsBaseUrl: false, modelRequired: false },
-		{ id: 'openrouter', label: 'OpenRouter', needsApiKey: true, needsBaseUrl: false, modelRequired: true },
-		{ id: 'ollama', label: 'Ollama', needsApiKey: false, needsBaseUrl: true, modelRequired: true }
+	const providers: { id: Provider; label: string; needsApiKey: boolean; needsBaseUrl: boolean }[] = [
+		{ id: 'anthropic', label: 'Anthropic', needsApiKey: true, needsBaseUrl: false },
+		{ id: 'openai', label: 'OpenAI', needsApiKey: true, needsBaseUrl: false },
+		{ id: 'gemini', label: 'Gemini', needsApiKey: true, needsBaseUrl: false },
+		{ id: 'openrouter', label: 'OpenRouter', needsApiKey: true, needsBaseUrl: false },
+		{ id: 'ollama', label: 'Ollama', needsApiKey: false, needsBaseUrl: true }
 	];
 
-	let activeProvider = $state<Provider>(data.aiConfig?.provider || 'anthropic');
-	let apiKey = $state('');
-	let model = $state('');
-	let baseUrl = $state('');
+	// Per-provider form state
+	let apiKeys = $state<Record<string, string>>({});
+	let baseUrls = $state<Record<string, string>>({});
+	let newModelInputs = $state<Record<string, string>>({});
+	let showApiKeys = $state<Record<string, boolean>>({});
 	let customSystemPrompt = $state(data.aiConfig?.customSystemPrompt || '');
 	let showPromptEditor = $state(false);
-	let showApiKey = $state(false);
 
-	let saving = $state(false);
-	let testing = $state(false);
+	let saving = $state<Record<string, boolean>>({});
+	let deleting = $state<Record<string, boolean>>({});
+	let testing = $state<Record<string, boolean>>({});
 	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 
-	// Load saved config for the active provider
 	function getProviderConfig(provider: Provider) {
 		const config = data.aiConfig?.providersConfig?.[provider];
 		return {
 			apiKeyMasked: config?.apiKeyMasked || '',
-			model: config?.model || '',
+			models: (config?.models as string[]) || [],
 			baseUrl: config?.baseUrl || ''
 		};
-	}
-
-	// Update form fields when provider changes
-	$effect(() => {
-		const config = getProviderConfig(activeProvider);
-		apiKey = '';
-		model = config.model;
-		baseUrl = config.baseUrl || (data.providerDefaults as Record<string, { baseUrl?: string }>)[activeProvider]?.baseUrl || '';
-		showApiKey = false;
-	});
-
-	function getDefaultModel(provider: Provider): string {
-		return (data.providerDefaults as Record<string, { model?: string }>)[provider]?.model || '';
-	}
-
-	function getModelPlaceholder(provider: Provider): string {
-		const defaultModel = getDefaultModel(provider);
-		if (defaultModel) return `Default: ${defaultModel}`;
-		return 'Required — e.g., ' + (provider === 'openrouter' ? 'anthropic/claude-3.5-sonnet' : 'llama3.2');
 	}
 
 	function isConfigured(provider: Provider): boolean {
@@ -57,28 +40,47 @@
 		if (!config) return false;
 		const providerInfo = providers.find(p => p.id === provider);
 		if (providerInfo?.needsApiKey && !config.apiKeyMasked) return false;
+		if (providerInfo?.needsBaseUrl && !config.baseUrl) return false;
 		return true;
 	}
 
-	async function saveConfig() {
-		saving = true;
+	function getModelCount(provider: Provider): number {
+		return getProviderConfig(provider).models.length;
+	}
+
+	function getSummary(provider: Provider): string {
+		if (!isConfigured(provider)) return 'not configured';
+		const count = getModelCount(provider);
+		if (count === 0) return 'configured, no models';
+		return `${count} model${count !== 1 ? 's' : ''}`;
+	}
+
+	async function refreshConfig() {
+		await invalidateAll();
+	}
+
+	async function saveProviderKey(provider: Provider) {
+		const key = apiKeys[provider];
+		const url = baseUrls[provider];
+		if (!key && !url) return;
+
+		saving = { ...saving, [provider]: true };
 		message = null;
 
 		try {
-			const providerConfig: Record<string, string> = {};
-			if (apiKey) providerConfig.apiKey = apiKey;
-			if (model) providerConfig.model = model;
-			const providerInfo = providers.find(p => p.id === activeProvider);
-			if (providerInfo?.needsBaseUrl && baseUrl) providerConfig.baseUrl = baseUrl;
+			const providerConfig: Record<string, string | string[]> = {};
+			if (key) providerConfig.apiKey = key;
+			const providerInfo = providers.find(p => p.id === provider);
+			if (providerInfo?.needsBaseUrl && url) providerConfig.baseUrl = url;
+
+			// Preserve existing models
+			const existing = getProviderConfig(provider);
+			providerConfig.models = existing.models;
 
 			const response = await fetch('/api/ai/config', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					provider: activeProvider,
-					providerConfig,
-					customSystemPrompt: showPromptEditor ? (customSystemPrompt || null) : undefined
-				})
+				body: JSON.stringify({ provider, providerConfig })
 			});
 
 			if (!response.ok) {
@@ -86,41 +88,138 @@
 				throw new Error(result.error || 'Failed to save');
 			}
 
-			message = { type: 'success', text: 'Configuration saved' };
-
-			// Refresh data
-			const configResponse = await fetch('/api/ai/config');
-			if (configResponse.ok) {
-				const configData = await configResponse.json();
-				if (configData.config) {
-					data.aiConfig = configData.config;
-				}
-			}
-
-			apiKey = '';
-			showApiKey = false;
+			message = { type: 'success', text: `${providers.find(p => p.id === provider)?.label} credentials saved` };
+			apiKeys = { ...apiKeys, [provider]: '' };
+			showApiKeys = { ...showApiKeys, [provider]: false };
+			await refreshConfig();
 		} catch (error) {
 			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to save' };
 		} finally {
-			saving = false;
+			saving = { ...saving, [provider]: false };
 		}
 	}
 
-	async function testConnection() {
-		testing = true;
+	async function clearApiKey(provider: Provider) {
+		saving = { ...saving, [provider]: true };
 		message = null;
 
 		try {
-			// Save first if there's a new API key
-			if (apiKey) {
-				await saveConfig();
+			const response = await fetch('/api/ai/config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ clearApiKey: provider })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to remove key');
 			}
+
+			message = { type: 'success', text: `${providers.find(p => p.id === provider)?.label} API key removed` };
+			await refreshConfig();
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to remove key' };
+		} finally {
+			saving = { ...saving, [provider]: false };
+		}
+	}
+
+	async function addModel(provider: Provider, modelId: string) {
+		if (!modelId.trim()) return;
+		const existing = getProviderConfig(provider);
+		if (existing.models.includes(modelId)) return;
+
+		saving = { ...saving, [provider]: true };
+		message = null;
+
+		try {
+			const models = [...existing.models, modelId];
+			const response = await fetch('/api/ai/config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ provider, providerConfig: { models } })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to save');
+			}
+
+			newModelInputs = { ...newModelInputs, [provider]: '' };
+			await refreshConfig();
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to add model' };
+		} finally {
+			saving = { ...saving, [provider]: false };
+		}
+	}
+
+	async function removeModel(provider: Provider, modelId: string) {
+		const existing = getProviderConfig(provider);
+		const models = existing.models.filter((m: string) => m !== modelId);
+
+		saving = { ...saving, [provider]: true };
+
+		try {
+			const response = await fetch('/api/ai/config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ provider, providerConfig: { models } })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to save');
+			}
+
+			await refreshConfig();
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to remove model' };
+		} finally {
+			saving = { ...saving, [provider]: false };
+		}
+	}
+
+	async function deleteProviderConfig(provider: Provider) {
+		deleting = { ...deleting, [provider]: true };
+		message = null;
+
+		try {
+			const response = await fetch('/api/ai/config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ deleteProvider: provider })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to delete');
+			}
+
+			message = { type: 'success', text: `${providers.find(p => p.id === provider)?.label} configuration deleted` };
+			await refreshConfig();
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to delete' };
+		} finally {
+			deleting = { ...deleting, [provider]: false };
+		}
+	}
+
+	async function testConnection(provider: Provider) {
+		testing = { ...testing, [provider]: true };
+		message = null;
+
+		try {
+			const config = getProviderConfig(provider);
+			const model = config.models[0]; // Use first configured model
 
 			const response = await fetch('/api/ai/chat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					messages: [{ role: 'user', content: 'Say "Connection successful!" and nothing else.' }]
+					messages: [{ role: 'user', content: 'Say "Connection successful!" and nothing else.' }],
+					provider,
+					model
 				})
 			});
 
@@ -134,7 +233,31 @@
 		} catch (error) {
 			message = { type: 'error', text: error instanceof Error ? error.message : 'Connection test failed' };
 		} finally {
-			testing = false;
+			testing = { ...testing, [provider]: false };
+		}
+	}
+
+	async function saveSystemPrompt() {
+		saving = { ...saving, prompt: true };
+		message = null;
+
+		try {
+			const response = await fetch('/api/ai/config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ customSystemPrompt: customSystemPrompt || null })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to save');
+			}
+
+			message = { type: 'success', text: 'System prompt saved' };
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to save prompt' };
+		} finally {
+			saving = { ...saving, prompt: false };
 		}
 	}
 
@@ -152,7 +275,7 @@
 
 	<header class="page-header">
 		<h1>AI Assistant</h1>
-		<p class="text-muted">Configure your LLM provider for AI-powered code generation in the Query Builder</p>
+		<p class="text-muted">Configure your LLM providers for AI-powered code generation</p>
 	</header>
 
 	{#if message}
@@ -162,147 +285,196 @@
 	{/if}
 
 	<div class="settings-grid">
-		<!-- Provider Selection -->
-		<div class="card">
-			<h2>LLM Provider</h2>
-			<p class="text-muted">Select your AI provider and enter your API credentials</p>
-
-			<div class="provider-section">
-				<div class="preference-row">
-					<div class="preference-info">
-						<span class="preference-label">Provider</span>
-					</div>
-					<select class="input preference-select" bind:value={activeProvider}>
-						{#each providers as provider}
-							<option value={provider.id}>
-								{provider.label}
-								{#if isConfigured(provider.id)}(configured){/if}
-							</option>
-						{/each}
-					</select>
-				</div>
-
-				{#each providers as provider}
-					{#if provider.id === activeProvider}
-						<!-- API Key -->
-						{#if provider.needsApiKey}
-							<div class="field-group">
-								<label class="field-label" for="api-key">
-									API Key
-									{#if getProviderConfig(provider.id).apiKeyMasked}
-										<span class="configured-badge">Configured ({getProviderConfig(provider.id).apiKeyMasked})</span>
-									{/if}
-								</label>
-								<div class="input-with-toggle">
-									{#if showApiKey}
-										<input
-											type="text"
-											id="api-key"
-											class="input"
-											bind:value={apiKey}
-											placeholder="Enter new API key"
-										/>
-									{:else}
-										<input
-											type="password"
-											id="api-key"
-											class="input"
-											bind:value={apiKey}
-											placeholder="Enter new API key"
-										/>
-									{/if}
-									<button
-										class="btn btn-secondary btn-sm toggle-btn"
-										onclick={() => showApiKey = !showApiKey}
-										type="button"
-									>
-										{showApiKey ? 'Hide' : 'Show'}
-									</button>
-								</div>
-								{#if !getProviderConfig(provider.id).apiKeyMasked}
-									<span class="field-hint">Leave empty API key fields unchanged when saving</span>
-								{/if}
-							</div>
-						{/if}
-
-						<!-- Model -->
-						<div class="field-group">
-							<label class="field-label" for="model">
-								Model
-								{#if provider.modelRequired}
-									<span class="required-badge">Required</span>
-								{/if}
-							</label>
-							<input
-								type="text"
-								id="model"
-								class="input"
-								bind:value={model}
-								placeholder={getModelPlaceholder(provider.id)}
-							/>
-						</div>
-
-						<!-- Base URL (Ollama) -->
-						{#if provider.needsBaseUrl}
-							<div class="field-group">
-								<label class="field-label" for="base-url">Base URL</label>
-								<input
-									type="text"
-									id="base-url"
-									class="input"
-									bind:value={baseUrl}
-									placeholder="http://localhost:11434"
-								/>
-							</div>
-						{/if}
-					{/if}
-				{/each}
-
-				<div class="action-row">
-					<button class="btn btn-primary" onclick={saveConfig} disabled={saving}>
-						{saving ? 'Saving...' : 'Save'}
-					</button>
-					<button class="btn btn-secondary" onclick={testConnection} disabled={testing || saving}>
-						{testing ? 'Testing...' : 'Test Connection'}
-					</button>
-				</div>
-			</div>
-		</div>
-
-		<!-- System Prompt -->
-		<div class="card">
-			<div class="prompt-header">
-				<h2>System Prompt</h2>
-				<button
-					class="btn btn-secondary btn-sm"
-					onclick={() => showPromptEditor = !showPromptEditor}
-				>
-					{showPromptEditor ? 'Hide' : 'Customize'}
-				</button>
-			</div>
-			<p class="text-muted">
-				The system prompt tells the AI how to generate code. The API reference and your metrics are automatically appended.
-			</p>
-
-			{#if showPromptEditor}
-				<div class="prompt-editor">
-					<textarea
-						class="input prompt-textarea"
-						bind:value={customSystemPrompt}
-						placeholder="Leave empty to use the built-in default prompt. The API reference and your metrics info are appended automatically."
-						rows="12"
-					></textarea>
-					<div class="prompt-actions">
-						<button class="btn btn-secondary btn-sm" onclick={resetPrompt}>
-							Reset to Default
-						</button>
-						<span class="field-hint">
-							Use &#123;&#123;API_REFERENCE&#125;&#125; and &#123;&#123;USER_METRICS&#125;&#125; as placeholders
+		{#each providers as provider}
+			{@const config = getProviderConfig(provider.id)}
+			{@const configured = isConfigured(provider.id)}
+			<details class="provider-section" open={configured}>
+				<summary class="provider-header">
+					<div class="provider-title">
+						<span class="provider-name">{provider.label}</span>
+						<span class="provider-summary" class:configured>
+							{getSummary(provider.id)}
 						</span>
 					</div>
+					<svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M6 9l6 6 6-6"/>
+					</svg>
+				</summary>
+
+				<div class="provider-body">
+					<!-- API Key / Base URL -->
+					{#if provider.needsApiKey}
+						<div class="field-group">
+							<label class="field-label">
+								API Key
+								{#if config.apiKeyMasked}
+									<span class="configured-badge">{config.apiKeyMasked}</span>
+								{/if}
+							</label>
+							<div class="input-row">
+								<input
+									type={showApiKeys[provider.id] ? 'text' : 'password'}
+									class="input"
+									bind:value={apiKeys[provider.id]}
+									placeholder={config.apiKeyMasked ? 'Enter new key to update' : 'Enter API key'}
+								/>
+								<button
+									class="btn btn-secondary btn-sm"
+									onclick={() => showApiKeys = { ...showApiKeys, [provider.id]: !showApiKeys[provider.id] }}
+									type="button"
+								>
+									{showApiKeys[provider.id] ? 'Hide' : 'Show'}
+								</button>
+								<button
+									class="btn btn-primary btn-sm"
+									onclick={() => saveProviderKey(provider.id)}
+									disabled={saving[provider.id] || (!apiKeys[provider.id] && !baseUrls[provider.id])}
+								>
+									{saving[provider.id] ? '...' : 'Save'}
+								</button>
+								{#if config.apiKeyMasked}
+									<button
+										class="btn btn-danger btn-sm"
+										onclick={() => clearApiKey(provider.id)}
+										disabled={saving[provider.id]}
+										title="Remove API key"
+									>
+										Remove
+									</button>
+								{/if}
+							</div>
+						</div>
+					{/if}
+
+					{#if provider.needsBaseUrl}
+						<div class="field-group">
+							<label class="field-label">Base URL</label>
+							<div class="input-row">
+								<input
+									type="text"
+									class="input"
+									bind:value={baseUrls[provider.id]}
+									placeholder={config.baseUrl || 'http://localhost:11434'}
+								/>
+								<button
+									class="btn btn-primary btn-sm"
+									onclick={() => saveProviderKey(provider.id)}
+									disabled={saving[provider.id] || !baseUrls[provider.id]}
+								>
+									{saving[provider.id] ? '...' : 'Save'}
+								</button>
+							</div>
+						</div>
+					{/if}
+
+					<!-- Models -->
+					<div class="field-group">
+						<label class="field-label">Models</label>
+
+						{#if config.models.length > 0}
+							<div class="model-list">
+								{#each config.models as modelId}
+									<div class="model-item">
+										<code class="model-id">{modelId}</code>
+										<button
+											class="remove-btn"
+											onclick={() => removeModel(provider.id, modelId)}
+											title="Remove model"
+										>
+											<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+												<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+											</svg>
+										</button>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<p class="text-muted no-models">No models configured</p>
+						{/if}
+
+						<!-- Add model -->
+						<div class="input-row">
+							<input
+								type="text"
+								class="input"
+								bind:value={newModelInputs[provider.id]}
+								placeholder="Model ID (e.g. claude-sonnet-4-5-20250929)"
+								onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addModel(provider.id, newModelInputs[provider.id] || ''); } }}
+							/>
+							<button
+								class="btn btn-secondary btn-sm"
+								onclick={() => addModel(provider.id, newModelInputs[provider.id] || '')}
+								disabled={!newModelInputs[provider.id]?.trim()}
+							>
+								Add
+							</button>
+						</div>
+					</div>
+
+					<!-- Actions -->
+					<div class="provider-actions">
+						{#if configured}
+							<button
+								class="btn btn-secondary btn-sm"
+								onclick={() => testConnection(provider.id)}
+								disabled={testing[provider.id]}
+							>
+								{testing[provider.id] ? 'Testing...' : 'Test Connection'}
+							</button>
+						{/if}
+						{#if configured}
+							<button
+								class="btn btn-danger btn-sm"
+								onclick={() => deleteProviderConfig(provider.id)}
+								disabled={deleting[provider.id]}
+							>
+								{deleting[provider.id] ? 'Deleting...' : 'Delete Configuration'}
+							</button>
+						{/if}
+					</div>
 				</div>
-			{/if}
-		</div>
+			</details>
+		{/each}
+
+		<!-- System Prompt -->
+		<details class="provider-section">
+			<summary class="provider-header">
+				<div class="provider-title">
+					<span class="provider-name">System Prompt</span>
+					<span class="provider-summary">{customSystemPrompt ? 'customized' : 'default'}</span>
+				</div>
+				<svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M6 9l6 6 6-6"/>
+				</svg>
+			</summary>
+
+			<div class="provider-body">
+				<p class="text-muted">
+					The system prompt tells the AI how to generate code. API reference and your metrics are appended automatically.
+				</p>
+				<p class="text-muted">
+					Use &#123;&#123;API_REFERENCE&#125;&#125; and &#123;&#123;USER_METRICS&#125;&#125; as placeholders.
+				</p>
+				<textarea
+					class="input prompt-textarea"
+					bind:value={customSystemPrompt}
+					placeholder="Leave empty to use the built-in default prompt."
+					rows="10"
+				></textarea>
+				<div class="prompt-actions">
+					<button
+						class="btn btn-primary btn-sm"
+						onclick={saveSystemPrompt}
+						disabled={saving['prompt']}
+					>
+						{saving['prompt'] ? 'Saving...' : 'Save Prompt'}
+					</button>
+					<button class="btn btn-secondary btn-sm" onclick={resetPrompt}>
+						Reset to Default
+					</button>
+				</div>
+			</div>
+		</details>
 	</div>
 </div>
 
@@ -331,6 +503,8 @@
 
 	.page-header h1 {
 		margin: 0 0 var(--spacing-xs);
+		font-weight: 800;
+		letter-spacing: -0.02em;
 	}
 
 	.message {
@@ -355,43 +529,80 @@
 	.settings-grid {
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-lg);
+		gap: var(--spacing-md);
 	}
 
-	.card h2 {
-		margin: 0 0 var(--spacing-xs);
-		font-size: 1.125rem;
-	}
-
+	/* Provider accordion sections */
 	.provider-section {
-		margin-top: var(--spacing-md);
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-md);
+		background: var(--color-bg-card);
+		border: 1px solid var(--color-border-light, var(--color-border));
+		border-radius: var(--radius-xl);
+		overflow: hidden;
 	}
 
-	.preference-row {
+	.provider-header {
 		display: flex;
-		justify-content: space-between;
 		align-items: center;
-		gap: var(--spacing-md);
+		justify-content: space-between;
+		padding: var(--spacing-md) var(--spacing-lg);
+		cursor: pointer;
+		user-select: none;
+		list-style: none;
 	}
 
-	.preference-info {
+	.provider-header::-webkit-details-marker {
+		display: none;
+	}
+
+	.provider-header::marker {
+		display: none;
+		content: '';
+	}
+
+	.provider-title {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+	}
+
+	.provider-name {
+		font-weight: 600;
+		font-size: 1rem;
+	}
+
+	.provider-summary {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		background: var(--color-bg);
+		padding: 2px 8px;
+		border-radius: 9999px;
+	}
+
+	.provider-summary.configured {
+		color: var(--color-success);
+		background: #f0fdf4;
+	}
+
+	.chevron {
+		color: var(--color-text-muted);
+		transition: transform 0.2s ease;
+		flex-shrink: 0;
+	}
+
+	.provider-section[open] > .provider-header .chevron {
+		transform: rotate(180deg);
+	}
+
+	.provider-body {
+		padding: 0 var(--spacing-lg) var(--spacing-lg);
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--spacing-md);
+		border-top: 1px solid var(--color-border-light, var(--color-border));
+		padding-top: var(--spacing-md);
 	}
 
-	.preference-label {
-		font-weight: 500;
-	}
-
-	.preference-select {
-		width: auto;
-		min-width: 200px;
-	}
-
+	/* Fields */
 	.field-group {
 		display: flex;
 		flex-direction: column;
@@ -406,56 +617,93 @@
 		gap: var(--spacing-sm);
 	}
 
-	.field-hint {
-		font-size: 0.75rem;
-		color: var(--color-text-muted);
-	}
-
 	.configured-badge {
 		font-weight: 400;
 		font-size: 0.75rem;
 		color: var(--color-success);
 	}
 
-	.required-badge {
-		font-weight: 400;
-		font-size: 0.7rem;
-		color: var(--color-error);
-		background-color: #fef2f2;
-		padding: 1px 6px;
-		border-radius: var(--radius-sm);
-	}
-
-	.input-with-toggle {
+	.input-row {
 		display: flex;
 		gap: var(--spacing-xs);
 	}
 
-	.input-with-toggle .input {
+	.input-row .input {
 		flex: 1;
 	}
 
-	.toggle-btn {
+	/* Model list */
+	.model-list {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.model-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: var(--spacing-xs) var(--spacing-sm);
+		background: var(--color-bg);
+		border-radius: var(--radius-sm);
+	}
+
+	.model-id {
+		font-size: 0.8125rem;
+		font-family: monospace;
+	}
+
+	.remove-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		border: none;
+		background: transparent;
+		color: var(--color-text-muted);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
 		flex-shrink: 0;
 	}
 
-	.action-row {
+	.remove-btn:hover {
+		background: #fef2f2;
+		color: var(--color-error);
+	}
+
+	.no-models {
+		margin: 0;
+		font-size: 0.8125rem;
+	}
+
+	/* Provider actions */
+	.provider-actions {
 		display: flex;
 		gap: var(--spacing-sm);
 		padding-top: var(--spacing-sm);
-		border-top: 1px solid var(--color-border);
+		border-top: 1px solid var(--color-border-light, var(--color-border));
 	}
 
-	.prompt-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
+	.btn-sm {
+		padding: var(--spacing-xs) var(--spacing-sm);
+		font-size: 0.75rem;
 	}
 
-	.prompt-editor {
-		margin-top: var(--spacing-md);
+	.btn-danger {
+		background: transparent;
+		color: var(--color-error);
+		border: 1px solid var(--color-error);
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		font-weight: 500;
 	}
 
+	.btn-danger:hover {
+		background: #fef2f2;
+	}
+
+	/* System prompt */
 	.prompt-textarea {
 		width: 100%;
 		font-family: monospace;
@@ -467,7 +715,6 @@
 	.prompt-actions {
 		display: flex;
 		align-items: center;
-		gap: var(--spacing-md);
-		margin-top: var(--spacing-sm);
+		gap: var(--spacing-sm);
 	}
 </style>

@@ -281,6 +281,7 @@
 							hasAiConfig={data.aiConfig?.hasAiConfig ?? false}
 							configuredProviders={data.aiConfig?.configuredProviders ?? []}
 							activeProvider={data.aiConfig?.activeProvider ?? 'anthropic'}
+							providerModels={data.aiConfig?.providerModels ?? {}}
 						/>
 					{/each}
 				</div>
