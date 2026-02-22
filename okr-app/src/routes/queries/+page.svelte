@@ -466,6 +466,8 @@ render.table({
 
 	.page-header h1 {
 		margin: 0 0 var(--spacing-xs);
+		font-weight: 800;
+		letter-spacing: -0.02em;
 	}
 
 	.error-banner {

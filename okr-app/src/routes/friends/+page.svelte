@@ -379,6 +379,7 @@
 	}
 
 	.page-header h1 {
+		margin: 0;
 		font-size: 2rem;
 		font-weight: 800;
 		letter-spacing: -0.02em;

@@ -58,7 +58,7 @@ export function getCurrentMonthInTimezone(timezone: string = 'UTC'): number {
  * Get the ISO week number (Monday-first, week 1 contains Jan 4)
  */
 function getISOWeekNumber(date: Date): number {
-	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+	const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 	const dayNum = d.getUTCDay() || 7; // Convert Sunday (0) to 7
 	d.setUTCDate(d.getUTCDate() + 4 - dayNum);
 	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
@@ -69,7 +69,7 @@ function getISOWeekNumber(date: Date): number {
  * Get the US week number (Sunday-first, week 1 contains Jan 1)
  */
 function getUSWeekNumber(date: Date): number {
-	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+	const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
 	const yearStartDay = yearStart.getUTCDay(); // 0 = Sunday
 
@@ -139,13 +139,13 @@ export function getWeekStartDate(year: number, week: number, weekStartDay: WeekS
 export function getWeekYear(date: Date, weekStartDay: WeekStartDay = 'monday'): number {
 	if (weekStartDay === 'monday') {
 		// ISO week-year logic
-		const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+		const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 		const dayNum = d.getUTCDay() || 7;
 		d.setUTCDate(d.getUTCDate() + 4 - dayNum);
 		return d.getUTCFullYear();
 	}
 	// US weeks just use the calendar year
-	return date.getFullYear();
+	return date.getUTCFullYear();
 }
 
 /**

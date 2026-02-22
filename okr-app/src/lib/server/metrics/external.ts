@@ -71,6 +71,17 @@ export async function fetchExternalMetrics(
 	// If all values were found in DB, skip live API calls
 	if (missingSourceIds.length === 0) return values;
 
+	// Skip live API calls for future dates (no wearable data will exist)
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	const requestDate = new Date(date + 'T00:00:00');
+	if (requestDate > today) {
+		for (const sourceId of missingSourceIds) {
+			values[sourceId] = null;
+		}
+		return values;
+	}
+
 	// Group missing sources by plugin for live fetch
 	const sourcesByPlugin = new Map<string, string[]>();
 	for (const sourceId of missingSourceIds) {

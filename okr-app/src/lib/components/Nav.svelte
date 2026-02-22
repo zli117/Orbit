@@ -38,15 +38,15 @@
 			</span>
 		</button>
 
-		<div class="nav-links" class:open={menuOpen}>
-			<a href="/daily" class="nav-link" class:active={isActive('/daily')} onclick={closeMenu}>Daily</a>
-			<a href="/weekly" class="nav-link" class:active={isActive('/weekly')} onclick={closeMenu}>Weekly</a>
-			<a href="/objectives" class="nav-link" class:active={isActive('/objectives')} onclick={closeMenu}>Objectives</a>
-			<a href="/queries" class="nav-link" class:active={isActive('/queries')} onclick={closeMenu}>Queries</a>
-			<a href="/friends" class="nav-link" class:active={isActive('/friends')} onclick={closeMenu}>Friends</a>
-			<a href="/settings" class="nav-link" class:active={isActive('/settings')} onclick={closeMenu}>Settings</a>
+		<div class="nav-links-desktop">
+			<a href="/daily" class="nav-link" class:active={isActive('/daily')}>Daily</a>
+			<a href="/weekly" class="nav-link" class:active={isActive('/weekly')}>Weekly</a>
+			<a href="/objectives" class="nav-link" class:active={isActive('/objectives')}>Objectives</a>
+			<a href="/queries" class="nav-link" class:active={isActive('/queries')}>Queries</a>
+			<a href="/friends" class="nav-link" class:active={isActive('/friends')}>Friends</a>
+			<a href="/settings" class="nav-link" class:active={isActive('/settings')}>Settings</a>
 			{#if user.isAdmin}
-				<a href="/admin" class="nav-link nav-link-admin" class:active={isActive('/admin')} onclick={closeMenu}>Admin</a>
+				<a href="/admin" class="nav-link nav-link-admin" class:active={isActive('/admin')}>Admin</a>
 			{/if}
 			<span class="nav-separator"></span>
 			<span class="nav-user">{user.username}</span>
@@ -55,6 +55,25 @@
 	</div>
 </nav>
 
+<!-- Mobile drawer + backdrop: outside <nav> to avoid stacking context issues -->
+{#if menuOpen}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="mobile-backdrop" onclick={closeMenu}></div>
+{/if}
+<div class="mobile-drawer" class:open={menuOpen}>
+	<a href="/daily" class="nav-link" class:active={isActive('/daily')} onclick={closeMenu}>Daily</a>
+	<a href="/weekly" class="nav-link" class:active={isActive('/weekly')} onclick={closeMenu}>Weekly</a>
+	<a href="/objectives" class="nav-link" class:active={isActive('/objectives')} onclick={closeMenu}>Objectives</a>
+	<a href="/queries" class="nav-link" class:active={isActive('/queries')} onclick={closeMenu}>Queries</a>
+	<a href="/friends" class="nav-link" class:active={isActive('/friends')} onclick={closeMenu}>Friends</a>
+	<a href="/settings" class="nav-link" class:active={isActive('/settings')} onclick={closeMenu}>Settings</a>
+	{#if user.isAdmin}
+		<a href="/admin" class="nav-link nav-link-admin" class:active={isActive('/admin')} onclick={closeMenu}>Admin</a>
+	{/if}
+	<span class="nav-separator"></span>
+	<span class="nav-user">{user.username}</span>
+	<button class="btn btn-secondary btn-sm" onclick={handleLogout}>Logout</button>
+</div>
 
 <style>
 	.nav {
@@ -71,9 +90,8 @@
 	.nav-inner {
 		display: flex;
 		align-items: center;
-		width: 100%;
-		padding-left: 20%;
-		padding-right: 20%;
+		max-width: 1200px;
+		margin: 0 auto;
 	}
 
 	.nav-brand {
@@ -131,7 +149,8 @@
 		transform: translateY(-6px) rotate(-45deg);
 	}
 
-	.nav-links {
+	/* Desktop nav links */
+	.nav-links-desktop {
 		display: flex;
 		gap: var(--spacing-sm);
 		align-items: center;
@@ -194,22 +213,46 @@
 		white-space: nowrap;
 	}
 
+	/* Mobile drawer + backdrop: hidden on desktop */
+	.mobile-backdrop {
+		display: none;
+	}
+
+	.mobile-drawer {
+		display: none;
+	}
+
 	/* Mobile styles */
-	@media (max-width: 768px) {
+	@media (max-width: 850px) {
 		.nav {
 			padding: var(--spacing-sm) 5%;
 		}
 
 		.nav-inner {
-			padding-left: 0;
-			padding-right: 0;
+			max-width: none;
 		}
 
 		.menu-toggle {
 			display: block;
 		}
 
-		.nav-links {
+		/* Hide desktop links on mobile */
+		.nav-links-desktop {
+			display: none;
+		}
+
+		/* Show mobile drawer elements */
+		.mobile-backdrop {
+			display: block;
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.3);
+			z-index: 1000;
+		}
+
+		.mobile-drawer {
+			display: flex;
+			flex-direction: column;
 			position: fixed;
 			top: 0;
 			right: 0;
@@ -220,23 +263,21 @@
 			-webkit-backdrop-filter: blur(16px);
 			border-left: 1px solid rgba(203, 213, 225, 0.5);
 			box-shadow: -4px 0 20px rgb(0 0 0 / 0.1);
-			z-index: 200;
-			flex-direction: column;
+			z-index: 1001;
 			padding: var(--spacing-xl) var(--spacing-lg);
 			gap: var(--spacing-xs);
-			justify-content: flex-start;
 			transform: translateX(100%);
 			transition: transform 0.25s ease;
 			overflow-y: auto;
 			visibility: hidden;
 		}
 
-		.nav-links.open {
+		.mobile-drawer.open {
 			transform: translateX(0);
 			visibility: visible;
 		}
 
-		.nav-link {
+		.mobile-drawer .nav-link {
 			width: 100%;
 			padding: var(--spacing-md);
 			font-size: 1rem;
@@ -246,18 +287,18 @@
 			border-radius: var(--radius-md);
 		}
 
-		.nav-separator {
+		.mobile-drawer .nav-separator {
 			width: 100%;
 			height: 1px;
 			margin: var(--spacing-sm) 0;
 		}
 
-		.nav-user {
+		.mobile-drawer .nav-user {
 			padding: var(--spacing-sm) var(--spacing-md);
 			font-size: 1rem;
 		}
 
-		.btn-sm {
+		.mobile-drawer .btn-sm {
 			width: 100%;
 			justify-content: center;
 			padding: var(--spacing-md);
