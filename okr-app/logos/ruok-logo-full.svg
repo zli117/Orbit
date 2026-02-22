@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 120">
+  <defs>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3A8A"/>
+      <stop offset="100%" style="stop-color:#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="50%" style="stop-color:#3B82F6"/>
+      <stop offset="100%" style="stop-color:#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="checkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="100%" style="stop-color:#10B981"/>
+    </linearGradient>
+  </defs>
+
+  <!-- R -->
+  <text x="36" y="88" font-family="'Helvetica Neue', 'Arial', sans-serif" font-size="82" font-weight="900" fill="url(#textGrad)">R</text>
+
+  <!-- U -->
+  <text x="96" y="88" font-family="'Helvetica Neue', 'Arial', sans-serif" font-size="82" font-weight="900" fill="url(#textGrad)">U</text>
+
+  <!-- O as progress ring -->
+  <g transform="translate(193, 60)">
+    <circle cx="0" cy="0" r="25" fill="none" stroke="#E0E7FF" stroke-width="7"/>
+    <circle cx="0" cy="0" r="25" fill="none" stroke="url(#ringGrad)" stroke-width="7"
+      stroke-dasharray="157.1" stroke-dashoffset="34.6"
+      stroke-linecap="round" transform="rotate(-90)"/>
+    <polyline points="-7,1.5 -1.5,7 8.5,-5.5" fill="none" stroke="url(#checkGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- K -->
+  <text x="228" y="88" font-family="'Helvetica Neue', 'Arial', sans-serif" font-size="82" font-weight="900" fill="url(#textGrad)">K</text>
+
+  <!-- Subtle label -->
+  <text x="306" y="70" font-family="'Helvetica Neue', 'Arial', sans-serif" font-size="11" font-weight="700" fill="#94A3B8" letter-spacing="5">OKR</text>
+  <text x="306" y="86" font-family="'Helvetica Neue', 'Arial', sans-serif" font-size="11" font-weight="700" fill="#94A3B8" letter-spacing="5">TRACKER</text>
+</svg>
