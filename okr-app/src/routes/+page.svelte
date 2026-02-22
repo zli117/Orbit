@@ -264,6 +264,9 @@
 							savedQueries={data.savedQueries}
 							onSave={(title, code) => saveWidget(widget.id, title, code)}
 							onDelete={() => deleteWidget(widget.id)}
+							hasAiConfig={data.aiConfig?.hasAiConfig ?? false}
+							configuredProviders={data.aiConfig?.configuredProviders ?? []}
+							activeProvider={data.aiConfig?.activeProvider ?? 'anthropic'}
 						/>
 					{/each}
 				</div>

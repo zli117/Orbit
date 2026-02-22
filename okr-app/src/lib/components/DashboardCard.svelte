@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { marked } from 'marked';
-	import MonacoEditor from './MonacoEditor.svelte';
+	import CodeEditorModal from './CodeEditorModal.svelte';
 
 	interface RenderOutput {
 		type: 'markdown' | 'table' | 'plotly';
@@ -30,9 +30,12 @@
 		savedQueries?: SavedQuery[];
 		onSave?: (title: string, code: string) => void;
 		onDelete?: () => void;
+		hasAiConfig?: boolean;
+		configuredProviders?: string[];
+		activeProvider?: string;
 	}
 
-	let { title, code, savedQueries = [], onSave, onDelete }: Props = $props();
+	let { title, code, savedQueries = [], onSave, onDelete, hasAiConfig = false, configuredProviders = [], activeProvider = 'anthropic' }: Props = $props();
 
 	// svelte-ignore state_referenced_locally
 	let localTitle = $state(title);
@@ -40,6 +43,7 @@
 	let localCode = $state(code);
 	let selectedQueryId = $state<string | null>(null);
 	let editing = $state(false);
+	let codeEditorOpen = $state(false);
 	let renders = $state<RenderOutput[]>([]);
 	let error = $state('');
 	let loading = $state(true);
@@ -180,10 +184,12 @@
 				</select>
 			{/if}
 
-			<MonacoEditor
-				bind:value={localCode}
-				height="200px"
-			/>
+			<button type="button" class="btn btn-secondary edit-code-btn" onclick={() => codeEditorOpen = true}>
+				{localCode.trim() ? 'Edit Code with AI...' : 'Write Code with AI...'}
+			</button>
+			{#if localCode.trim()}
+				<pre class="code-preview"><code>{localCode.length > 150 ? localCode.slice(0, 150) + '...' : localCode}</code></pre>
+			{/if}
 
 			<div class="help-text">
 				<strong>Render API:</strong>
@@ -252,6 +258,15 @@
 	{/if}
 </div>
 
+<CodeEditorModal
+	bind:open={codeEditorOpen}
+	bind:value={localCode}
+	title="Widget Code"
+	{hasAiConfig}
+	{configuredProviders}
+	{activeProvider}
+/>
+
 <style>
 	.dashboard-card {
 		min-height: 150px;
@@ -308,6 +323,25 @@
 		padding: 2px 4px;
 		border-radius: 2px;
 		font-size: 0.7rem;
+	}
+
+	.edit-code-btn {
+		width: 100%;
+	}
+
+	.code-preview {
+		margin-top: var(--spacing-xs);
+		padding: var(--spacing-sm);
+		background: var(--color-bg);
+		border-radius: var(--radius-sm);
+		font-size: 0.7rem;
+		overflow: hidden;
+		white-space: pre-wrap;
+		word-break: break-all;
+	}
+
+	.code-preview code {
+		color: var(--color-text-muted);
 	}
 
 	.display-mode {

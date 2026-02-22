@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import KRWidget from '$lib/components/KRWidget.svelte';
-	import MonacoEditor from '$lib/components/MonacoEditor.svelte';
+	import CodeEditorModal from '$lib/components/CodeEditorModal.svelte';
 
 	let { data } = $props();
 
@@ -130,6 +130,7 @@
 	// KR modal state (for both new and edit)
 	let krModalObjectiveId = $state<string | null>(null);
 	let editingKR = $state<{objectiveId: string, kr: typeof localObjectives[0]['keyResults'][0]} | null>(null);
+	let codeEditorOpen = $state(false);
 
 	// Computed: is modal open?
 	const isKRModalOpen = $derived(krModalObjectiveId !== null || editingKR !== null);
@@ -834,10 +835,12 @@
 							</div>
 						{/if}
 
-						<MonacoEditor
-							bind:value={krProgressQueryCode}
-							height="150px"
-						/>
+						<button type="button" class="btn btn-secondary" onclick={() => codeEditorOpen = true}>
+							{krProgressQueryCode ? 'Edit Code with AI...' : 'Write Code with AI...'}
+						</button>
+						{#if krProgressQueryCode}
+							<pre class="code-preview"><code>{krProgressQueryCode.length > 120 ? krProgressQueryCode.slice(0, 120) + '...' : krProgressQueryCode}</code></pre>
+						{/if}
 					</div>
 				{/if}
 
@@ -851,6 +854,15 @@
 		</div>
 	</div>
 {/if}
+
+<CodeEditorModal
+	bind:open={codeEditorOpen}
+	bind:value={krProgressQueryCode}
+	title="Progress Query Code"
+	hasAiConfig={data.aiConfig?.hasAiConfig ?? false}
+	configuredProviders={data.aiConfig?.configuredProviders ?? []}
+	activeProvider={data.aiConfig?.activeProvider ?? 'anthropic'}
+/>
 
 <style>
 	.objectives-page {
@@ -1277,6 +1289,22 @@
 	/* Query selector */
 	.query-selector {
 		margin-bottom: var(--spacing-sm);
+	}
+
+	/* Code preview */
+	.code-preview {
+		margin-top: var(--spacing-sm);
+		padding: var(--spacing-sm);
+		background: var(--color-bg);
+		border-radius: var(--radius-sm);
+		font-size: 0.75rem;
+		overflow: hidden;
+		white-space: pre-wrap;
+		word-break: break-all;
+	}
+
+	.code-preview code {
+		color: var(--color-text-muted);
 	}
 
 	/* KR Widget display */

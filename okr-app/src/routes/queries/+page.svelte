@@ -2,8 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { tick } from 'svelte';
 	import { marked } from 'marked';
-	import MonacoEditor from '$lib/components/MonacoEditor.svelte';
-	import AiChat from '$lib/components/AiChat.svelte';
+	import CodeWithAi from '$lib/components/CodeWithAi.svelte';
 
 	interface RenderOutput {
 		type: 'markdown' | 'table' | 'plotly';
@@ -247,10 +246,6 @@ render.table({
 	function formatResult(value: unknown): string {
 		return JSON.stringify(value, null, 2);
 	}
-
-	function handleCopyToEditor(codeText: string) {
-		code = codeText;
-	}
 </script>
 
 <svelte:head>
@@ -338,10 +333,35 @@ render.table({
 		</div>
 
 		<div class="editor-section">
-			<div class="card editor-card">
-				<div class="editor-header">
-					<h2>Code Editor</h2>
-					<div class="editor-actions">
+			{#if showSaveForm && !selectedQuery}
+				<div class="save-form">
+					<input
+						type="text"
+						class="input"
+						placeholder="Query name"
+						bind:value={queryName}
+					/>
+					<input
+						type="text"
+						class="input"
+						placeholder="Description (optional)"
+						bind:value={queryDescription}
+					/>
+					<button class="btn btn-primary btn-sm" onclick={saveQuery} disabled={saveLoading || !queryName.trim()}>
+						{saveLoading ? 'Saving...' : 'Save'}
+					</button>
+				</div>
+			{/if}
+
+			<div class="editor-card">
+				<CodeWithAi
+					bind:value={code}
+					editorHeight="400px"
+					hasAiConfig={data.aiConfig.hasAiConfig}
+					configuredProviders={data.aiConfig.configuredProviders}
+					activeProvider={data.aiConfig.activeProvider}
+				>
+					{#snippet headerSnippet()}
 						{#if selectedQuery}
 							<button class="btn btn-secondary btn-sm" onclick={startNewQuery}>
 								New Query
@@ -357,33 +377,8 @@ render.table({
 						<button class="btn btn-primary" onclick={runQuery} disabled={loading}>
 							{loading ? 'Running...' : 'Run Query'}
 						</button>
-					</div>
-				</div>
-
-				{#if showSaveForm && !selectedQuery}
-					<div class="save-form">
-						<input
-							type="text"
-							class="input"
-							placeholder="Query name"
-							bind:value={queryName}
-						/>
-						<input
-							type="text"
-							class="input"
-							placeholder="Description (optional)"
-							bind:value={queryDescription}
-						/>
-						<button class="btn btn-primary btn-sm" onclick={saveQuery} disabled={saveLoading || !queryName.trim()}>
-							{saveLoading ? 'Saving...' : 'Save'}
-						</button>
-					</div>
-				{/if}
-
-				<MonacoEditor
-					bind:value={code}
-					height="400px"
-				/>
+					{/snippet}
+				</CodeWithAi>
 			</div>
 
 			<div class="card result-card">
@@ -448,15 +443,6 @@ render.table({
 				{/if}
 			</div>
 		</div>
-
-		<div class="ai-section">
-			<AiChat
-				onCopyToEditor={handleCopyToEditor}
-				hasConfig={data.hasAiConfig}
-				configuredProviders={data.configuredProviders}
-				activeProvider={data.activeProvider}
-			/>
-		</div>
 	</div>
 </div>
 
@@ -486,21 +472,11 @@ render.table({
 
 	.query-layout {
 		display: grid;
-		grid-template-columns: 260px 1fr 420px;
+		grid-template-columns: 260px 1fr;
 		grid-template-rows: minmax(0, 1fr);
 		gap: var(--spacing-lg);
 		height: calc(100vh - 180px);
 		min-height: 500px;
-	}
-
-	@media (max-width: 1400px) {
-		.query-layout {
-			grid-template-columns: 1fr 420px;
-		}
-
-		.sidebar-section {
-			display: none;
-		}
 	}
 
 	@media (max-width: 1024px) {
@@ -508,7 +484,7 @@ render.table({
 			grid-template-columns: 1fr;
 		}
 
-		.ai-section {
+		.sidebar-section {
 			display: none;
 		}
 	}
@@ -522,35 +498,16 @@ render.table({
 	}
 
 	.editor-card {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-md);
-	}
-
-	.editor-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: var(--spacing-sm);
-	}
-
-	.editor-header h2 {
-		margin: 0;
-		font-size: 1rem;
-	}
-
-	.editor-actions {
-		display: flex;
-		gap: var(--spacing-sm);
+		min-height: 480px;
 	}
 
 	.save-form {
 		display: flex;
 		gap: var(--spacing-sm);
 		padding: var(--spacing-sm);
-		background-color: var(--color-bg);
-		border-radius: var(--radius-sm);
+		background-color: var(--color-bg-card);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
 	}
 
 	.save-form .input {
@@ -585,11 +542,6 @@ render.table({
 	.sidebar-section h2 {
 		margin: 0 0 var(--spacing-md);
 		font-size: 1rem;
-	}
-
-	.ai-section {
-		min-height: 0;
-		overflow: hidden;
 	}
 
 	.saved-queries-list {

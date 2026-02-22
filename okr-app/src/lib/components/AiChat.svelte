@@ -16,12 +16,14 @@
 		onCopyToEditor,
 		hasConfig,
 		configuredProviders = [],
-		activeProvider = 'anthropic'
+		activeProvider = 'anthropic',
+		pendingCode = $bindable('')
 	}: {
 		onCopyToEditor: (code: string) => void;
 		hasConfig: boolean;
 		configuredProviders: string[];
 		activeProvider: string;
+		pendingCode?: string;
 	} = $props();
 
 	let messages = $state<AiMessage[]>([]);
@@ -30,6 +32,21 @@
 	let error = $state('');
 	let selectedProvider = $state(activeProvider);
 	let messagesContainer = $state<HTMLDivElement | null>(null);
+	let inputTextarea = $state<HTMLTextAreaElement | null>(null);
+
+	// When editor sends code to AI, populate the input
+	$effect(() => {
+		if (pendingCode) {
+			inputText = "```\n" + pendingCode + "\n```\n";
+			pendingCode = '';
+			tick().then(() => {
+				if (inputTextarea) {
+					inputTextarea.focus();
+					inputTextarea.setSelectionRange(0, 0);
+				}
+			});
+		}
+	});
 
 	const providerLabels: Record<string, string> = {
 		anthropic: 'Anthropic',
@@ -258,6 +275,7 @@
 
 	<div class="chat-input">
 		<textarea
+			bind:this={inputTextarea}
 			bind:value={inputText}
 			placeholder={hasConfig ? 'Ask about your data...' : 'Configure AI provider first'}
 			onkeydown={handleKeydown}
