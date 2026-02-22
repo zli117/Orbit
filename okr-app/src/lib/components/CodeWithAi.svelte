@@ -175,11 +175,16 @@
 			flex-direction: column;
 		}
 
+		.editor-panel {
+			min-height: 0;
+		}
+
 		.ai-panel {
 			width: 100%;
 			border-left: none;
 			border-top: 1px solid var(--color-border);
-			max-height: 400px;
+			flex: 1;
+			min-height: 0;
 		}
 	}
 </style>
