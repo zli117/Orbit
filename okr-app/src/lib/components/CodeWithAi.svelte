@@ -105,6 +105,12 @@
 		background: var(--color-bg-card);
 	}
 
+	/* Strip border/radius when embedded in a modal (parent provides these) */
+	:global(.modal-content) .code-with-ai {
+		border: none;
+		border-radius: 0;
+	}
+
 	.editor-panel {
 		flex: 1;
 		min-width: 0;
@@ -119,6 +125,7 @@
 		padding: var(--spacing-sm) var(--spacing-md);
 		border-bottom: 1px solid var(--color-border);
 		flex-wrap: wrap;
+		min-height: 65px;
 	}
 
 	.toolbar-right {

@@ -307,8 +307,6 @@
 		flex-direction: column;
 		height: 100%;
 		background: var(--color-surface, white);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
 		overflow: hidden;
 	}
 
@@ -319,6 +317,7 @@
 		padding: var(--spacing-sm) var(--spacing-md);
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
+		min-height: 65px;
 	}
 
 	.chat-header h3 {
@@ -558,6 +557,7 @@
 	/* Input */
 	.chat-input {
 		display: flex;
+		align-items: stretch;
 		gap: var(--spacing-xs);
 		padding: var(--spacing-sm);
 		border-top: 1px solid var(--color-border);
@@ -583,12 +583,11 @@
 
 	.send-btn {
 		flex-shrink: 0;
-		width: 36px;
-		height: 36px;
+		width: 40px;
 		padding: 0;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		align-self: flex-end;
+		border-radius: var(--radius-md);
 	}
 </style>

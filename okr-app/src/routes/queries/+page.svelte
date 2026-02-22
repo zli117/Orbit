@@ -263,12 +263,11 @@ render.table({
 	{/if}
 
 	<div class="query-layout">
-		<div class="sidebar-section">
-			<div class="card">
-				<h2>Saved Queries</h2>
-
+		<aside class="sidebar">
+			<div class="sidebar-section-group">
+				<h3 class="sidebar-title">Saved Queries</h3>
 				{#if data.savedQueries.length === 0}
-					<p class="text-muted">No saved queries yet</p>
+					<p class="text-muted sidebar-empty">No saved queries yet</p>
 				{:else}
 					<ul class="saved-queries-list">
 						{#each data.savedQueries as query}
@@ -280,7 +279,7 @@ render.table({
 									{/if}
 								</button>
 								<button
-									class="btn-icon btn-icon-sm"
+									class="btn-icon btn-icon-sm delete-btn"
 									onclick={() => deleteQuery(query.id)}
 									title="Delete"
 								>
@@ -295,48 +294,61 @@ render.table({
 				{/if}
 			</div>
 
-			<div class="card">
-				<h2>API Quick Reference</h2>
-				<div class="api-docs">
-					<h3>Data Fetching</h3>
-					<code>q.daily(&#123; year, month, ... &#125;)</code>
-					<code>q.tasks(&#123; year, tag, ... &#125;)</code>
-					<code>q.objectives(&#123; year, level &#125;)</code>
-					<code>q.today() → &#123; year, month, day, date, week &#125;</code>
-
-					<h3>Rendering</h3>
-					<code>render.markdown(text)</code>
-					<code>render.table(&#123; headers, rows &#125;)</code>
-					<code>render.plot.bar/line/pie/multi(...)</code>
-
-					<h3>Helpers</h3>
-					<code>q.sum(items, 'field')</code>
-					<code>q.avg(items, 'field')</code>
-					<code>q.count(items)</code>
-					<code>q.parseTime('7:30')</code>
-					<code>q.formatDuration(450)</code>
-
-					<h3>Date/Time</h3>
-					<code>moment() → current date/time</code>
-					<code>moment('YYYY-MM-DD') → parse</code>
-					<code>.format(), .add(), .subtract()</code>
-					<code>.startOf(), .endOf(), .diff()</code>
-
-					<h3>Progress</h3>
-					<code>progress.set(value)</code>
-					<p>Set KR progress (0-1)</p>
-
-					<a href="/queries/api-reference" target="_blank" rel="noopener" class="api-ref-link">
-						Full API Reference
-						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-							<polyline points="15 3 21 3 21 9"/>
-							<line x1="10" y1="14" x2="21" y2="3"/>
-						</svg>
-					</a>
+			<div class="sidebar-section-group">
+				<h3 class="sidebar-title">API Quick Reference</h3>
+				<div class="api-accordion">
+					{#each [
+						{ title: 'DATA FETCHING', items: [
+							'q.daily({ year, month, ... })',
+							'q.tasks({ year, tag, ... })',
+							'q.objectives({ year, level })',
+							'q.today()'
+						]},
+						{ title: 'RENDERING', items: [
+							'render.markdown(text)',
+							'render.table({ headers, rows })',
+							'render.plot.bar/line/pie/multi(...)'
+						]},
+						{ title: 'HELPERS', items: [
+							"q.sum(items, 'field')",
+							"q.avg(items, 'field')",
+							'q.count(items)',
+							"q.parseTime('7:30')",
+							'q.formatDuration(450)'
+						]},
+						{ title: 'DATE/TIME', items: [
+							'moment() → current date/time',
+							"moment('YYYY-MM-DD') → parse",
+							'.format(), .add(), .subtract()',
+							'.startOf(), .endOf(), .diff()'
+						]},
+						{ title: 'PROGRESS', items: [
+							'progress.set(value)'
+						]}
+					] as section, sectionIdx}
+						<details class="accordion-item" open={sectionIdx === 0}>
+							<summary class="accordion-header">
+								{section.title}
+								<span class="chevron">&#9660;</span>
+							</summary>
+							<div class="accordion-content">
+								{#each section.items as item}
+									<code class="code-snippet">{item}</code>
+								{/each}
+							</div>
+						</details>
+					{/each}
 				</div>
+				<a href="/queries/api-reference" target="_blank" rel="noopener" class="api-ref-link">
+					Full API Reference
+					<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+						<polyline points="15 3 21 3 21 9"/>
+						<line x1="10" y1="14" x2="21" y2="3"/>
+					</svg>
+				</a>
 			</div>
-		</div>
+		</aside>
 
 		<div class="editor-section">
 			{#if showSaveForm && !selectedQuery}
@@ -381,7 +393,7 @@ render.table({
 								{showSaveForm ? 'Cancel' : 'Save As...'}
 							</button>
 						{/if}
-						<button class="btn btn-primary" onclick={runQuery} disabled={loading}>
+						<button class="btn btn-primary btn-sm" onclick={runQuery} disabled={loading}>
 							{loading ? 'Running...' : 'Run Query'}
 						</button>
 					{/snippet}
@@ -479,13 +491,12 @@ render.table({
 		margin-bottom: var(--spacing-md);
 	}
 
+	/* Layout: sidebar + editor (no fixed height) */
 	.query-layout {
 		display: grid;
-		grid-template-columns: 260px 1fr;
-		grid-template-rows: minmax(0, 1fr);
+		grid-template-columns: 280px 1fr;
 		gap: var(--spacing-lg);
-		height: calc(75vh - 135px);
-		min-height: 500px;
+		align-items: start;
 	}
 
 	@media (max-width: 1024px) {
@@ -493,88 +504,74 @@ render.table({
 			grid-template-columns: 1fr;
 		}
 
-		.sidebar-section {
+		.sidebar {
 			display: none;
 		}
 	}
 
-	.editor-section {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-lg);
-		overflow-y: auto;
-		min-height: 0;
-	}
-
-	.editor-card {
-		flex: 1;
-		min-height: 0;
-	}
-
-	.save-form {
-		display: flex;
-		gap: var(--spacing-sm);
-		padding: var(--spacing-sm);
-		background-color: var(--color-bg-card);
+	/* Unified sidebar */
+	.sidebar {
+		background: var(--color-bg-card);
 		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-	}
-
-	.save-form .input {
-		flex: 1;
-	}
-
-	.result-card h2 {
-		margin: 0 0 var(--spacing-md);
-		font-size: 1rem;
-	}
-
-	.result-output {
-		padding: var(--spacing-md);
-		background-color: var(--color-bg);
-		border-radius: var(--radius-md);
-		font-family: monospace;
-		font-size: 0.875rem;
-		overflow-x: auto;
-		margin: 0;
-		white-space: pre-wrap;
-		word-break: break-word;
-	}
-
-	.sidebar-section {
+		border-radius: var(--radius-xl);
+		padding: var(--spacing-lg);
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-lg);
-		overflow-y: auto;
-		min-height: 0;
+		gap: var(--spacing-xl);
+		height: fit-content;
+		align-self: flex-start;
 	}
 
-	.sidebar-section h2 {
-		margin: 0 0 var(--spacing-md);
-		font-size: 1rem;
+	.sidebar-title {
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-text-muted);
+		margin: 0 0 var(--spacing-sm);
+	}
+
+	.sidebar-empty {
+		font-size: 0.875rem;
+		margin: 0;
 	}
 
 	.saved-queries-list {
 		list-style: none;
 		padding: 0;
 		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
 	}
 
 	.saved-queries-list li {
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-xs);
-		border-bottom: 1px solid var(--color-border);
+		padding: var(--spacing-xs) var(--spacing-sm);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		transition: all 0.15s ease;
 	}
 
-	.saved-queries-list li:last-child {
-		border-bottom: none;
+	.saved-queries-list li:hover {
+		border-color: rgb(191 219 254);
+		background: rgb(239 246 255);
 	}
 
 	.saved-queries-list li.active {
-		background-color: rgb(59 130 246 / 0.1);
-		margin: 0 calc(-1 * var(--spacing-md));
-		padding: 0 var(--spacing-md);
+		border-color: rgb(147 197 253);
+		background: rgb(239 246 255);
+	}
+
+	.delete-btn {
+		opacity: 0;
+		transition: opacity 0.15s ease;
+	}
+
+	.saved-queries-list li:hover .delete-btn {
+		opacity: 1;
 	}
 
 	.query-item {
@@ -582,7 +579,7 @@ render.table({
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		padding: var(--spacing-sm) 0;
+		padding: var(--spacing-xs) 0;
 		background: none;
 		border: none;
 		text-align: left;
@@ -632,35 +629,67 @@ render.table({
 		font-size: 0.75rem;
 	}
 
-	.api-docs {
-		font-size: 0.875rem;
+	/* Accordion */
+	.api-accordion {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
 	}
 
-	.api-docs h3 {
-		margin: var(--spacing-md) 0 var(--spacing-xs);
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+	.accordion-item {
+		border-radius: var(--radius-md);
+	}
+
+	.accordion-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		width: 100%;
+		padding: var(--spacing-sm) var(--spacing-xs);
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--color-text);
+		cursor: pointer;
+		border-radius: var(--radius-sm);
+		transition: background 0.15s ease;
+		list-style: none;
+	}
+
+	.accordion-header::-webkit-details-marker {
+		display: none;
+	}
+
+	.accordion-header:hover {
+		background: var(--color-bg-hover);
+	}
+
+	.chevron {
+		font-size: 0.6rem;
 		color: var(--color-text-muted);
+		transition: transform 0.2s ease;
 	}
 
-	.api-docs h3:first-child {
-		margin-top: 0;
+	.accordion-item[open] .chevron {
+		transform: rotate(180deg);
 	}
 
-	.api-docs code {
+	.accordion-content {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-xs) var(--spacing-xs) var(--spacing-sm);
+	}
+
+	.code-snippet {
 		display: block;
 		padding: var(--spacing-xs) var(--spacing-sm);
-		background-color: var(--color-bg);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius-sm);
 		font-size: 0.75rem;
-		margin-bottom: var(--spacing-xs);
-	}
-
-	.api-docs p {
-		margin: 0 0 var(--spacing-sm);
-		color: var(--color-text-muted);
-		font-size: 0.75rem;
+		font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+		color: var(--color-text);
+		white-space: pre-wrap;
 	}
 
 	.api-ref-link {
@@ -680,6 +709,52 @@ render.table({
 
 	.api-ref-link:hover {
 		background: var(--color-primary-hover, #2563eb);
+	}
+
+	/* Editor section */
+	.editor-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-lg);
+	}
+
+	.editor-card {
+		height: 60vh;
+	}
+
+	.save-form {
+		display: flex;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-sm);
+		background-color: var(--color-bg-card);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+	}
+
+	.save-form .input {
+		flex: 1;
+	}
+
+	/* Result card - no shadow, grows with content */
+	.result-card {
+		box-shadow: none;
+	}
+
+	.result-card h2 {
+		margin: 0 0 var(--spacing-md);
+		font-size: 1rem;
+	}
+
+	.result-output {
+		padding: var(--spacing-md);
+		background-color: var(--color-bg);
+		border-radius: var(--radius-md);
+		font-family: monospace;
+		font-size: 0.875rem;
+		overflow-x: auto;
+		margin: 0;
+		white-space: pre-wrap;
+		word-break: break-word;
 	}
 
 	/* Progress result styles */
