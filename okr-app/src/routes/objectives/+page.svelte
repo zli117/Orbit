@@ -2,6 +2,16 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import KRWidget from '$lib/components/KRWidget.svelte';
 	import CodeEditorModal from '$lib/components/CodeEditorModal.svelte';
+	import CircularProgress from '$lib/components/CircularProgress.svelte';
+
+	const OBJECTIVE_COLORS = [
+		{ bg: 'linear-gradient(135deg, #FEE2E2, #FFF1F2)', accent: '#E84057', badge: '#FEE2E2' },
+		{ bg: 'linear-gradient(135deg, #CCFBF1, #F0FDFA)', accent: '#0D9488', badge: '#CCFBF1' },
+		{ bg: 'linear-gradient(135deg, #E0E7FF, #EEF2FF)', accent: '#6366F1', badge: '#E0E7FF' },
+		{ bg: 'linear-gradient(135deg, #FCE7F3, #FDF2F8)', accent: '#DB2777', badge: '#FCE7F3' },
+		{ bg: 'linear-gradient(135deg, #DBEAFE, #EFF6FF)', accent: '#2563EB', badge: '#DBEAFE' },
+		{ bg: 'linear-gradient(135deg, #FEF3C7, #FFFBEB)', accent: '#D97706', badge: '#FEF3C7' },
+	];
 
 	let { data } = $props();
 
@@ -501,7 +511,7 @@
 
 <div class="objectives-page">
 	<header class="page-header">
-		<h1>Objectives</h1>
+		<h1 class="page-title">Objectives</h1>
 		<div class="header-controls">
 			<select class="input select-sm" value={data.year} onchange={(e) => changeYear(parseInt(e.currentTarget.value))}>
 				{#each data.years as year}
@@ -539,18 +549,14 @@
 	{/if}
 
 	<div class="overall-score card">
-		<div class="score-display">
-			<span class="score-value">{(localOverallScore * 100).toFixed(0)}%</span>
-			<span class="score-label">Overall {data.level === 'yearly' ? 'Year' : (data.month ? monthNames[data.month - 1] : 'Month')} Score</span>
-		</div>
-		<div class="progress-bar progress-bar-lg">
-			<div class="progress-bar-fill" style="width: {localOverallScore * 100}%;"></div>
-		</div>
+		<CircularProgress value={localOverallScore} size={120} strokeWidth={8} />
+		<span class="score-label">Overall {data.level === 'yearly' ? 'Year' : (data.month ? monthNames[data.month - 1] : 'Month')} Score</span>
 	</div>
 
 	<div class="objectives-list">
-		{#each localObjectives as objective}
-			<div class="card objective-card">
+		{#each localObjectives as objective, i}
+			{@const colors = OBJECTIVE_COLORS[i % OBJECTIVE_COLORS.length]}
+			<div class="card objective-card" style="background: {colors.bg}; border-color: transparent;">
 				<div class="objective-header">
 					<div class="objective-info">
 						<h2 class="objective-title">{objective.title}</h2>
@@ -560,24 +566,13 @@
 					</div>
 					<div class="objective-actions">
 						<span class="objective-weight">Weight: {objective.weight}</span>
-						<span class="objective-score" class:score-low={objective.averageScore < 0.3} class:score-mid={objective.averageScore >= 0.3 && objective.averageScore < 0.7} class:score-high={objective.averageScore >= 0.7}>{(objective.averageScore * 100).toFixed(0)}%</span>
+						<CircularProgress value={objective.averageScore} size={52} strokeWidth={4} color={colors.accent} />
 						<button class="btn-icon" onclick={() => deleteObjective(objective.id)} title="Delete objective">
 							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<polyline points="3 6 5 6 21 6"/>
 								<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
 							</svg>
 						</button>
-					</div>
-				</div>
-				<div class="objective-progress">
-					<div class="progress-bar">
-						<div
-							class="progress-bar-fill"
-							class:fill-low={objective.averageScore < 0.3}
-							class:fill-mid={objective.averageScore >= 0.3 && objective.averageScore < 0.7}
-							class:fill-high={objective.averageScore >= 0.7}
-							style="width: {objective.averageScore * 100}%;"
-						></div>
 					</div>
 				</div>
 
@@ -605,7 +600,7 @@
 									<span class="kr-score kr-score-loading">...</span>
 								{:else}
 									{@const score = getKRScore(kr)}
-									<span class="kr-score" class:score-low={score < 0.3} class:score-mid={score >= 0.3 && score < 0.7} class:score-high={score >= 0.7}>{(score * 100).toFixed(0)}%</span>
+									<span class="kr-score-badge" style="background: {colors.badge}; color: {colors.accent};">{(score * 100).toFixed(0)}%</span>
 								{/if}
 									<button class="btn-icon btn-icon-sm" onclick={() => openEditKR(objective.id, kr)} title="Edit">
 										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -652,10 +647,7 @@
 										{@const progressScore = getKRScore(kr)}
 										<div
 											class="progress-bar-fill"
-											class:fill-low={progressScore < 0.3}
-											class:fill-mid={progressScore >= 0.3 && progressScore < 0.7}
-											class:fill-high={progressScore >= 0.7}
-											style="width: {progressScore * 100}%;"
+											style="width: {progressScore * 100}%; background-color: {colors.accent};"
 										></div>
 									{/if}
 								</div>
@@ -881,8 +873,11 @@
 		gap: var(--spacing-md);
 	}
 
-	.page-header h1 {
+	.page-title {
 		margin: 0;
+		font-size: 2rem;
+		font-weight: 800;
+		letter-spacing: -0.02em;
 	}
 
 	.header-controls {
@@ -899,23 +894,25 @@
 	.level-tabs {
 		display: flex;
 		background-color: var(--color-bg-hover);
-		border-radius: var(--radius-md);
-		padding: 2px;
+		border-radius: 9999px;
+		padding: 3px;
 	}
 
 	.tab {
 		padding: var(--spacing-xs) var(--spacing-md);
 		border: none;
 		background: transparent;
-		border-radius: var(--radius-sm);
+		border-radius: 9999px;
 		cursor: pointer;
 		font-size: 0.875rem;
+		font-weight: 500;
 		transition: all 0.15s ease;
 	}
 
 	.tab.active {
 		background-color: white;
-		box-shadow: var(--shadow-sm);
+		box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+		font-weight: 600;
 	}
 
 	.error-banner {
@@ -928,28 +925,18 @@
 	}
 
 	.overall-score {
-		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--spacing-sm);
 		margin-bottom: var(--spacing-lg);
-	}
-
-	.score-display {
-		margin-bottom: var(--spacing-md);
-	}
-
-	.score-value {
-		font-size: 3rem;
-		font-weight: 700;
-		color: var(--color-primary);
+		padding: var(--spacing-lg);
 	}
 
 	.score-label {
-		display: block;
 		font-size: 0.875rem;
 		color: var(--color-text-muted);
-	}
-
-	.progress-bar-lg {
-		height: 12px;
+		font-weight: 500;
 	}
 
 	.objectives-list {
@@ -977,6 +964,7 @@
 
 	.objective-title {
 		font-size: 1.125rem;
+		font-weight: 700;
 		margin: 0 0 var(--spacing-xs);
 	}
 
@@ -997,42 +985,12 @@
 		color: var(--color-text-muted);
 	}
 
-	.objective-score {
-		font-size: 1.25rem;
-		font-weight: 600;
-		color: var(--color-primary);
-	}
-
-	.objective-score.score-low {
-		color: var(--color-error);
-	}
-
-	.objective-score.score-mid {
-		color: var(--color-warning);
-	}
-
-	.objective-score.score-high {
-		color: var(--color-success);
-	}
-
-	.objective-progress {
-		margin-top: var(--spacing-sm);
-	}
-
-	.objective-progress .progress-bar {
-		height: 8px;
-	}
-
-	.objective-progress .progress-bar-fill.fill-low {
-		background-color: var(--color-error);
-	}
-
-	.objective-progress .progress-bar-fill.fill-mid {
-		background-color: var(--color-warning);
-	}
-
-	.objective-progress .progress-bar-fill.fill-high {
-		background-color: var(--color-success);
+	.kr-score-badge {
+		font-size: 0.7rem;
+		font-weight: 700;
+		padding: 2px 8px;
+		border-radius: 9999px;
+		white-space: nowrap;
 	}
 
 	.key-results {
@@ -1040,7 +998,7 @@
 		flex-direction: column;
 		gap: var(--spacing-sm);
 		padding-left: var(--spacing-md);
-		border-left: 2px solid var(--color-border);
+		border-left: 2px solid rgb(0 0 0 / 0.08);
 	}
 
 	.kr-item {
@@ -1048,8 +1006,8 @@
 		flex-direction: column;
 		gap: var(--spacing-xs);
 		padding: var(--spacing-sm);
-		background-color: var(--color-bg);
-		border-radius: var(--radius-sm);
+		background-color: rgba(255, 255, 255, 0.6);
+		border-radius: var(--radius-md);
 	}
 
 	.kr-header {
@@ -1079,23 +1037,11 @@
 		gap: var(--spacing-sm);
 	}
 
-	.kr-score {
+	.kr-score-loading {
 		font-size: 0.875rem;
 		font-weight: 600;
 		min-width: 40px;
 		text-align: right;
-	}
-
-	.kr-score.score-low {
-		color: var(--color-error);
-	}
-
-	.kr-score.score-mid {
-		color: var(--color-warning);
-	}
-
-	.kr-score.score-high {
-		color: var(--color-success);
 	}
 
 	.kr-progress {
@@ -1113,18 +1059,6 @@
 		height: 100%;
 		transition: width 0.3s ease, background-color 0.3s ease;
 		border-radius: 3px;
-	}
-
-	.kr-progress .progress-bar-fill.fill-low {
-		background-color: var(--color-error);
-	}
-
-	.kr-progress .progress-bar-fill.fill-mid {
-		background-color: var(--color-warning);
-	}
-
-	.kr-progress .progress-bar-fill.fill-high {
-		background-color: var(--color-success);
 	}
 
 	.btn-icon {
@@ -1188,22 +1122,26 @@
 	.modal-overlay {
 		position: fixed;
 		inset: 0;
-		background-color: rgba(0, 0, 0, 0.5);
+		background-color: rgba(0, 0, 0, 0.4);
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		z-index: 1000;
 		padding: var(--spacing-md);
+		animation: fadeIn 0.15s ease;
 	}
 
 	.modal {
 		background-color: var(--color-surface);
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-lg);
+		border-radius: 20px;
+		box-shadow: 0 20px 60px -12px rgb(0 0 0 / 0.2);
 		max-width: 600px;
 		width: 100%;
 		max-height: 90vh;
 		overflow-y: auto;
+		animation: slideUp 0.2s ease;
 	}
 
 	.modal-header {

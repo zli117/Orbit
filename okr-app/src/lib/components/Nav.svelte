@@ -26,7 +26,9 @@
 
 <nav class="nav">
 	<div class="nav-inner">
-		<a href="/" class="nav-brand">RUOK</a>
+		<a href="/" class="nav-brand">
+			<img src="/ruok-logo.svg" alt="RUOK" class="nav-logo" />
+		</a>
 
 		<button class="menu-toggle" onclick={() => menuOpen = !menuOpen} aria-label="Toggle menu">
 			<span class="menu-icon" class:open={menuOpen}>
@@ -56,8 +58,10 @@
 
 <style>
 	.nav {
-		background-color: var(--color-bg-card);
-		border-bottom: 1px solid var(--color-border);
+		background: rgba(255, 255, 255, 0.85);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border-bottom: 1px solid rgba(203, 213, 225, 0.5);
 		padding: var(--spacing-sm) var(--spacing-lg);
 		position: sticky;
 		top: 0;
@@ -73,9 +77,8 @@
 	}
 
 	.nav-brand {
-		font-size: 1.25rem;
-		font-weight: 600;
-		color: var(--color-text);
+		display: flex;
+		align-items: center;
 		text-decoration: none;
 		margin-right: var(--spacing-lg);
 		flex-shrink: 0;
@@ -83,7 +86,12 @@
 
 	.nav-brand:hover {
 		text-decoration: none;
-		color: var(--color-primary);
+		opacity: 0.85;
+	}
+
+	.nav-logo {
+		height: 28px;
+		width: auto;
 	}
 
 	.menu-toggle {
@@ -149,7 +157,8 @@
 
 	.nav-link.active {
 		color: var(--color-primary);
-		background-color: rgb(59 130 246 / 0.1);
+		background-color: var(--color-bg-hover);
+		font-weight: 600;
 	}
 
 	.nav-link-admin {
@@ -206,8 +215,10 @@
 			right: 0;
 			width: 280px;
 			height: 100vh;
-			background: var(--color-bg-card);
-			border-left: 1px solid var(--color-border);
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(16px);
+			-webkit-backdrop-filter: blur(16px);
+			border-left: 1px solid rgba(203, 213, 225, 0.5);
 			box-shadow: -4px 0 20px rgb(0 0 0 / 0.1);
 			z-index: 200;
 			flex-direction: column;

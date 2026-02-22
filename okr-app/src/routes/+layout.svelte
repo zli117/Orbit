@@ -39,8 +39,56 @@
 	<meta name="description" content="Track goals. Connect your data. Query your life." />
 </svelte:head>
 
+<div class="app-bg-decor">
+	<div class="blob blob-1"></div>
+	<div class="blob blob-2"></div>
+	<div class="blob blob-3"></div>
+</div>
+
 {#if data.user}
 	<Nav user={data.user} />
 {/if}
 
 {@render children()}
+
+<style>
+	.app-bg-decor {
+		position: fixed;
+		inset: 0;
+		pointer-events: none;
+		z-index: -1;
+		overflow: hidden;
+	}
+	.blob {
+		position: absolute;
+		border-radius: 50%;
+	}
+	.blob-1 {
+		width: 500px;
+		height: 500px;
+		background: radial-gradient(circle, rgb(191 219 254 / 0.35), transparent 70%);
+		top: -180px;
+		right: -100px;
+	}
+	.blob-2 {
+		width: 400px;
+		height: 400px;
+		background: radial-gradient(circle, rgb(199 210 254 / 0.3), transparent 70%);
+		bottom: -120px;
+		left: -120px;
+	}
+	.blob-3 {
+		width: 450px;
+		height: 450px;
+		background: radial-gradient(circle, rgb(153 246 228 / 0.15), transparent 70%);
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+	}
+
+	@media (max-width: 768px) {
+		.app-bg-decor {
+			display: none;
+		}
+	}
+</style>

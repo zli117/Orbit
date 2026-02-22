@@ -379,8 +379,9 @@
 	}
 
 	.page-header h1 {
-		font-size: 1.75rem;
-		font-weight: 600;
+		font-size: 2rem;
+		font-weight: 800;
+		letter-spacing: -0.02em;
 	}
 
 	.add-friend-section {
@@ -410,18 +411,22 @@
 
 	.tabs {
 		display: flex;
-		gap: var(--spacing-xs);
-		border-bottom: 1px solid var(--color-border);
+		gap: 3px;
+		background-color: var(--color-bg-hover);
+		border-radius: 9999px;
+		padding: 3px;
 		margin-bottom: var(--spacing-lg);
+		width: fit-content;
 	}
 
 	.tab {
 		padding: var(--spacing-sm) var(--spacing-md);
 		background: none;
 		border: none;
-		border-bottom: 2px solid transparent;
+		border-radius: 9999px;
 		cursor: pointer;
 		font-size: 0.9rem;
+		font-weight: 500;
 		color: var(--color-text-muted);
 		transition: all 0.15s ease;
 		display: flex;
@@ -435,7 +440,9 @@
 
 	.tab.active {
 		color: var(--color-primary);
-		border-bottom-color: var(--color-primary);
+		background-color: white;
+		box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+		font-weight: 600;
 	}
 
 	.badge {

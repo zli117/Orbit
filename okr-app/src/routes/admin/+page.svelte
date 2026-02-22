@@ -245,7 +245,7 @@
 </svelte:head>
 
 <main class="main-content">
-	<h1 class="mb-lg">Admin Dashboard</h1>
+	<h1 class="page-title mb-lg">Admin Dashboard</h1>
 
 	<!-- Stats Overview -->
 	<div class="stats-grid">
@@ -584,23 +584,31 @@
 		color: var(--color-error);
 	}
 
+	.page-title {
+		font-size: 2rem;
+		font-weight: 800;
+		letter-spacing: -0.02em;
+	}
+
 	.tabs {
 		display: flex;
-		gap: var(--spacing-md);
+		gap: 3px;
+		background-color: var(--color-bg-hover);
+		border-radius: 9999px;
+		padding: 3px;
 		margin-bottom: var(--spacing-lg);
-		border-bottom: 1px solid var(--color-border);
+		width: fit-content;
 	}
 
 	.tab {
 		background: none;
 		border: none;
 		padding: var(--spacing-sm) var(--spacing-md);
+		border-radius: 9999px;
 		cursor: pointer;
 		font-size: 0.875rem;
 		font-weight: 500;
 		color: var(--color-text-muted);
-		border-bottom: 2px solid transparent;
-		margin-bottom: -1px;
 		transition: all 0.15s ease;
 	}
 
@@ -610,7 +618,9 @@
 
 	.tab.active {
 		color: var(--color-primary);
-		border-bottom-color: var(--color-primary);
+		background-color: white;
+		box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+		font-weight: 600;
 	}
 
 	.users-table-container {

@@ -82,7 +82,9 @@
 	.modal-backdrop {
 		position: absolute;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
+		background: rgba(0, 0, 0, 0.4);
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
 	}
 
 	.code-editor-modal {
@@ -92,7 +94,7 @@
 		height: 80vh;
 		max-height: 85vh;
 		background: var(--color-bg-card);
-		border-radius: var(--radius-lg, var(--radius-md));
+		border-radius: 20px;
 		box-shadow: 0 20px 60px -12px rgb(0 0 0 / 0.25);
 		display: flex;
 		flex-direction: column;

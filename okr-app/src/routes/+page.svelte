@@ -1,5 +1,15 @@
 <script lang="ts">
 	import DashboardCard from '$lib/components/DashboardCard.svelte';
+	import CircularProgress from '$lib/components/CircularProgress.svelte';
+
+	const OBJECTIVE_COLORS = [
+		{ bg: 'linear-gradient(135deg, #FEE2E2, #FFF1F2)', accent: '#E84057', badge: '#FEE2E2' },
+		{ bg: 'linear-gradient(135deg, #CCFBF1, #F0FDFA)', accent: '#0D9488', badge: '#CCFBF1' },
+		{ bg: 'linear-gradient(135deg, #E0E7FF, #EEF2FF)', accent: '#6366F1', badge: '#E0E7FF' },
+		{ bg: 'linear-gradient(135deg, #FCE7F3, #FDF2F8)', accent: '#DB2777', badge: '#FCE7F3' },
+		{ bg: 'linear-gradient(135deg, #DBEAFE, #EFF6FF)', accent: '#2563EB', badge: '#DBEAFE' },
+		{ bg: 'linear-gradient(135deg, #FEF3C7, #FFFBEB)', accent: '#D97706', badge: '#FEF3C7' },
+	];
 
 	interface Widget {
 		id: string;
@@ -124,42 +134,46 @@
 
 {#if data.user}
 	<main class="main-content">
-		<h1 class="mb-lg">Dashboard</h1>
+		<h1 class="page-title mb-lg">Dashboard</h1>
 
 		<div class="dashboard-grid">
 			<a href="/daily/{data.today?.date}" class="card card-link">
-				<h2 class="mb-md">Today</h2>
-				{#if data.today && data.today.totalCount > 0}
-					<div class="progress-bar mb-sm">
-						<div class="progress-bar-fill" style="width: {todayPercent()}%;"></div>
+				<div class="card-top-row">
+					<div class="card-top-text">
+						<h2>Today</h2>
+						{#if data.today && data.today.totalCount > 0}
+							<p class="text-muted">{data.today.completedCount} / {data.today.totalCount} tasks</p>
+						{:else}
+							<p class="text-muted">No tasks yet</p>
+						{/if}
 					</div>
-					<p class="text-muted">{data.today.completedCount} / {data.today.totalCount} tasks completed</p>
+					<CircularProgress value={todayPercent() / 100} size={64} strokeWidth={5} label="done" />
+				</div>
 
-					{#if data.today.tasks.length > 0}
-						<ul class="task-preview">
-							{#each data.today.tasks.filter(t => !t.completed).slice(0, 3) as task}
-								<li>
-									<span class="task-bullet">○</span>
-									{task.title}
-								</li>
-							{/each}
-							{#if data.today.tasks.filter(t => !t.completed).length > 3}
-								<li class="text-muted">+{data.today.tasks.filter(t => !t.completed).length - 3} more</li>
-							{/if}
-						</ul>
-					{/if}
-				{:else}
-					<p class="text-muted">No tasks yet. Click to add some!</p>
+				{#if data.today && data.today.tasks.length > 0}
+					<ul class="task-preview">
+						{#each data.today.tasks.filter(t => !t.completed).slice(0, 3) as task}
+							<li>
+								<span class="task-bullet">○</span>
+								{task.title}
+							</li>
+						{/each}
+						{#if data.today.tasks.filter(t => !t.completed).length > 3}
+							<li class="text-muted">+{data.today.tasks.filter(t => !t.completed).length - 3} more</li>
+						{/if}
+					</ul>
 				{/if}
 			</a>
 
 			<a href="/weekly/{data.week?.year}/{data.week?.week}" class="card card-link">
-				<h2 class="mb-md">This Week</h2>
-				<div class="week-label mb-sm">Week {data.week?.week}, {data.week?.year}</div>
-				<div class="progress-bar mb-sm">
-					<div class="progress-bar-fill" style="width: {weekPercent()}%;"></div>
+				<div class="card-top-row">
+					<div class="card-top-text">
+						<h2>This Week</h2>
+						<div class="week-label">Week {data.week?.week}, {data.week?.year}</div>
+						<p class="text-muted">{data.week?.completedCount} / {data.week?.totalCount} tasks</p>
+					</div>
+					<CircularProgress value={weekPercent() / 100} size={64} strokeWidth={5} label="done" />
 				</div>
-				<p class="text-muted">{data.week?.completedCount} / {data.week?.totalCount} tasks completed</p>
 			</a>
 
 			<div class="card">
@@ -174,25 +188,25 @@
 
 		{#if data.yearlyObjectives && data.yearlyObjectives.length > 0}
 			<section class="objectives-section">
-				<h2 class="mb-md">{data.currentYear} Yearly Objectives</h2>
+				<h2 class="section-title mb-md">{data.currentYear} Yearly Objectives</h2>
 				<div class="objectives-grid">
-					{#each data.yearlyObjectives as objective}
-						<div class="card objective-card">
-							<h3 class="objective-title">{objective.title}</h3>
-							{#if objective.description}
-								<p class="objective-desc text-muted">{objective.description}</p>
-							{/if}
-							<div class="objective-score">
-								<div class="progress-bar">
-									<div class="progress-bar-fill" style="width: {objective.averageScore * 100}%;"></div>
+					{#each data.yearlyObjectives as objective, i}
+						{@const colors = OBJECTIVE_COLORS[i % OBJECTIVE_COLORS.length]}
+						<div class="card objective-card" style="background: {colors.bg}; border-color: transparent;">
+							<div class="objective-header">
+								<div class="objective-header-text">
+									<h3 class="objective-title">{objective.title}</h3>
+									{#if objective.description}
+										<p class="objective-desc">{objective.description}</p>
+									{/if}
 								</div>
-								<span class="score-label">{(objective.averageScore * 100).toFixed(0)}%</span>
+								<CircularProgress value={objective.averageScore} size={52} strokeWidth={4} color={colors.accent} />
 							</div>
 							{#if objective.keyResults.length > 0}
 								<ul class="kr-list">
 									{#each objective.keyResults as kr}
 										<li>
-											<span class="kr-score">{(kr.score * 100).toFixed(0)}%</span>
+											<span class="kr-score" style="background: {colors.badge}; color: {colors.accent};">{(kr.score * 100).toFixed(0)}%</span>
 											<span class="kr-title">{kr.title}</span>
 										</li>
 									{/each}
@@ -217,23 +231,23 @@
 				<p class="text-muted">Loading...</p>
 			{:else if monthlyObjectives.length > 0}
 				<div class="objectives-grid">
-					{#each monthlyObjectives as objective}
-						<div class="card objective-card">
-							<h3 class="objective-title">{objective.title}</h3>
-							{#if objective.description}
-								<p class="objective-desc text-muted">{objective.description}</p>
-							{/if}
-							<div class="objective-score">
-								<div class="progress-bar">
-									<div class="progress-bar-fill" style="width: {objective.averageScore * 100}%;"></div>
+					{#each monthlyObjectives as objective, i}
+						{@const colors = OBJECTIVE_COLORS[i % OBJECTIVE_COLORS.length]}
+						<div class="card objective-card" style="background: {colors.bg}; border-color: transparent;">
+							<div class="objective-header">
+								<div class="objective-header-text">
+									<h3 class="objective-title">{objective.title}</h3>
+									{#if objective.description}
+										<p class="objective-desc">{objective.description}</p>
+									{/if}
 								</div>
-								<span class="score-label">{(objective.averageScore * 100).toFixed(0)}%</span>
+								<CircularProgress value={objective.averageScore} size={52} strokeWidth={4} color={colors.accent} />
 							</div>
 							{#if objective.keyResults.length > 0}
 								<ul class="kr-list">
 									{#each objective.keyResults as kr}
 										<li>
-											<span class="kr-score">{(kr.score * 100).toFixed(0)}%</span>
+											<span class="kr-score" style="background: {colors.badge}; color: {colors.accent};">{(kr.score * 100).toFixed(0)}%</span>
 											<span class="kr-title">{kr.title}</span>
 										</li>
 									{/each}
@@ -281,7 +295,7 @@
 {:else}
 	<div class="auth-page">
 		<div class="auth-card card text-center">
-			<h1 class="mb-md">RUOK</h1>
+			<img src="/ruok-logo.svg" alt="RUOK" class="auth-logo" />
 			<p class="text-muted mb-lg">
 				Track goals. Connect your data. Query your life.
 			</p>
@@ -294,20 +308,47 @@
 {/if}
 
 <style>
+	.page-title {
+		font-size: 2rem;
+		font-weight: 800;
+		letter-spacing: -0.02em;
+	}
+
+	.section-title {
+		font-weight: 700;
+	}
+
 	.card-link {
 		text-decoration: none;
 		color: inherit;
-		transition: all 0.15s ease;
+		transition: all 0.2s ease;
 	}
 
 	.card-link:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 8px 16px -4px rgb(0 0 0 / 0.1);
+		box-shadow: 0 12px 24px -8px rgb(59 130 246 / 0.12);
+	}
+
+	.card-top-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: var(--spacing-md);
+	}
+
+	.card-top-text h2 {
+		margin: 0 0 var(--spacing-xs);
+		font-weight: 700;
+	}
+
+	.card-top-text p {
+		margin: 0;
 	}
 
 	.week-label {
 		font-size: 0.875rem;
 		color: var(--color-text-muted);
+		margin-bottom: var(--spacing-xs);
 	}
 
 	.task-preview {
@@ -315,6 +356,8 @@
 		padding: 0;
 		margin: var(--spacing-md) 0 0;
 		font-size: 0.875rem;
+		border-top: 1px solid var(--color-border-light);
+		padding-top: var(--spacing-sm);
 	}
 
 	.task-preview li {
@@ -347,6 +390,7 @@
 
 	.section-header h2 {
 		margin: 0;
+		font-weight: 700;
 	}
 
 	.section-header .select-sm {
@@ -359,7 +403,7 @@
 
 	.objectives-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(300px, 350px));
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 		gap: var(--spacing-md);
 	}
 
@@ -369,31 +413,28 @@
 		gap: var(--spacing-sm);
 	}
 
+	.objective-header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: var(--spacing-md);
+	}
+
+	.objective-header-text {
+		flex: 1;
+		min-width: 0;
+	}
+
 	.objective-title {
 		font-size: 1rem;
+		font-weight: 700;
 		margin: 0;
 	}
 
 	.objective-desc {
 		font-size: 0.875rem;
-		margin: 0;
-	}
-
-	.objective-score {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
-	}
-
-	.objective-score .progress-bar {
-		flex: 1;
-	}
-
-	.score-label {
-		font-size: 0.875rem;
-		font-weight: 600;
-		min-width: 40px;
-		text-align: right;
+		margin: var(--spacing-xs) 0 0;
+		color: var(--color-text-muted);
 	}
 
 	.kr-list {
@@ -408,18 +449,25 @@
 		align-items: center;
 		gap: var(--spacing-sm);
 		padding: var(--spacing-xs) 0;
-		border-top: 1px solid var(--color-border);
+		border-top: 1px solid rgb(0 0 0 / 0.06);
 	}
 
 	.kr-score {
-		font-size: 0.75rem;
-		font-weight: 600;
-		color: var(--color-primary);
-		min-width: 35px;
+		font-size: 0.7rem;
+		font-weight: 700;
+		padding: 2px 8px;
+		border-radius: 9999px;
+		white-space: nowrap;
 	}
 
 	.kr-title {
 		color: var(--color-text-muted);
+	}
+
+	.auth-logo {
+		height: 48px;
+		width: auto;
+		margin-bottom: var(--spacing-md);
 	}
 
 	.widgets-section {
@@ -435,6 +483,7 @@
 
 	.widgets-header h2 {
 		margin: 0;
+		font-weight: 700;
 	}
 
 	.widgets-actions {
@@ -452,7 +501,7 @@
 		text-align: center;
 		padding: var(--spacing-xl);
 		border: 2px dashed var(--color-border);
-		border-radius: var(--radius-md);
+		border-radius: var(--radius-lg);
 	}
 
 	.empty-widgets p {
@@ -462,5 +511,15 @@
 	.btn-sm {
 		padding: var(--spacing-xs) var(--spacing-sm);
 		font-size: 0.75rem;
+	}
+
+	@media (max-width: 768px) {
+		.page-title {
+			font-size: 1.5rem;
+		}
+
+		.objectives-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>
