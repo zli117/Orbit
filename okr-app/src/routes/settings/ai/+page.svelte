@@ -144,7 +144,7 @@
 </script>
 
 <svelte:head>
-	<title>AI Assistant Settings - Orbit</title>
+	<title>AI Assistant Settings - RUOK</title>
 </svelte:head>
 
 <div class="settings-page">

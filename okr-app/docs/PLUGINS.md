@@ -1,6 +1,6 @@
 # Plugin System
 
-Orbit's plugin system imports data from external services (e.g., Fitbit) into the metrics system. Plugins use OAuth2 for authentication, sync data on an hourly schedule, and surface imported values as external metrics that users can reference in their templates.
+RUOK's plugin system imports data from external services (e.g., Fitbit) into the metrics system. Plugins use OAuth2 for authentication, sync data on an hourly schedule, and surface imported values as external metrics that users can reference in their templates.
 
 Use this document as a guide for adding new plugins. Follow every step exactly — the system expects specific file locations, naming conventions, and interface implementations.
 

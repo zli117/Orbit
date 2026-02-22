@@ -254,7 +254,7 @@ render.table({
 </script>
 
 <svelte:head>
-	<title>Query Builder - Orbit</title>
+	<title>Query Builder - RUOK</title>
 </svelte:head>
 
 <div class="queries-page">

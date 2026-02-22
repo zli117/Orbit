@@ -1,16 +1,16 @@
-# Orbit
+# RUOK
 
 **Track goals. Connect your data. Query your life — with the help of AI.**
 
-Orbit is a self-hosted personal productivity framework that connects your yearly ambitions to today's to-do list. Define objectives, measure key results, pull in data from services like Fitbit, and write JavaScript queries to analyze it all — or ask AI to write them for you.
+RUOK is a self-hosted personal productivity framework that connects your yearly ambitions to today's to-do list. Define objectives, measure key results, pull in data from services like Fitbit, and write JavaScript queries to analyze it all — or ask AI to write them for you.
 
 Your data. Your rules. Runs on a Raspberry Pi.
 
 ---
 
-## What Makes Orbit Different
+## What Makes RUOK Different
 
-Most productivity tools give you a checklist. Orbit gives you a **programmable system**.
+Most productivity tools give you a checklist. RUOK gives you a **programmable system**.
 
 **Plan at every level.** Set yearly objectives, break them into monthly key results, plan weekly initiatives, and track daily tasks with a built-in time tracker. Everything rolls up — completing today's work moves the needle on this year's goals.
 
@@ -108,7 +108,7 @@ Opens on `http://localhost:5173`.
 
 ## Deployment
 
-Orbit runs on modest hardware. A Raspberry Pi 4 with 2GB RAM is plenty.
+RUOK runs on modest hardware. A Raspberry Pi 4 with 2GB RAM is plenty.
 
 | Guide | What it covers |
 |-------|---------------|

@@ -80,7 +80,7 @@
 </script>
 
 <svelte:head>
-	<title>Plugin Settings - Orbit</title>
+	<title>Plugin Settings - RUOK</title>
 </svelte:head>
 
 <div class="settings-page">

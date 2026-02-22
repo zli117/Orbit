@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>API Reference - Query Builder - Orbit</title>
+	<title>API Reference - Query Builder - RUOK</title>
 </svelte:head>
 
 <div class="api-reference">

@@ -241,7 +241,7 @@
 </script>
 
 <svelte:head>
-	<title>Admin Dashboard | Orbit</title>
+	<title>Admin Dashboard | RUOK</title>
 </svelte:head>
 
 <main class="main-content">

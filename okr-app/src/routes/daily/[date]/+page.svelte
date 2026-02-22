@@ -269,7 +269,7 @@
 </script>
 
 <svelte:head>
-	<title>{formattedDate} - Orbit</title>
+	<title>{formattedDate} - RUOK</title>
 </svelte:head>
 
 <div class="daily-page">

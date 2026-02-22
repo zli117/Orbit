@@ -194,7 +194,7 @@
 </script>
 
 <svelte:head>
-	<title>Metrics Template - Settings - Orbit</title>
+	<title>Metrics Template - Settings - RUOK</title>
 </svelte:head>
 
 <div class="metrics-page">

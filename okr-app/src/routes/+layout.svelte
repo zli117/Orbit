@@ -35,7 +35,7 @@
 </script>
 
 <svelte:head>
-	<title>Orbit</title>
+	<title>RUOK</title>
 	<meta name="description" content="Track goals. Connect your data. Query your life." />
 </svelte:head>
 

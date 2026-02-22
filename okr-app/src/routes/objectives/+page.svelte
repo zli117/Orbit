@@ -495,7 +495,7 @@
 </script>
 
 <svelte:head>
-	<title>Objectives {data.year}{data.level === 'monthly' && data.month ? ` - ${monthNames[data.month - 1]}` : ''} - Orbit</title>
+	<title>Objectives {data.year}{data.level === 'monthly' && data.month ? ` - ${monthNames[data.month - 1]}` : ''} - RUOK</title>
 </svelte:head>
 
 <div class="objectives-page">

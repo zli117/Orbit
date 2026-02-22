@@ -1,6 +1,6 @@
 # Query Builder API Reference
 
-Complete reference for writing JavaScript queries in Orbit's sandboxed environment.
+Complete reference for writing JavaScript queries in RUOK's sandboxed environment.
 
 ## Contents
 

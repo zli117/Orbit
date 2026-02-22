@@ -278,7 +278,7 @@
 {:else}
 	<div class="auth-page">
 		<div class="auth-card card text-center">
-			<h1 class="mb-md">Orbit</h1>
+			<h1 class="mb-md">RUOK</h1>
 			<p class="text-muted mb-lg">
 				Track goals. Connect your data. Query your life.
 			</p>

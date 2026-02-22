@@ -149,7 +149,7 @@
 </script>
 
 <svelte:head>
-	<title>Tags - Settings - Orbit</title>
+	<title>Tags - Settings - RUOK</title>
 </svelte:head>
 
 <div class="tags-page">

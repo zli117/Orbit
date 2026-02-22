@@ -196,7 +196,7 @@
 </script>
 
 <svelte:head>
-	<title>Friends | Orbit</title>
+	<title>Friends | RUOK</title>
 </svelte:head>
 
 <div class="friends-page">

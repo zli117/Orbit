@@ -25,8 +25,9 @@
 </script>
 
 <nav class="nav">
-	<div class="nav-header">
-		<a href="/" class="nav-brand">Orbit</a>
+	<div class="nav-inner">
+		<a href="/" class="nav-brand">RUOK</a>
+
 		<button class="menu-toggle" onclick={() => menuOpen = !menuOpen} aria-label="Toggle menu">
 			<span class="menu-icon" class:open={menuOpen}>
 				<span></span>
@@ -34,20 +35,21 @@
 				<span></span>
 			</span>
 		</button>
-	</div>
-	<div class="nav-links" class:open={menuOpen}>
-		<a href="/daily" class="nav-link" class:active={isActive('/daily')} onclick={closeMenu}>Daily</a>
-		<a href="/weekly" class="nav-link" class:active={isActive('/weekly')} onclick={closeMenu}>Weekly</a>
-		<a href="/objectives" class="nav-link" class:active={isActive('/objectives')} onclick={closeMenu}>Objectives</a>
-		<a href="/queries" class="nav-link" class:active={isActive('/queries')} onclick={closeMenu}>Queries</a>
-		<a href="/friends" class="nav-link" class:active={isActive('/friends')} onclick={closeMenu}>Friends</a>
-		<a href="/settings" class="nav-link" class:active={isActive('/settings')} onclick={closeMenu}>Settings</a>
-		{#if user.isAdmin}
-			<a href="/admin" class="nav-link nav-link-admin" class:active={isActive('/admin')} onclick={closeMenu}>Admin</a>
-		{/if}
-		<span class="nav-separator"></span>
-		<span class="nav-user">{user.username}</span>
-		<button class="btn btn-secondary btn-sm" onclick={handleLogout}>Logout</button>
+
+		<div class="nav-links" class:open={menuOpen}>
+			<a href="/daily" class="nav-link" class:active={isActive('/daily')} onclick={closeMenu}>Daily</a>
+			<a href="/weekly" class="nav-link" class:active={isActive('/weekly')} onclick={closeMenu}>Weekly</a>
+			<a href="/objectives" class="nav-link" class:active={isActive('/objectives')} onclick={closeMenu}>Objectives</a>
+			<a href="/queries" class="nav-link" class:active={isActive('/queries')} onclick={closeMenu}>Queries</a>
+			<a href="/friends" class="nav-link" class:active={isActive('/friends')} onclick={closeMenu}>Friends</a>
+			<a href="/settings" class="nav-link" class:active={isActive('/settings')} onclick={closeMenu}>Settings</a>
+			{#if user.isAdmin}
+				<a href="/admin" class="nav-link nav-link-admin" class:active={isActive('/admin')} onclick={closeMenu}>Admin</a>
+			{/if}
+			<span class="nav-separator"></span>
+			<span class="nav-user">{user.username}</span>
+			<button class="btn btn-secondary btn-sm" onclick={handleLogout}>Logout</button>
+		</div>
 	</div>
 </nav>
 
@@ -61,11 +63,12 @@
 		z-index: 100;
 	}
 
-	.nav-header {
+	.nav-inner {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		width: 100%;
+		padding-left: 20%;
+		padding-right: 20%;
 	}
 
 	.nav-brand {
@@ -73,6 +76,8 @@
 		font-weight: 600;
 		color: var(--color-text);
 		text-decoration: none;
+		margin-right: var(--spacing-lg);
+		flex-shrink: 0;
 	}
 
 	.nav-brand:hover {
@@ -87,6 +92,7 @@
 		padding: var(--spacing-sm);
 		cursor: pointer;
 		-webkit-tap-highlight-color: transparent;
+		margin-left: auto;
 	}
 
 	.menu-icon {
@@ -118,8 +124,10 @@
 
 	.nav-links {
 		display: flex;
-		gap: var(--spacing-md);
+		gap: var(--spacing-sm);
 		align-items: center;
+		flex: 1;
+		justify-content: flex-end;
 	}
 
 	.nav-link {
@@ -130,6 +138,7 @@
 		border-radius: var(--radius-sm);
 		transition: all 0.15s ease;
 		-webkit-tap-highlight-color: transparent;
+		white-space: nowrap;
 	}
 
 	.nav-link:hover {
@@ -159,23 +168,30 @@
 		width: 1px;
 		height: 20px;
 		background-color: var(--color-border);
+		flex-shrink: 0;
 	}
 
 	.nav-user {
 		font-size: 0.875rem;
 		color: var(--color-text-muted);
+		white-space: nowrap;
 	}
 
 	.btn-sm {
 		padding: var(--spacing-sm) var(--spacing-md);
 		font-size: 0.875rem;
 		min-height: 44px;
+		white-space: nowrap;
 	}
 
 	/* Mobile styles */
 	@media (max-width: 768px) {
 		.nav {
 			padding: var(--spacing-sm) var(--spacing-md);
+		}
+
+		.nav-inner {
+			flex-wrap: wrap;
 		}
 
 		.menu-toggle {
@@ -188,6 +204,7 @@
 			width: 100%;
 			padding-top: var(--spacing-md);
 			gap: var(--spacing-xs);
+			justify-content: flex-start;
 		}
 
 		.nav-links.open {

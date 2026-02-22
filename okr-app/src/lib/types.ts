@@ -1,4 +1,4 @@
-// Shared types for Orbit
+// Shared types for RUOK
 
 export interface User {
 	id: string;

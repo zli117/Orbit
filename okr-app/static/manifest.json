@@ -1,6 +1,6 @@
 {
-	"name": "Orbit",
-	"short_name": "Orbit",
+	"name": "RUOK",
+	"short_name": "RUOK",
 	"description": "Track goals. Connect your data. Query your life.",
 	"start_url": "/",
 	"display": "standalone",

@@ -109,7 +109,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit Metrics - {formattedDate} - Orbit</title>
+	<title>Edit Metrics - {formattedDate} - RUOK</title>
 </svelte:head>
 
 <div class="metrics-page">

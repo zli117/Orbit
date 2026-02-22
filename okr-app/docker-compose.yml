@@ -1,7 +1,7 @@
 services:
-  orbit:
+  ruok:
     build: .
-    container_name: orbit
+    container_name: ruok
     restart: unless-stopped
     volumes:
       - okr-data:/app/data

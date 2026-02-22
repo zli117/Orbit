@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'orbit-v1';
+const CACHE_NAME = 'ruok-v1';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [

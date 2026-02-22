@@ -183,7 +183,7 @@
 </script>
 
 <svelte:head>
-	<title>Settings - Orbit</title>
+	<title>Settings - RUOK</title>
 </svelte:head>
 
 <div class="settings-page">

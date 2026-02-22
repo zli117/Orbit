@@ -90,7 +90,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.friend.username}'s Dashboard | Orbit</title>
+	<title>{data.friend.username}'s Dashboard | RUOK</title>
 </svelte:head>
 
 <main class="main-content">

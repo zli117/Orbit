@@ -1,6 +1,6 @@
 # Setup Guide
 
-Orbit is designed to run on a Raspberry Pi (or any Linux machine) behind a Caddy reverse proxy, with each service in its own Docker Compose and a shared Docker network.
+RUOK is designed to run on a Raspberry Pi (or any Linux machine) behind a Caddy reverse proxy, with each service in its own Docker Compose and a shared Docker network.
 
 ## Quick Start (Development)
 
@@ -58,8 +58,8 @@ networks:
     local_certs
 }
 
-https://orbit.rpi-01.lan {
-    reverse_proxy orbit:3000
+https://ruok.rpi-01.lan {
+    reverse_proxy ruok:3000
 }
 
 # Add more services here:
@@ -97,14 +97,14 @@ docker compose exec caddy cat /data/caddy/pki/authorities/local/root.crt > caddy
 
 Transfer `caddy-root.crt` to your phones/laptops and install it as a trusted certificate. After this, all `*.rpi-01.lan` sites show a green lock.
 
-### 5. Deploy Orbit
+### 5. Deploy RUOK
 
 ```bash
 cd okr-app
 docker compose up -d --build
 ```
 
-That's it. Access the app at `https://orbit.rpi-01.lan`.
+That's it. Access the app at `https://ruok.rpi-01.lan`.
 
 ### Adding more services
 
@@ -144,7 +144,7 @@ All data lives in a single SQLite file at `DATABASE_PATH`.
 
 ```bash
 # Docker volume path (find it with: docker volume inspect okr-app_okr-data)
-cp /var/lib/docker/volumes/okr-app_okr-data/_data/okr.db ~/backups/orbit-$(date +%F).db
+cp /var/lib/docker/volumes/okr-app_okr-data/_data/okr.db ~/backups/ruok-$(date +%F).db
 ```
 
 Or use the in-app backup: Settings > Download Backup (exports as JSON).
