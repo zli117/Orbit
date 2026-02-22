@@ -62,7 +62,7 @@
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
 		border-bottom: 1px solid rgba(203, 213, 225, 0.5);
-		padding: var(--spacing-sm) var(--spacing-lg);
+		padding: var(--spacing-xs) var(--spacing-lg);
 		position: sticky;
 		top: 0;
 		z-index: 100;
@@ -90,7 +90,7 @@
 	}
 
 	.nav-logo {
-		height: 28px;
+		height: 38px;
 		width: auto;
 	}
 
