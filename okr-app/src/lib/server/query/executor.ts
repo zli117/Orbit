@@ -5,6 +5,7 @@ import { timePeriods, tasks, taskAttributes, dailyMetricValues, metricsTemplates
 import type { MetricDefinition } from '$lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { evaluateMetrics, type MetricValues } from '$lib/server/metrics/evaluator';
+import momentSource from 'moment/min/moment.min.js?raw';
 
 const EXECUTION_TIMEOUT_MS = 5000;
 const MAX_MEMORY_BYTES = 128 * 1024 * 1024; // 128MB
@@ -102,6 +103,15 @@ export async function executeQuery(
 		const paramsHandle = jsonToHandle(context, params);
 		context.setProp(context.global, 'params', paramsHandle);
 		paramsHandle.dispose();
+
+		// Inject Moment.js library into the sandbox
+		// Moment's UMD build self-registers as global 'moment' when no module system is detected
+		const momentResult = context.evalCode(momentSource);
+		if (momentResult.error) {
+			momentResult.error.dispose();
+		} else {
+			momentResult.value.dispose();
+		}
 
 		// Wrap user code in an async IIFE
 		const wrappedCode = `

@@ -316,6 +316,12 @@ render.table({
 					<code>q.parseTime('7:30')</code>
 					<code>q.formatDuration(450)</code>
 
+					<h3>Date/Time</h3>
+					<code>moment() → current date/time</code>
+					<code>moment('YYYY-MM-DD') → parse</code>
+					<code>.format(), .add(), .subtract()</code>
+					<code>.startOf(), .endOf(), .diff()</code>
+
 					<h3>Progress</h3>
 					<code>progress.set(value)</code>
 					<p>Set KR progress (0-1)</p>
@@ -360,6 +366,7 @@ render.table({
 					hasAiConfig={data.aiConfig.hasAiConfig}
 					configuredProviders={data.aiConfig.configuredProviders}
 					activeProvider={data.aiConfig.activeProvider}
+					context="query"
 				>
 					{#snippet headerSnippet()}
 						{#if selectedQuery}

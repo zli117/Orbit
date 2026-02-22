@@ -188,7 +188,7 @@
 				{localCode.trim() ? 'Edit Code with AI...' : 'Write Code with AI...'}
 			</button>
 			{#if localCode.trim()}
-				<pre class="code-preview"><code>{localCode.length > 150 ? localCode.slice(0, 150) + '...' : localCode}</code></pre>
+				<pre class="code-preview"><code>{localCode}</code></pre>
 			{/if}
 
 			<div class="help-text">
@@ -265,6 +265,7 @@
 	{hasAiConfig}
 	{configuredProviders}
 	{activeProvider}
+	context="widget"
 />
 
 <style>
@@ -335,7 +336,8 @@
 		background: var(--color-bg);
 		border-radius: var(--radius-sm);
 		font-size: 0.7rem;
-		overflow: hidden;
+		max-height: 200px;
+		overflow-y: auto;
 		white-space: pre-wrap;
 		word-break: break-all;
 	}

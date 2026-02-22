@@ -12,6 +12,7 @@
 		activeProvider: string;
 		aiCollapsed?: boolean;
 		headerSnippet?: Snippet;
+		context?: 'query' | 'kr_progress' | 'widget';
 	}
 
 	let {
@@ -22,7 +23,8 @@
 		configuredProviders,
 		activeProvider,
 		aiCollapsed: initialCollapsed = false,
-		headerSnippet
+		headerSnippet,
+		context = 'query'
 	}: Props = $props();
 
 	let collapsed = $state(initialCollapsed);
@@ -86,6 +88,7 @@
 				{configuredProviders}
 				{activeProvider}
 				bind:pendingCode
+				{context}
 			/>
 		</div>
 	{/if}

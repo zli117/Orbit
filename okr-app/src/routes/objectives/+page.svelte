@@ -839,7 +839,7 @@
 							{krProgressQueryCode ? 'Edit Code with AI...' : 'Write Code with AI...'}
 						</button>
 						{#if krProgressQueryCode}
-							<pre class="code-preview"><code>{krProgressQueryCode.length > 120 ? krProgressQueryCode.slice(0, 120) + '...' : krProgressQueryCode}</code></pre>
+							<pre class="code-preview"><code>{krProgressQueryCode}</code></pre>
 						{/if}
 					</div>
 				{/if}
@@ -862,6 +862,7 @@
 	hasAiConfig={data.aiConfig?.hasAiConfig ?? false}
 	configuredProviders={data.aiConfig?.configuredProviders ?? []}
 	activeProvider={data.aiConfig?.activeProvider ?? 'anthropic'}
+	context="kr_progress"
 />
 
 <style>
@@ -1298,7 +1299,8 @@
 		background: var(--color-bg);
 		border-radius: var(--radius-sm);
 		font-size: 0.75rem;
-		overflow: hidden;
+		max-height: 150px;
+		overflow-y: auto;
 		white-space: pre-wrap;
 		word-break: break-all;
 	}

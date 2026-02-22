@@ -17,18 +17,19 @@ Complete reference for writing JavaScript queries in RUOK's sandboxed environmen
    - [q.parseTime()](#qparsetimetimestr)
    - [q.formatDuration()](#qformatdurationminutes)
    - [q.formatPercent()](#qformatpercentvalue-total)
-5. [Rendering (`render`)](#rendering-render)
+5. [Date/Time Library (`moment`)](#datetime-library-moment)
+6. [Rendering (`render`)](#rendering-render)
    - [render.markdown()](#rendermarkdowntext)
    - [render.table()](#rendertabledata)
    - [render.plot.bar()](#renderplotbaroptions)
    - [render.plot.line()](#renderplotlineoptions)
    - [render.plot.pie()](#renderplotpieoptions)
    - [render.plot.multi()](#renderplotmultioptions)
-6. [Progress (`progress`)](#progress-progress)
-7. [Parameters (`params`)](#parameters-params)
-8. [Data Schemas](#data-schemas)
-9. [Complete Examples](#complete-examples)
-10. [Limits & Constraints](#limits--constraints)
+7. [Progress (`progress`)](#progress-progress)
+8. [Parameters (`params`)](#parameters-params)
+9. [Data Schemas](#data-schemas)
+10. [Complete Examples](#complete-examples)
+11. [Limits & Constraints](#limits--constraints)
 
 ---
 
@@ -50,6 +51,7 @@ Four global objects are available in every query:
 | `render` | Output markdown, tables, and charts |
 | `progress` | Set Key Result progress (0–1) |
 | `params` | Runtime parameters passed from the client |
+| `moment` | Date/time library ([Moment.js](https://momentjs.com/)) |
 
 ---
 
@@ -472,6 +474,60 @@ q.formatPercent(3, 4)     // "75%"
 q.formatPercent(0, 0)     // "0%"
 q.formatPercent(85, 100)  // "85%"
 ```
+
+---
+
+## Date/Time Library (`moment`)
+
+The [Moment.js](https://momentjs.com/) library is available as a global `moment` in the sandbox. It provides comprehensive date/time parsing, manipulation, and formatting.
+
+### Quick Examples
+
+```javascript
+// Current date/time
+const now = moment();
+
+// Parse a date string
+const date = moment('2025-03-15');
+
+// Format dates
+now.format('YYYY-MM-DD')          // "2025-06-15"
+now.format('dddd, MMMM D, YYYY') // "Sunday, June 15, 2025"
+
+// Date arithmetic
+moment().subtract(7, 'days').format('YYYY-MM-DD')
+moment().startOf('month').format('YYYY-MM-DD')
+moment().endOf('week').format('YYYY-MM-DD')
+moment().add(1, 'month').format('YYYY-MM-DD')
+```
+
+### Use with `q.daily()` for Date Ranges
+
+```javascript
+const start = moment().startOf('month').format('YYYY-MM-DD');
+const end = moment().endOf('month').format('YYYY-MM-DD');
+const days = await q.daily({ from: start, to: end });
+```
+
+### Comparison and Difference
+
+```javascript
+moment('2025-03-01').isBefore('2025-03-15')   // true
+moment('2025-03-01').isAfter('2025-02-15')     // true
+moment('2025-03-15').diff('2025-03-01', 'days') // 14
+moment('2025-06-01').diff('2025-01-01', 'months') // 5
+```
+
+### Duration
+
+```javascript
+const dur = moment.duration(150, 'minutes');
+dur.hours()   // 2
+dur.minutes() // 30
+dur.humanize() // "3 hours"
+```
+
+See [Moment.js docs](https://momentjs.com/docs/) for the full API.
 
 ---
 

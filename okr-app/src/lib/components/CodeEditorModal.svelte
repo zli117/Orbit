@@ -9,6 +9,7 @@
 		configuredProviders: string[];
 		activeProvider: string;
 		onSave?: (code: string) => void;
+		context?: 'query' | 'kr_progress' | 'widget';
 	}
 
 	let {
@@ -18,7 +19,8 @@
 		hasAiConfig,
 		configuredProviders,
 		activeProvider,
-		onSave
+		onSave,
+		context = 'query'
 	}: Props = $props();
 
 	function handleSave() {
@@ -59,7 +61,8 @@
 					{hasAiConfig}
 					{configuredProviders}
 					{activeProvider}
-					aiCollapsed={true}
+					aiCollapsed={false}
+					{context}
 				/>
 			</div>
 		</div>

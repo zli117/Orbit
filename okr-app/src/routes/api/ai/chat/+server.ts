@@ -4,7 +4,7 @@ import { db } from '$lib/db/client';
 import { userAiConfig } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { sendMessage, PROVIDER_DEFAULTS, type AiMessage, type AiProvider } from '$lib/server/ai/providers';
-import { buildSystemPrompt } from '$lib/server/ai/system-prompt';
+import { buildSystemPrompt, type AiChatContext } from '$lib/server/ai/system-prompt';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user) {
@@ -13,9 +13,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 	try {
 		const body = await request.json();
-		const { messages, provider: overrideProvider } = body as {
+		const { messages, provider: overrideProvider, context } = body as {
 			messages: AiMessage[];
 			provider?: AiProvider;
+			context?: AiChatContext;
 		};
 
 		if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -55,7 +56,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		};
 
 		// Build system prompt
-		const systemPrompt = await buildSystemPrompt(locals.user.id);
+		const systemPrompt = await buildSystemPrompt(locals.user.id, context);
 
 		// Send to provider
 		const response = await sendMessage(provider, finalConfig, systemPrompt, messages);

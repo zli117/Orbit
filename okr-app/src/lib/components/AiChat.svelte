@@ -17,13 +17,15 @@
 		hasConfig,
 		configuredProviders = [],
 		activeProvider = 'anthropic',
-		pendingCode = $bindable('')
+		pendingCode = $bindable(''),
+		context = 'query'
 	}: {
 		onCopyToEditor: (code: string) => void;
 		hasConfig: boolean;
 		configuredProviders: string[];
 		activeProvider: string;
 		pendingCode?: string;
+		context?: 'query' | 'kr_progress' | 'widget';
 	} = $props();
 
 	let messages = $state<AiMessage[]>([]);
@@ -132,7 +134,8 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					messages,
-					provider: selectedProvider !== activeProvider ? selectedProvider : undefined
+					provider: selectedProvider !== activeProvider ? selectedProvider : undefined,
+					context
 				})
 			});
 
