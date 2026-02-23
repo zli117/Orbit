@@ -185,6 +185,53 @@
 		}
 	}
 
+	// --- Journal Entry ---
+	let journalText = $state('');
+	let journalSaving = $state(false);
+	let journalSaved = $state(false);
+	let journalDirty = $state(false);
+
+	// Track current date to detect navigation
+	let lastJournalDate = $state('');
+
+	$effect(() => {
+		if (data.date !== lastJournalDate) {
+			journalText = data.period?.notes || '';
+			journalDirty = false;
+			journalSaved = false;
+			lastJournalDate = data.date;
+		}
+	});
+
+	function handleJournalChange(text: string) {
+		journalText = text;
+		journalDirty = true;
+		journalSaved = false;
+	}
+
+	async function saveJournal() {
+		if (!data.period?.id) return;
+		journalSaving = true;
+		try {
+			const response = await fetch(`/api/periods/${data.period.id}/journal`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ notes: journalText })
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to save journal entry');
+			}
+
+			journalDirty = false;
+			journalSaved = true;
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to save journal entry';
+		} finally {
+			journalSaving = false;
+		}
+	}
+
 	// --- Weekly Initiative Functions ---
 
 	async function getOrCreateWeeklyPeriod(): Promise<string | null> {
@@ -364,6 +411,31 @@
 			{/if}
 		</section>
 
+		<!-- Journal Entry Card -->
+		<section class="card journal-section">
+			<div class="section-header">
+				<h2 class="section-title">Journal</h2>
+				<div class="journal-actions">
+					{#if journalSaved}
+						<span class="saved-indicator">Saved</span>
+					{/if}
+					<button
+						class="btn btn-primary btn-sm"
+						onclick={saveJournal}
+						disabled={journalSaving || !journalDirty}
+					>
+						{journalSaving ? 'Saving...' : 'Save'}
+					</button>
+				</div>
+			</div>
+			<textarea
+				class="input textarea journal-textarea"
+				placeholder="Write your thoughts for today..."
+				value={journalText}
+				oninput={(e) => handleJournalChange(e.currentTarget.value)}
+			></textarea>
+		</section>
+
 		<!-- Weekly Initiatives Card -->
 		<section class="card initiatives-section">
 			<div class="section-header">
@@ -525,6 +597,33 @@
 	.metric-value.empty {
 		color: var(--color-text-muted);
 		font-weight: 400;
+	}
+
+	/* Journal section */
+	.journal-section {
+		min-height: 120px;
+	}
+
+	.journal-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+	}
+
+	.saved-indicator {
+		font-size: 0.75rem;
+		color: var(--color-success);
+	}
+
+	.journal-textarea {
+		min-height: 150px;
+		resize: vertical;
+		width: 100%;
+	}
+
+	.btn-sm {
+		padding: var(--spacing-xs) var(--spacing-sm);
+		font-size: 0.75rem;
 	}
 
 	.text-sm {
