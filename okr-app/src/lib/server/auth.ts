@@ -15,6 +15,7 @@ export interface AuthUser {
 	username: string;
 	weekStartDay: 'sunday' | 'monday';
 	timezone: string;
+	bgColor: string | null;
 	isAdmin: boolean;
 }
 
@@ -53,7 +54,7 @@ export async function createUser(username: string, password: string): Promise<Au
 		passwordHash
 	});
 
-	return { id, username, weekStartDay: 'monday', timezone: 'UTC', isAdmin: false };
+	return { id, username, weekStartDay: 'monday', timezone: 'UTC', bgColor: null, isAdmin: false };
 }
 
 /**
@@ -94,6 +95,7 @@ export async function authenticateUser(
 		username: user.username,
 		weekStartDay: user.weekStartDay || 'monday',
 		timezone: user.timezone || 'UTC',
+		bgColor: user.bgColor || null,
 		isAdmin
 	};
 }
@@ -151,6 +153,7 @@ export async function getUserFromSession(sessionId: string): Promise<AuthUser | 
 		username: user.username,
 		weekStartDay: user.weekStartDay || 'monday',
 		timezone: user.timezone || 'UTC',
+		bgColor: user.bgColor || null,
 		isAdmin: user.isAdmin || false
 	};
 }

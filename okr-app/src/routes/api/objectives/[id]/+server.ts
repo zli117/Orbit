@@ -39,7 +39,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 
 	try {
 		const body = await request.json();
-		const { title, description, weight, parentId, category } = body;
+		const { title, description, weight, parentId, category, colorIndex } = body;
 
 		const updates: Partial<typeof existing> = {
 			updatedAt: new Date()
@@ -50,6 +50,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 		if (weight !== undefined) updates.weight = weight;
 		if (parentId !== undefined) updates.parentId = parentId;
 		if (category !== undefined) updates.category = category;
+		if (colorIndex !== undefined) updates.colorIndex = colorIndex;
 
 		await db
 			.update(objectives)

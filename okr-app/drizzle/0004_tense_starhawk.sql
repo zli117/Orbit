@@ -1,0 +1,1 @@
+ALTER TABLE `objectives` ADD `color_index` integer;

@@ -50,7 +50,7 @@
 <div class="auth-page">
 	<div class="auth-card card">
 		<div class="text-center mb-md">
-			<img src="/ruok-logo.svg" alt="RUOK" style="height: 40px; width: auto;" />
+			<img src="/ruok-logo-full.svg" alt="RUOK" style="height: 40px; width: auto;" />
 		</div>
 		<h1 class="text-center mb-lg">Create Account</h1>
 

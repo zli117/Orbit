@@ -42,7 +42,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 	try {
 		const body = await request.json();
-		const { title, description, level, year, month, weight, parentId, category } = body;
+		const { title, description, level, year, month, weight, parentId, category, colorIndex } = body;
 
 		// Validate required fields
 		if (!title || typeof title !== 'string') {
@@ -75,6 +75,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			weight: weight ?? 1.0,
 			parentId: parentId || null,
 			category: category || null,
+			colorIndex: colorIndex !== undefined && colorIndex !== null ? colorIndex : null,
 			createdAt: now,
 			updatedAt: now
 		});

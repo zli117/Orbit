@@ -12,7 +12,7 @@ export const fitbitPlugin: DataImportPlugin = {
 	id: 'fitbit',
 	name: 'Fitbit',
 	description: 'Import sleep, activity, and health data from Fitbit',
-	icon: '⌚',
+	icon: '/icons/fitbit_logo_icon_171153.svg',
 
 	getAdminConfigFields(): AdminConfigField[] {
 		return [

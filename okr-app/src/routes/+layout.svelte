@@ -6,6 +6,17 @@
 
 	let { data, children } = $props();
 
+	// Apply user's background color preference
+	$effect(() => {
+		if (!browser) return;
+		const color = data.user?.bgColor;
+		if (color) {
+			document.documentElement.style.setProperty('--color-bg', color);
+		} else {
+			document.documentElement.style.removeProperty('--color-bg');
+		}
+	});
+
 	// Connect to SSE for real-time sync across devices
 	$effect(() => {
 		if (!browser || !data.user) return;

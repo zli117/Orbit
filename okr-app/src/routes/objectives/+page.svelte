@@ -126,6 +126,58 @@
 	let newTitle = $state('');
 	let newDescription = $state('');
 	let newWeight = $state('1');
+	let newColorIndex = $state(0);
+
+	// Edit objective state
+	let editingObjective = $state<typeof localObjectives[0] | null>(null);
+	let editObjTitle = $state('');
+	let editObjDescription = $state('');
+	let editObjWeight = $state('1');
+	let editObjColorIndex = $state(0);
+
+	function openEditObjective(objective: typeof localObjectives[0]) {
+		editingObjective = objective;
+		editObjTitle = objective.title;
+		editObjDescription = objective.description || '';
+		editObjWeight = objective.weight.toString();
+		editObjColorIndex = objective.colorIndex ?? 0;
+	}
+
+	function closeEditObjective() {
+		editingObjective = null;
+	}
+
+	async function updateObjective() {
+		if (!editingObjective || !editObjTitle.trim()) return;
+
+		loading = true;
+		error = '';
+
+		try {
+			const response = await fetch(`/api/objectives/${editingObjective.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					title: editObjTitle.trim(),
+					description: editObjDescription.trim() || null,
+					weight: parseFloat(editObjWeight) || 1,
+					colorIndex: editObjColorIndex
+				})
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to update objective');
+			}
+
+			closeEditObjective();
+			await invalidateAll();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to update objective';
+		} finally {
+			loading = false;
+		}
+	}
 
 	// KR form (shared for both new and edit)
 	let krTitle = $state('');
@@ -235,7 +287,8 @@
 				year: data.year,
 				title: newTitle.trim(),
 				description: newDescription.trim() || null,
-				weight: parseFloat(newWeight) || 1
+				weight: parseFloat(newWeight) || 1,
+				colorIndex: newColorIndex
 			};
 
 			// Include month for monthly objectives
@@ -257,6 +310,7 @@
 			newTitle = '';
 			newDescription = '';
 			newWeight = '1';
+			newColorIndex = 0;
 			showNewObjective = false;
 			await invalidateAll();
 		} catch (err) {
@@ -555,7 +609,7 @@
 
 	<div class="objectives-list">
 		{#each localObjectives as objective, i}
-			{@const colors = OBJECTIVE_COLORS[i % OBJECTIVE_COLORS.length]}
+			{@const colors = OBJECTIVE_COLORS[(objective.colorIndex ?? i) % OBJECTIVE_COLORS.length]}
 			<div class="card objective-card" style="background: {colors.bg}; border-color: transparent;">
 				<div class="objective-header">
 					<div class="objective-info">
@@ -567,6 +621,12 @@
 					<div class="objective-actions">
 						<span class="objective-weight">Weight: {objective.weight}</span>
 						<CircularProgress value={objective.averageScore} size={52} strokeWidth={4} color={colors.accent} />
+						<button class="btn-icon" onclick={() => openEditObjective(objective)} title="Edit objective">
+							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+								<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+							</svg>
+						</button>
 						<button class="btn-icon" onclick={() => deleteObjective(objective.id)} title="Delete objective">
 							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<polyline points="3 6 5 6 21 6"/>
@@ -699,6 +759,27 @@
 						min="0.1"
 						bind:value={newWeight}
 					/>
+				</div>
+				<div class="form-group">
+					<span class="label">Color</span>
+					<div class="color-picker">
+						{#each OBJECTIVE_COLORS as color, i}
+							<button
+								type="button"
+								class="color-swatch"
+								class:selected={newColorIndex === i}
+								style="background: {color.bg}; border-color: {newColorIndex === i ? color.accent : 'transparent'};"
+								onclick={() => newColorIndex = i}
+								title="Color {i + 1}"
+							>
+								{#if newColorIndex === i}
+									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color.accent} stroke-width="3">
+										<polyline points="20 6 9 17 4 12"/>
+									</svg>
+								{/if}
+							</button>
+						{/each}
+					</div>
 				</div>
 				<div class="form-actions">
 					<button type="button" class="btn btn-secondary" onclick={() => showNewObjective = false}>Cancel</button>
@@ -857,6 +938,65 @@
 	providerModels={data.aiConfig?.providerModels ?? {}}
 	context="kr_progress"
 />
+
+{#if editingObjective}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="modal-overlay" onclick={closeEditObjective} onkeydown={(e) => e.key === 'Escape' && closeEditObjective()} role="dialog" aria-modal="true" aria-labelledby="edit-obj-title" tabindex="-1">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="modal" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+			<div class="modal-header">
+				<h3 id="edit-obj-title">Edit Objective</h3>
+				<button class="btn-icon" onclick={closeEditObjective} aria-label="Close modal">
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<line x1="18" y1="6" x2="6" y2="18"/>
+						<line x1="6" y1="6" x2="18" y2="18"/>
+					</svg>
+				</button>
+			</div>
+			<form class="modal-body" onsubmit={(e) => { e.preventDefault(); updateObjective(); }}>
+				<div class="form-group">
+					<label class="label" for="edit-obj-title-input">Title</label>
+					<input type="text" id="edit-obj-title-input" class="input" bind:value={editObjTitle} />
+				</div>
+				<div class="form-group">
+					<label class="label" for="edit-obj-desc">Description (optional)</label>
+					<textarea id="edit-obj-desc" class="input textarea" bind:value={editObjDescription}></textarea>
+				</div>
+				<div class="form-group">
+					<label class="label" for="edit-obj-weight">Weight</label>
+					<input type="number" id="edit-obj-weight" class="input" step="0.1" min="0.1" bind:value={editObjWeight} />
+				</div>
+				<div class="form-group">
+					<span class="label">Color</span>
+					<div class="color-picker">
+						{#each OBJECTIVE_COLORS as color, i}
+							<button
+								type="button"
+								class="color-swatch"
+								class:selected={editObjColorIndex === i}
+								style="background: {color.bg}; border-color: {editObjColorIndex === i ? color.accent : 'transparent'};"
+								onclick={() => editObjColorIndex = i}
+								title="Color {i + 1}"
+							>
+								{#if editObjColorIndex === i}
+									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color.accent} stroke-width="3">
+										<polyline points="20 6 9 17 4 12"/>
+									</svg>
+								{/if}
+							</button>
+						{/each}
+					</div>
+				</div>
+				<div class="form-actions">
+					<button type="button" class="btn btn-secondary" onclick={closeEditObjective}>Cancel</button>
+					<button type="submit" class="btn btn-primary" disabled={loading || !editObjTitle.trim()}>
+						{loading ? 'Saving...' : 'Save Changes'}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.objectives-page {
@@ -1113,6 +1253,33 @@
 		justify-content: flex-end;
 		gap: var(--spacing-sm);
 		margin-top: var(--spacing-md);
+	}
+
+	.color-picker {
+		display: flex;
+		gap: var(--spacing-sm);
+		flex-wrap: wrap;
+	}
+
+	.color-swatch {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		border: 2px solid transparent;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.15s ease;
+		padding: 0;
+	}
+
+	.color-swatch:hover {
+		transform: scale(1.1);
+	}
+
+	.color-swatch.selected {
+		box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
 	}
 
 	.add-objective-btn {

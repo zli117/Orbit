@@ -191,7 +191,7 @@
 				<h2 class="section-title mb-md">{data.currentYear} Yearly Objectives</h2>
 				<div class="objectives-grid">
 					{#each data.yearlyObjectives as objective, i}
-						{@const colors = OBJECTIVE_COLORS[i % OBJECTIVE_COLORS.length]}
+						{@const colors = OBJECTIVE_COLORS[(objective.colorIndex ?? i) % OBJECTIVE_COLORS.length]}
 						<div class="card objective-card" style="background: {colors.bg}; border-color: transparent;">
 							<div class="objective-header">
 								<div class="objective-header-text">
@@ -232,7 +232,7 @@
 			{:else if monthlyObjectives.length > 0}
 				<div class="objectives-grid">
 					{#each monthlyObjectives as objective, i}
-						{@const colors = OBJECTIVE_COLORS[i % OBJECTIVE_COLORS.length]}
+						{@const colors = OBJECTIVE_COLORS[(objective.colorIndex ?? i) % OBJECTIVE_COLORS.length]}
 						<div class="card objective-card" style="background: {colors.bg}; border-color: transparent;">
 							<div class="objective-header">
 								<div class="objective-header-text">
@@ -296,7 +296,7 @@
 {:else}
 	<div class="auth-page">
 		<div class="auth-card card text-center">
-			<img src="/ruok-logo.svg" alt="RUOK" class="auth-logo" />
+			<img src="/ruok-logo-full.svg" alt="RUOK" class="auth-logo" />
 			<p class="text-muted mb-lg">
 				Track goals. Connect your data. Query your life.
 			</p>

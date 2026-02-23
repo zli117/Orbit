@@ -20,7 +20,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 
 	return json({
 		weekStartDay: user.weekStartDay || 'monday',
-		timezone: user.timezone || 'UTC'
+		timezone: user.timezone || 'UTC',
+		bgColor: user.bgColor || null
 	});
 };
 
@@ -32,7 +33,7 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 
 	try {
 		const body = await request.json();
-		const { weekStartDay, timezone } = body;
+		const { weekStartDay, timezone, bgColor } = body;
 
 		// Validate weekStartDay
 		if (weekStartDay && !['sunday', 'monday'].includes(weekStartDay)) {
@@ -49,12 +50,20 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 			}
 		}
 
+		// Validate bgColor (hex color or null to reset)
+		if (bgColor !== undefined && bgColor !== null && !/^#[0-9a-fA-F]{6}$/.test(bgColor)) {
+			return json({ error: 'Invalid bgColor value' }, { status: 400 });
+		}
+
 		const updates: Record<string, unknown> = {};
 		if (weekStartDay) {
 			updates.weekStartDay = weekStartDay;
 		}
 		if (timezone) {
 			updates.timezone = timezone;
+		}
+		if (bgColor !== undefined) {
+			updates.bgColor = bgColor; // null clears it
 		}
 
 		if (Object.keys(updates).length === 0) {

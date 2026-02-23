@@ -16,6 +16,7 @@
 	}
 
 	function isActive(path: string): boolean {
+		if (path === '/') return $page.url.pathname === '/';
 		return $page.url.pathname.startsWith(path);
 	}
 
@@ -27,7 +28,7 @@
 <nav class="nav">
 	<div class="nav-inner">
 		<a href="/" class="nav-brand">
-			<img src="/ruok-logo.svg" alt="RUOK" class="nav-logo" />
+			<img src="/ruok-logo-full.svg" alt="RUOK" class="nav-logo" />
 		</a>
 
 		<button class="menu-toggle" onclick={() => menuOpen = !menuOpen} aria-label="Toggle menu">
@@ -39,6 +40,7 @@
 		</button>
 
 		<div class="nav-links-desktop">
+			<a href="/" class="nav-link" class:active={isActive('/')}>Dashboard</a>
 			<a href="/daily" class="nav-link" class:active={isActive('/daily')}>Daily</a>
 			<a href="/weekly" class="nav-link" class:active={isActive('/weekly')}>Weekly</a>
 			<a href="/objectives" class="nav-link" class:active={isActive('/objectives')}>Objectives</a>
@@ -61,6 +63,7 @@
 	<div class="mobile-backdrop" onclick={closeMenu}></div>
 {/if}
 <div class="mobile-drawer" class:open={menuOpen}>
+	<a href="/" class="nav-link" class:active={isActive('/')} onclick={closeMenu}>Dashboard</a>
 	<a href="/daily" class="nav-link" class:active={isActive('/daily')} onclick={closeMenu}>Daily</a>
 	<a href="/weekly" class="nav-link" class:active={isActive('/weekly')} onclick={closeMenu}>Weekly</a>
 	<a href="/objectives" class="nav-link" class:active={isActive('/objectives')} onclick={closeMenu}>Objectives</a>
@@ -223,7 +226,7 @@
 	}
 
 	/* Mobile styles */
-	@media (max-width: 850px) {
+	@media (max-width: 1050px) {
 		.nav {
 			padding: var(--spacing-sm) 5%;
 		}

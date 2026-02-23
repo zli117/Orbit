@@ -271,9 +271,13 @@
 </svelte:head>
 
 <div class="settings-page">
-	<a href="/settings" class="back-link">← Settings</a>
-
 	<header class="page-header">
+		<a href="/settings" class="back-link">
+			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<polyline points="15 18 9 12 15 6"/>
+			</svg>
+			Back to Settings
+		</a>
 		<h1>AI Assistant</h1>
 		<p class="text-muted">Configure your LLM providers for AI-powered code generation</p>
 	</header>
@@ -285,6 +289,7 @@
 	{/if}
 
 	<div class="settings-grid">
+		<h2 class="section-heading">Provider Connections</h2>
 		{#each providers as provider}
 			{@const config = getProviderConfig(provider.id)}
 			{@const configured = isConfigured(provider.id)}
@@ -436,6 +441,8 @@
 			</details>
 		{/each}
 
+		<h2 class="section-heading">System Prompt</h2>
+
 		<!-- System Prompt -->
 		<details class="provider-section">
 			<summary class="provider-header">
@@ -450,29 +457,77 @@
 
 			<div class="provider-body">
 				<p class="text-muted">
-					The system prompt tells the AI how to generate code. API reference and your metrics are appended automatically.
+					The system prompt tells the AI how to generate code. API reference and your metrics are appended automatically via placeholders.
 				</p>
-				<p class="text-muted">
-					Use &#123;&#123;API_REFERENCE&#125;&#125; and &#123;&#123;USER_METRICS&#125;&#125; as placeholders.
-				</p>
-				<textarea
-					class="input prompt-textarea"
-					bind:value={customSystemPrompt}
-					placeholder="Leave empty to use the built-in default prompt."
-					rows="10"
-				></textarea>
-				<div class="prompt-actions">
-					<button
-						class="btn btn-primary btn-sm"
-						onclick={saveSystemPrompt}
-						disabled={saving['prompt']}
-					>
-						{saving['prompt'] ? 'Saving...' : 'Save Prompt'}
-					</button>
-					<button class="btn btn-secondary btn-sm" onclick={resetPrompt}>
-						Reset to Default
-					</button>
+
+				{#if !customSystemPrompt}
+					<div class="default-prompt-section">
+						<label class="field-label">Default prompt (read-only)</label>
+						<pre class="prompt-preview">{data.defaultPrompt}</pre>
+					</div>
+				{/if}
+
+				<div class="field-group">
+					<label class="field-label">
+						{customSystemPrompt ? 'Custom prompt' : 'Override with custom prompt'}
+					</label>
+					<p class="text-muted hint">
+						Use &#123;&#123;API_REFERENCE&#125;&#125; and &#123;&#123;USER_METRICS&#125;&#125; as placeholders.
+					</p>
+					<textarea
+						class="input prompt-textarea"
+						bind:value={customSystemPrompt}
+						placeholder="Leave empty to use the default prompt above."
+						rows="10"
+					></textarea>
+					<div class="prompt-actions">
+						<button
+							class="btn btn-primary btn-sm"
+							onclick={saveSystemPrompt}
+							disabled={saving['prompt']}
+						>
+							{saving['prompt'] ? 'Saving...' : 'Save Prompt'}
+						</button>
+						{#if customSystemPrompt}
+							<button class="btn btn-secondary btn-sm" onclick={resetPrompt}>
+								Reset to Default
+							</button>
+						{/if}
+					</div>
 				</div>
+			</div>
+		</details>
+
+		<!-- Context Addenda -->
+		<details class="provider-section">
+			<summary class="provider-header">
+				<div class="provider-title">
+					<span class="provider-name">Context-Specific Instructions</span>
+					<span class="provider-summary">3 contexts</span>
+				</div>
+				<svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M6 9l6 6 6-6"/>
+				</svg>
+			</summary>
+
+			<div class="provider-body">
+				<p class="text-muted">
+					These instructions are appended to the system prompt based on where the AI is used. They are not editable.
+				</p>
+
+				{#each [
+					{ id: 'query', label: 'Query Builder', desc: 'When writing queries in the Query Builder' },
+					{ id: 'kr_progress', label: 'KR Progress', desc: 'When writing Key Result progress calculations' },
+					{ id: 'widget', label: 'Dashboard Widget', desc: 'When writing dashboard widget code' }
+				] as ctx}
+					<div class="context-block">
+						<div class="context-header">
+							<span class="context-label">{ctx.label}</span>
+							<span class="text-muted context-desc">{ctx.desc}</span>
+						</div>
+						<pre class="prompt-preview">{data.contextAddenda[ctx.id] || '(no additional instructions)'}</pre>
+					</div>
+				{/each}
 			</div>
 		</details>
 	</div>
@@ -486,15 +541,17 @@
 	}
 
 	.back-link {
-		display: inline-block;
-		margin-bottom: var(--spacing-md);
-		color: var(--color-primary);
+		display: inline-flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		color: var(--color-text-muted);
 		text-decoration: none;
 		font-size: 0.875rem;
+		margin-bottom: var(--spacing-sm);
 	}
 
 	.back-link:hover {
-		text-decoration: underline;
+		color: var(--color-primary);
 	}
 
 	.page-header {
@@ -530,6 +587,15 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-md);
+	}
+
+	.section-heading {
+		font-size: 0.875rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-text-muted);
+		margin: 0;
 	}
 
 	/* Provider accordion sections */
@@ -716,5 +782,49 @@
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-sm);
+	}
+
+	.hint {
+		margin: 0;
+		font-size: 0.8125rem;
+	}
+
+	/* Prompt preview */
+	.prompt-preview {
+		margin: 0;
+		padding: var(--spacing-sm) var(--spacing-md);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border-light, var(--color-border));
+		border-radius: var(--radius-sm);
+		font-family: monospace;
+		font-size: 0.75rem;
+		line-height: 1.6;
+		white-space: pre-wrap;
+		word-break: break-word;
+		max-height: 300px;
+		overflow-y: auto;
+		color: var(--color-text-muted);
+	}
+
+	/* Context addenda */
+	.context-block {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+	}
+
+	.context-header {
+		display: flex;
+		align-items: baseline;
+		gap: var(--spacing-sm);
+	}
+
+	.context-label {
+		font-weight: 600;
+		font-size: 0.875rem;
+	}
+
+	.context-desc {
+		font-size: 0.75rem;
 	}
 </style>

@@ -7,6 +7,7 @@ export const users = sqliteTable('users', {
 	passwordHash: text('password_hash').notNull(),
 	weekStartDay: text('week_start_day', { enum: ['sunday', 'monday'] }).notNull().default('monday'),
 	timezone: text('timezone').notNull().default('UTC'), // IANA timezone identifier (e.g., 'America/New_York')
+	bgColor: text('bg_color'), // Custom background color (hex, e.g. '#EFF6FF')
 	isAdmin: integer('is_admin', { mode: 'boolean' }).notNull().default(false),
 	isDisabled: integer('is_disabled', { mode: 'boolean' }).notNull().default(false),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
@@ -54,6 +55,7 @@ export const objectives = sqliteTable('objectives', {
 	weight: real('weight').notNull().default(1.0),
 	parentId: text('parent_id'), // Self-reference to parent objective (handled at app level)
 	category: text('category'), // Work, Health, Social, Wealth, etc.
+	colorIndex: integer('color_index'), // Index into OBJECTIVE_COLORS palette
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 });

@@ -22,6 +22,20 @@
       "when": 1768088430320,
       "tag": "0002_red_alice",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1771804505929,
+      "tag": "0003_curly_magus",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1771807058561,
+      "tag": "0004_tense_starhawk",
+      "breakpoints": true
     }
   ]
 }

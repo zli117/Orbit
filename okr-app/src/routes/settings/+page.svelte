@@ -10,12 +10,38 @@
 	// Preferences
 	let weekStartDay = $state<'sunday' | 'monday'>('monday');
 	let timezone = $state('UTC');
+	let bgColor = $state<string | null>(null);
+
+	const defaultBgColor = '#EFF6FF';
+	const presetColors = [
+		{ value: '#EFF6FF', label: 'Blue' },
+		{ value: '#F0FDF4', label: 'Green' },
+		{ value: '#FFF7ED', label: 'Orange' },
+		{ value: '#FDF2F8', label: 'Pink' },
+		{ value: '#F5F3FF', label: 'Purple' },
+		{ value: '#FFFBEB', label: 'Amber' },
+		{ value: '#F0FDFA', label: 'Teal' },
+		{ value: '#F8FAFC', label: 'Slate' },
+		{ value: '#FFFFFF', label: 'White' },
+	];
 
 	// Sync from server data
 	$effect.pre(() => {
 		weekStartDay = data.user?.weekStartDay || 'monday';
 		timezone = data.user?.timezone || 'UTC';
+		bgColor = data.user?.bgColor || null;
 	});
+
+	async function saveBgColor(color: string | null) {
+		bgColor = color;
+		// Apply immediately for instant preview
+		if (color) {
+			document.documentElement.style.setProperty('--color-bg', color);
+		} else {
+			document.documentElement.style.setProperty('--color-bg', defaultBgColor);
+		}
+		await savePreference('bgColor', color as string);
+	}
 
 	// Common timezones grouped by region
 	const timezones = [
@@ -64,7 +90,7 @@
 		]},
 	];
 
-	async function savePreference(key: string, value: string) {
+	async function savePreference(key: string, value: string | null) {
 		savingPrefs = true;
 		message = null;
 
@@ -140,7 +166,7 @@
 	async function restoreBackup() {
 		if (!restoreFile) return;
 
-		if (!confirm('This will import data from the backup file. Existing data with the same IDs will be skipped. Continue?')) {
+		if (!confirm('WARNING: This will DELETE all your existing data and replace it with the backup. This cannot be undone. Continue?')) {
 			return;
 		}
 
@@ -171,7 +197,7 @@
 
 			message = {
 				type: 'success',
-				text: imported ? `Restored: ${imported}` : 'Backup processed (no new data to import)'
+				text: imported ? `Restored: ${imported}` : 'Backup restored (empty backup)'
 			};
 			restoreFile = null;
 		} catch (error) {
@@ -200,7 +226,7 @@
 	<div class="settings-grid">
 		<!-- Navigation Cards -->
 		<a href="/settings/plugins" class="card settings-card">
-			<div class="card-icon">🔌</div>
+			<div class="card-icon"><img src="/icons/plug.svg" alt="" class="card-icon-svg" /></div>
 			<div class="card-content">
 				<h2>Integrations</h2>
 				<p class="text-muted">Connect Fitbit and other services to import health data automatically</p>
@@ -209,7 +235,7 @@
 		</a>
 
 		<a href="/settings/metrics" class="card settings-card">
-			<div class="card-icon">📊</div>
+			<div class="card-icon"><img src="/icons/metrics.svg" alt="" class="card-icon-svg" /></div>
 			<div class="card-content">
 				<h2>Metrics Template</h2>
 				<p class="text-muted">Define custom daily metrics with input fields, computed values, and external sources</p>
@@ -218,7 +244,7 @@
 		</a>
 
 		<a href="/settings/tags" class="card settings-card">
-			<div class="card-icon">🏷️</div>
+			<div class="card-icon"><img src="/icons/tags.svg" alt="" class="card-icon-svg" /></div>
 			<div class="card-content">
 				<h2>Tags</h2>
 				<p class="text-muted">Manage tags for organizing and categorizing your daily tasks</p>
@@ -227,10 +253,10 @@
 		</a>
 
 		<a href="/settings/ai" class="card settings-card">
-			<div class="card-icon card-icon-text">AI</div>
+			<div class="card-icon"><img src="/icons/ai.svg" alt="" class="card-icon-svg" /></div>
 			<div class="card-content">
 				<h2>AI Assistant</h2>
-				<p class="text-muted">Configure LLM provider for AI-powered code generation in the Query Builder</p>
+				<p class="text-muted">Configure LLM provider for AI-powered code generation.</p>
 			</div>
 			<span class="card-arrow">→</span>
 		</a>
@@ -273,6 +299,24 @@
 						<option value="monday">Monday (ISO standard)</option>
 						<option value="sunday">Sunday (US standard)</option>
 					</select>
+				</div>
+			</div>
+			<div class="preference-row preference-row-colors">
+				<div class="preference-info">
+					<span class="preference-label">Background color</span>
+					<span class="preference-description">Choose a background tint for the app</span>
+				</div>
+				<div class="color-picker">
+					{#each presetColors as color}
+						<button
+							class="color-swatch"
+							class:active={bgColor === color.value || (!bgColor && color.value === defaultBgColor)}
+							style="background-color: {color.value};"
+							onclick={() => saveBgColor(color.value === defaultBgColor ? null : color.value)}
+							disabled={savingPrefs}
+							title={color.label}
+						></button>
+					{/each}
 				</div>
 			</div>
 		</div>
@@ -386,14 +430,7 @@
 		text-decoration: none;
 	}
 
-	.card-icon-text {
-		font-size: 1.125rem;
-		font-weight: 700;
-		color: var(--color-primary);
-	}
-
 	.card-icon {
-		font-size: 2rem;
 		width: 48px;
 		height: 48px;
 		display: flex;
@@ -402,6 +439,12 @@
 		background-color: var(--color-bg);
 		border-radius: var(--radius-md);
 		flex-shrink: 0;
+	}
+
+	.card-icon-svg {
+		width: 28px;
+		height: 28px;
+		object-fit: contain;
 	}
 
 	.card-content {
@@ -532,6 +575,42 @@
 	.preference-select {
 		width: auto;
 		min-width: 200px;
+	}
+
+	.preference-row-colors {
+		flex-wrap: wrap;
+	}
+
+	.color-picker {
+		display: flex;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
+	.color-swatch {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		border: 2px solid var(--color-border-light);
+		cursor: pointer;
+		transition: transform 0.15s ease, border-color 0.15s ease;
+		padding: 0;
+	}
+
+	.color-swatch:hover {
+		transform: scale(1.15);
+		border-color: var(--color-border);
+	}
+
+	.color-swatch.active {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 2px var(--color-primary);
+	}
+
+	.color-swatch:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		transform: none;
 	}
 
 	@media (max-width: 768px) {

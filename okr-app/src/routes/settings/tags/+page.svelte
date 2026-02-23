@@ -155,10 +155,10 @@
 <div class="tags-page">
 	<header class="page-header">
 		<a href="/settings" class="back-link">
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M19 12H5M12 19l-7-7 7-7"/>
+			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<polyline points="15 18 9 12 15 6"/>
 			</svg>
-			Settings
+			Back to Settings
 		</a>
 		<h1>Tags</h1>
 		<p class="page-description">Manage tags for organizing your tasks. Tags can be assigned to tasks and used for filtering and queries.</p>
@@ -358,7 +358,7 @@
 
 <style>
 	.tags-page {
-		max-width: 700px;
+		max-width: 800px;
 		margin: 0 auto;
 		padding: var(--spacing-lg);
 	}
@@ -371,11 +371,10 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--spacing-xs);
-		margin-bottom: var(--spacing-md);
 		color: var(--color-text-muted);
 		text-decoration: none;
 		font-size: 0.875rem;
-		transition: color 0.15s;
+		margin-bottom: var(--spacing-sm);
 	}
 
 	.back-link:hover {

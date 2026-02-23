@@ -4,6 +4,7 @@ import { db } from '$lib/db/client';
 import { userAiConfig } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { PROVIDER_DEFAULTS } from '$lib/server/ai/providers';
+import { getDefaultPrompt, CONTEXT_ADDENDA } from '$lib/server/ai/system-prompt';
 
 function maskApiKey(key: string): string {
 	if (key.length > 8) return '***' + key.slice(-4);
@@ -54,6 +55,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 					customSystemPrompt: config.customSystemPrompt
 				}
 			: null,
-		providerDefaults: PROVIDER_DEFAULTS
+		providerDefaults: PROVIDER_DEFAULTS,
+		defaultPrompt: getDefaultPrompt(),
+		contextAddenda: {
+			query: CONTEXT_ADDENDA.query || '(no additional instructions)',
+			kr_progress: CONTEXT_ADDENDA.kr_progress,
+			widget: CONTEXT_ADDENDA.widget
+		}
 	};
 };

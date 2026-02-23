@@ -12,7 +12,7 @@ import apiReferenceMd from '../../../../docs/QUERY_API_REFERENCE.md?raw';
 
 export type AiChatContext = 'query' | 'kr_progress' | 'widget';
 
-const CONTEXT_ADDENDA: Record<AiChatContext, string> = {
+export const CONTEXT_ADDENDA: Record<AiChatContext, string> = {
 	query: '',
 	kr_progress: `
 ## Context: Key Result Progress Code

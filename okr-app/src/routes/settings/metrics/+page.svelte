@@ -199,7 +199,12 @@
 
 <div class="metrics-page">
 	<header class="page-header">
-		<a href="/settings" class="back-link">← Settings</a>
+		<a href="/settings" class="back-link">
+			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<polyline points="15 18 9 12 15 6"/>
+			</svg>
+			Back to Settings
+		</a>
 		<h1>Metrics Template</h1>
 	</header>
 
@@ -443,11 +448,13 @@
 	}
 
 	.back-link {
-		display: inline-block;
-		margin-bottom: var(--spacing-sm);
+		display: inline-flex;
+		align-items: center;
+		gap: var(--spacing-xs);
 		color: var(--color-text-muted);
 		text-decoration: none;
 		font-size: 0.875rem;
+		margin-bottom: var(--spacing-sm);
 	}
 
 	.back-link:hover {
