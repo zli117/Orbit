@@ -166,7 +166,7 @@
 	async function restoreBackup() {
 		if (!restoreFile) return;
 
-		if (!confirm('WARNING: This will DELETE all your existing data and replace it with the backup. This cannot be undone. Continue?')) {
+		if (!confirm('WARNING: This will DELETE all your existing data and replace it with the backup. This cannot be undone.\n\nBackups may include custom queries that will be restored and can be executed. Only restore backups from sources you trust.\n\nContinue?')) {
 			return;
 		}
 
