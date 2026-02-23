@@ -33,10 +33,11 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S ruok -u 1001 -G nodejs
 
-# Copy built application
+# Copy built application and migration files
 COPY --from=builder --chown=ruok:nodejs /app/build ./build
 COPY --from=builder --chown=ruok:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=ruok:nodejs /app/package.json ./
+COPY --from=builder --chown=ruok:nodejs /app/drizzle ./drizzle
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chown ruok:nodejs /app/data
