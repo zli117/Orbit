@@ -1,6 +1,6 @@
 # <img width="357" height="65" alt="image" src="https://github.com/user-attachments/assets/600bbdb9-fe40-40ba-93e7-f805bd42a481" />
 
-**Track goals. Connect your data. Query your life — with the help of AI.**
+**A self-hosted personal OKR system with built-in time tracking, data integrations such as Fitbit, and a programmable query engine for custom analysis — write JavaScript or let AI write it for you.**
 
 RUOK is a self-hosted personal productivity framework that connects your yearly ambitions to today's to-do list. Define objectives, measure key results, pull in data from services like Fitbit, and write JavaScript queries to analyze it all — or ask AI to write them for you.
 
