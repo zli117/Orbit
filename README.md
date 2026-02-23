@@ -1,4 +1,4 @@
-# <img width="2858" height="523" alt="image" src="https://github.com/user-attachments/assets/600bbdb9-fe40-40ba-93e7-f805bd42a481" />
+# <img width="357" height="65" alt="image" src="https://github.com/user-attachments/assets/600bbdb9-fe40-40ba-93e7-f805bd42a481" />
 
 **Track goals. Connect your data. Query your life — with the help of AI.**
 
