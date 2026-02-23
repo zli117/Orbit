@@ -253,7 +253,7 @@
 
 			<button
 				class="btn-icon"
-				onclick={() => (editing = !editing)}
+				onclick={() => { editing = !editing; if (editing) showTagPicker = false; }}
 				title="Edit task"
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -327,6 +327,17 @@
 					min="0"
 				/>
 			</div>
+		</div>
+		<div class="edit-row">
+			<span class="label">Tags</span>
+			<TagInput
+				{tags}
+				selectedTagIds={task.tagIds || []}
+				onChange={handleTagsChange}
+				placeholder="Search or create tags..."
+				allowCreate={!!onCreateTag}
+				onCreateTag={onCreateTag}
+			/>
 		</div>
 		<div class="edit-actions">
 			<button class="btn btn-secondary btn-sm" type="button" onclick={handleCancel}>
