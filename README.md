@@ -135,4 +135,4 @@ RUOK runs on modest hardware. A Raspberry Pi 4 with 2GB RAM is plenty.
 
 ## License
 
-GPL-3.0
+AGPL-3.0
