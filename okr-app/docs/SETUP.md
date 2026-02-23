@@ -11,7 +11,7 @@ npm run db:push
 npm run dev
 ```
 
-Opens on `http://localhost:5173` with hot reload.
+Opens on `http://localhost:5180` with hot reload.
 
 ## Deployment
 
@@ -97,14 +97,48 @@ docker compose exec caddy cat /data/caddy/pki/authorities/local/root.crt > caddy
 
 Transfer `caddy-root.crt` to your phones/laptops and install it as a trusted certificate. After this, all `*.rpi-01.lan` sites show a green lock.
 
-### 5. Deploy RUOK
+### 5. Configure and deploy RUOK
+
+Edit `docker-compose.yml` in the `okr-app` directory before deploying:
+
+```yaml
+services:
+  ruok:
+    build: .
+    container_name: ruok
+    restart: unless-stopped
+    volumes:
+      # Bind mount — change the left side to your desired host path
+      - /mnt/data/ruok:/app/data
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/okr.db
+      - ADMIN_USERNAME=youruser
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+```
+
+**Before starting**, configure these:
+
+1. **`volumes`** — The left side of the `:` is the host path where the SQLite database will be stored. Change `/mnt/data/ruok` to wherever you want it (e.g. `/mnt/ssd/ruok`, `~/ruok-data`, etc.). The directory must exist:
+   ```bash
+   mkdir -p /mnt/data/ruok
+   ```
+
+2. **`ADMIN_USERNAME`** — Replace `youruser` with the username you'll create on first login. That account gets admin privileges.
+
+Then deploy:
 
 ```bash
 cd okr-app
 docker compose up -d --build
 ```
 
-That's it. Access the app at `https://ruok.rpi-01.lan`.
+Access the app at `https://ruok.rpi-01.lan`.
 
 ### Adding more services
 
@@ -116,19 +150,13 @@ That's it. Access the app at `https://ruok.rpi-01.lan`.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_PATH` | `/app/data/okr.db` | Path to SQLite database inside the container |
+| `NODE_ENV` | `production` | Set to `production` for deployed instances |
+| `DATABASE_PATH` | `/app/data/okr.db` | Path to the SQLite database inside the container |
 | `ADMIN_USERNAME` | *(none)* | Username that gets admin privileges on login |
 
-Plugin credentials (Fitbit client ID/secret, base URL) are configured through the admin UI at `/admin` — no environment variables needed.
+All variables are set directly in the `environment` section of `docker-compose.yml`. Plugin credentials (Fitbit client ID/secret, base URL) are configured through the admin UI at `/admin` — no environment variables needed.
 
 ## Admin
-
-Set `ADMIN_USERNAME` in your docker-compose environment to grant admin privileges to that user:
-
-```yaml
-environment:
-  - ADMIN_USERNAME=youruser
-```
 
 The admin dashboard at `/admin` gives you:
 - **User management** — view, disable/enable, delete accounts
@@ -138,13 +166,13 @@ The admin dashboard at `/admin` gives you:
 
 ## Database
 
-All data lives in a single SQLite file at `DATABASE_PATH`.
+All data lives in a single SQLite file. Its location on the host is determined by the `volumes` bind mount in `docker-compose.yml`.
 
 **Backup:**
 
 ```bash
-# Docker volume path (find it with: docker volume inspect okr-app_okr-data)
-cp /var/lib/docker/volumes/okr-app_okr-data/_data/okr.db ~/backups/ruok-$(date +%F).db
+# Copy directly from the host path you configured
+cp /mnt/data/ruok/okr.db ~/backups/ruok-$(date +%F).db
 ```
 
 Or use the in-app backup: Settings > Download Backup (exports as JSON).
@@ -153,14 +181,14 @@ Or use the in-app backup: Settings > Download Backup (exports as JSON).
 
 ```bash
 docker compose down
-docker volume rm okr-app_okr-data
+rm /mnt/data/ruok/okr.db
 docker compose up -d --build
 ```
 
 ## First Time Setup
 
 1. Open the app in your browser
-2. Click "Create Account" — pick a username and password
+2. Click "Create Account" — pick a username and password (use the one you set as `ADMIN_USERNAME`)
 3. Go to Settings to configure your metrics, tags, and integrations
 4. Set yearly objectives at `/objectives`, then break them into monthly goals
 5. Use `/daily` to plan each day
