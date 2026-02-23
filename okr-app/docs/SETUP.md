@@ -132,6 +132,24 @@ docker compose up -d --build
 
 Access the app at `https://ruok.rpi-01.lan`.
 
+### Updating
+
+Pull the latest code and rebuild:
+
+```bash
+cd okr-app
+git pull
+docker compose up -d --build
+```
+
+Your data is safe — the database lives on the host at `$DATA_DIR`, not inside the image. The `.env` file is gitignored so `git pull` won't overwrite your config.
+
+To clean up old images after updating:
+
+```bash
+docker image prune -f
+```
+
 ### Adding more services
 
 1. Add `networks: [proxy]` to the new service's compose file (no `ports` needed)
