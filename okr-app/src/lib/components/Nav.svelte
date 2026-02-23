@@ -59,8 +59,7 @@
 
 <!-- Mobile drawer + backdrop: outside <nav> to avoid stacking context issues -->
 {#if menuOpen}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="mobile-backdrop" onclick={closeMenu}></div>
+	<button class="mobile-backdrop" onclick={closeMenu} aria-label="Close menu" tabindex="-1"></button>
 {/if}
 <div class="mobile-drawer" class:open={menuOpen}>
 	<a href="/" class="nav-link" class:active={isActive('/')} onclick={closeMenu}>Dashboard</a>
@@ -219,6 +218,9 @@
 	/* Mobile drawer + backdrop: hidden on desktop */
 	.mobile-backdrop {
 		display: none;
+		border: none;
+		padding: 0;
+		cursor: default;
 	}
 
 	.mobile-drawer {

@@ -18,7 +18,8 @@
 	let baseUrls = $state<Record<string, string>>({});
 	let newModelInputs = $state<Record<string, string>>({});
 	let showApiKeys = $state<Record<string, boolean>>({});
-	let customSystemPrompt = $state(data.aiConfig?.customSystemPrompt || '');
+	let customSystemPromptOverride = $state<string | null>(null);
+	let customSystemPrompt = $derived(customSystemPromptOverride ?? data.aiConfig?.customSystemPrompt ?? '');
 	let showPromptEditor = $state(false);
 
 	let saving = $state<Record<string, boolean>>({});
@@ -262,7 +263,7 @@
 	}
 
 	function resetPrompt() {
-		customSystemPrompt = '';
+		customSystemPromptOverride = '';
 	}
 </script>
 
@@ -310,12 +311,12 @@
 					<!-- API Key / Base URL -->
 					{#if provider.needsApiKey}
 						<div class="field-group">
-							<label class="field-label">
+							<span class="field-label">
 								API Key
 								{#if config.apiKeyMasked}
 									<span class="configured-badge">{config.apiKeyMasked}</span>
 								{/if}
-							</label>
+							</span>
 							<div class="input-row">
 								<input
 									type={showApiKeys[provider.id] ? 'text' : 'password'}
@@ -353,7 +354,7 @@
 
 					{#if provider.needsBaseUrl}
 						<div class="field-group">
-							<label class="field-label">Base URL</label>
+							<span class="field-label">Base URL</span>
 							<div class="input-row">
 								<input
 									type="text"
@@ -374,7 +375,7 @@
 
 					<!-- Models -->
 					<div class="field-group">
-						<label class="field-label">Models</label>
+						<span class="field-label">Models</span>
 
 						{#if config.models.length > 0}
 							<div class="model-list">
@@ -462,21 +463,22 @@
 
 				{#if !customSystemPrompt}
 					<div class="default-prompt-section">
-						<label class="field-label">Default prompt (read-only)</label>
+						<span class="field-label">Default prompt (read-only)</span>
 						<pre class="prompt-preview">{data.defaultPrompt}</pre>
 					</div>
 				{/if}
 
 				<div class="field-group">
-					<label class="field-label">
+					<span class="field-label">
 						{customSystemPrompt ? 'Custom prompt' : 'Override with custom prompt'}
-					</label>
+					</span>
 					<p class="text-muted hint">
 						Use &#123;&#123;API_REFERENCE&#125;&#125; and &#123;&#123;USER_METRICS&#125;&#125; as placeholders.
 					</p>
 					<textarea
 						class="input prompt-textarea"
-						bind:value={customSystemPrompt}
+						value={customSystemPrompt}
+						oninput={(e) => customSystemPromptOverride = e.currentTarget.value}
 						placeholder="Leave empty to use the default prompt above."
 						rows="10"
 					></textarea>

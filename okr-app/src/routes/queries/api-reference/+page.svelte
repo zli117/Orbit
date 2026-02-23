@@ -3,7 +3,7 @@
 
 	let { data } = $props();
 
-	const renderedHtml = marked.parse(data.markdownContent) as string;
+	const renderedHtml = $derived(marked.parse(data.markdownContent) as string);
 </script>
 
 <svelte:head>

@@ -34,7 +34,8 @@
 	let inputText = $state('');
 	let loading = $state(false);
 	let error = $state('');
-	let selectedProvider = $state(activeProvider);
+	let providerOverride = $state<string | null>(null);
+	const selectedProvider = $derived(providerOverride ?? activeProvider);
 	let selectedModel = $state('');
 	let messagesContainer = $state<HTMLDivElement | null>(null);
 	let inputTextarea = $state<HTMLTextAreaElement | null>(null);
@@ -169,7 +170,7 @@
 	}
 
 	async function switchProvider(newProvider: string) {
-		selectedProvider = newProvider;
+		providerOverride = newProvider;
 		// Update the active provider on the server
 		try {
 			await fetch('/api/ai/config', {

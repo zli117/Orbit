@@ -104,6 +104,15 @@ npm run dev
 
 Opens on `http://localhost:5173`.
 
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_PATH` | `/app/data/okr.db` | Path to SQLite database inside the container |
+| `ADMIN_USERNAME` | *(none)* | Username that gets admin privileges on login |
+
+Note that you still need to create the admin user.
+
 ---
 
 ## Deployment

@@ -24,12 +24,13 @@
 		configuredProviders,
 		activeProvider,
 		providerModels = {},
-		aiCollapsed: initialCollapsed = false,
+		aiCollapsed = false,
 		headerSnippet,
 		context = 'query'
 	}: Props = $props();
 
-	let collapsed = $state(initialCollapsed);
+	let collapsedOverride = $state<boolean | null>(null);
+	const collapsed = $derived(collapsedOverride !== null ? collapsedOverride : aiCollapsed);
 	let pendingCode = $state('');
 
 	function handleCopyToEditor(code: string) {
@@ -62,7 +63,7 @@
 				{/if}
 				<button
 					class="btn-icon ai-toggle"
-					onclick={() => collapsed = !collapsed}
+					onclick={() => collapsedOverride = !collapsed}
 					title={collapsed ? 'Show AI panel' : 'Hide AI panel'}
 				>
 					{#if collapsed}

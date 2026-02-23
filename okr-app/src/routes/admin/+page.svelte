@@ -332,7 +332,13 @@
 					<div class="config-card-header">
 						<div class="config-card-title">
 							{#if plugin.icon}
-								<span class="config-icon">{plugin.icon}</span>
+								<span class="config-icon">
+									{#if plugin.icon.startsWith('/')}
+										<img src={plugin.icon} alt="" class="config-icon-img" />
+									{:else}
+										{plugin.icon}
+									{/if}
+								</span>
 							{/if}
 							<div>
 								<h2>{plugin.name}</h2>
@@ -866,6 +872,17 @@
 	.config-icon {
 		font-size: 1.5rem;
 		flex-shrink: 0;
+		width: 40px;
+		height: 40px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.config-icon-img {
+		width: 28px;
+		height: 28px;
+		object-fit: contain;
 	}
 
 	.config-desc {

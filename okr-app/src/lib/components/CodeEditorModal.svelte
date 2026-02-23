@@ -38,10 +38,9 @@
 </script>
 
 {#if open}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<!-- svelte-ignore a11y_interactive_supports_focus -->
-	<div class="modal-overlay" role="dialog" aria-modal="true" onkeydown={handleKeydown}>
-		<div class="modal-backdrop" onclick={() => open = false}></div>
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
+	<div class="modal-overlay" role="dialog" aria-modal="true" onkeydown={handleKeydown} tabindex="-1">
+		<button class="modal-backdrop" onclick={() => open = false} aria-label="Close modal" tabindex="-1"></button>
 		<div class="code-editor-modal">
 			<div class="modal-header">
 				<h3>{title}</h3>
@@ -88,6 +87,9 @@
 		background: rgba(0, 0, 0, 0.4);
 		backdrop-filter: blur(4px);
 		-webkit-backdrop-filter: blur(4px);
+		border: none;
+		padding: 0;
+		cursor: default;
 	}
 
 	.code-editor-modal {
