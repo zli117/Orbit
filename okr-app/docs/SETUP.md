@@ -99,42 +99,34 @@ Transfer `caddy-root.crt` to your phones/laptops and install it as a trusted cer
 
 ### 5. Configure and deploy RUOK
 
-Edit `docker-compose.yml` in the `okr-app` directory before deploying:
-
-```yaml
-services:
-  ruok:
-    build: .
-    container_name: ruok
-    restart: unless-stopped
-    volumes:
-      # Bind mount — change the left side to your desired host path
-      - /mnt/data/ruok:/app/data
-    environment:
-      - NODE_ENV=production
-      - DATABASE_PATH=/app/data/okr.db
-      - ADMIN_USERNAME=youruser
-    networks:
-      - proxy
-
-networks:
-  proxy:
-    external: true
-```
-
-**Before starting**, configure these:
-
-1. **`volumes`** — The left side of the `:` is the host path where the SQLite database will be stored. Change `/mnt/data/ruok` to wherever you want it (e.g. `/mnt/ssd/ruok`, `~/ruok-data`, etc.). The directory must exist:
-   ```bash
-   mkdir -p /mnt/data/ruok
-   ```
-
-2. **`ADMIN_USERNAME`** — Replace `youruser` with the username you'll create on first login. That account gets admin privileges.
-
-Then deploy:
+Copy the example environment file and edit it:
 
 ```bash
 cd okr-app
+cp .env.example .env
+```
+
+Edit `.env` with your settings:
+
+```bash
+# Host path where the SQLite database will be stored
+DATA_DIR=/mnt/ssd/ruok
+
+# Username that gets admin privileges on login
+ADMIN_USERNAME=youruser
+```
+
+- **`DATA_DIR`** — Where the database is stored on the host. Point this at your external storage (e.g. `/mnt/ssd/ruok`, `/mnt/usb/ruok`). Defaults to `./data` if not set. The directory must exist:
+  ```bash
+  mkdir -p /mnt/ssd/ruok
+  ```
+- **`ADMIN_USERNAME`** — The username you'll create on first login. That account gets admin privileges.
+
+The `.env` file is gitignored, so your config won't conflict with `git pull`.
+
+Deploy:
+
+```bash
 docker compose up -d --build
 ```
 
@@ -148,13 +140,14 @@ Access the app at `https://ruok.rpi-01.lan`.
 
 ## Environment Variables
 
+Configuration is set via a `.env` file (gitignored). Copy `.env.example` to `.env` and edit it.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NODE_ENV` | `production` | Set to `production` for deployed instances |
-| `DATABASE_PATH` | `/app/data/okr.db` | Path to the SQLite database inside the container |
+| `DATA_DIR` | `./data` | Host path where the SQLite database is stored |
 | `ADMIN_USERNAME` | *(none)* | Username that gets admin privileges on login |
 
-All variables are set directly in the `environment` section of `docker-compose.yml`. Plugin credentials (Fitbit client ID/secret, base URL) are configured through the admin UI at `/admin` — no environment variables needed.
+These are referenced by `docker-compose.yml` via variable substitution. Plugin credentials (Fitbit client ID/secret, base URL) are configured through the admin UI at `/admin` — no environment variables needed.
 
 ## Admin
 
@@ -166,13 +159,13 @@ The admin dashboard at `/admin` gives you:
 
 ## Database
 
-All data lives in a single SQLite file. Its location on the host is determined by the `volumes` bind mount in `docker-compose.yml`.
+All data lives in a single SQLite file at `$DATA_DIR/okr.db` on the host (the path you set in `.env`).
 
 **Backup:**
 
 ```bash
-# Copy directly from the host path you configured
-cp /mnt/data/ruok/okr.db ~/backups/ruok-$(date +%F).db
+# Copy directly from your DATA_DIR
+cp $DATA_DIR/okr.db ~/backups/ruok-$(date +%F).db
 ```
 
 Or use the in-app backup: Settings > Download Backup (exports as JSON).
@@ -181,7 +174,7 @@ Or use the in-app backup: Settings > Download Backup (exports as JSON).
 
 ```bash
 docker compose down
-rm /mnt/data/ruok/okr.db
+rm $DATA_DIR/okr.db
 docker compose up -d --build
 ```
 

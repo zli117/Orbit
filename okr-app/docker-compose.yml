@@ -4,12 +4,11 @@ services:
     container_name: ruok
     restart: unless-stopped
     volumes:
-      # Bind mount to host path — change to wherever you want the database stored
-      - /mnt/data/ruok:/app/data
+      - ${DATA_DIR:-./data}:/app/data
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/okr.db
-      - ADMIN_USERNAME=youruser
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-}
     networks:
       - proxy
 
