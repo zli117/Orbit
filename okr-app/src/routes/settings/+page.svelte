@@ -7,6 +7,50 @@
 	let savingPrefs = $state(false);
 	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 
+	// Change password
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmPassword = $state('');
+	let changingPassword = $state(false);
+
+	async function changePassword() {
+		if (!currentPassword || !newPassword) return;
+		if (newPassword !== confirmPassword) {
+			message = { type: 'error', text: 'New passwords do not match' };
+			return;
+		}
+		if (newPassword.length < 8) {
+			message = { type: 'error', text: 'New password must be at least 8 characters' };
+			return;
+		}
+
+		changingPassword = true;
+		message = null;
+
+		try {
+			const response = await fetch('/api/auth/change-password', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ currentPassword, newPassword })
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to change password');
+			}
+
+			message = { type: 'success', text: 'Password changed successfully' };
+			currentPassword = '';
+			newPassword = '';
+			confirmPassword = '';
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to change password' };
+		} finally {
+			changingPassword = false;
+		}
+	}
+
 	// Preferences
 	let weekStartDay = $state<'sunday' | 'monday'>('monday');
 	let timezone = $state('UTC');
@@ -361,13 +405,47 @@
 			</div>
 		</div>
 
-		<!-- Account Info -->
+		<!-- Account -->
 		<div class="card">
 			<h2>Account</h2>
 			<div class="account-info">
 				<div class="info-row">
 					<span class="info-label">Username</span>
 					<span class="info-value">{data.user?.username}</span>
+				</div>
+			</div>
+
+			<div class="password-section">
+				<h3>Change Password</h3>
+				<div class="password-form">
+					<input
+						type="password"
+						class="input"
+						bind:value={currentPassword}
+						placeholder="Current password"
+						autocomplete="current-password"
+					/>
+					<input
+						type="password"
+						class="input"
+						bind:value={newPassword}
+						placeholder="New password (min 8 characters)"
+						autocomplete="new-password"
+					/>
+					<input
+						type="password"
+						class="input"
+						bind:value={confirmPassword}
+						placeholder="Confirm new password"
+						autocomplete="new-password"
+					/>
+					<button
+						class="btn btn-primary"
+						onclick={changePassword}
+						disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+					>
+						{changingPassword ? 'Changing...' : 'Change Password'}
+					</button>
 				</div>
 			</div>
 		</div>
@@ -611,6 +689,28 @@
 		opacity: 0.5;
 		cursor: not-allowed;
 		transform: none;
+	}
+
+	.password-section {
+		margin-top: var(--spacing-md);
+		padding-top: var(--spacing-md);
+		border-top: 1px solid var(--color-border);
+	}
+
+	.password-section h3 {
+		font-size: 0.875rem;
+		margin: 0 0 var(--spacing-sm);
+	}
+
+	.password-form {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		max-width: 400px;
+	}
+
+	.password-form .btn {
+		align-self: flex-start;
 	}
 
 	@media (max-width: 768px) {
