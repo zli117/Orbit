@@ -57,7 +57,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/auth/me || exit 1
+    CMD wget -q --spider http://localhost:3000/api/auth/me || exit 1
 
 # Entrypoint fixes data dir permissions then drops to non-root user
 ENTRYPOINT ["/docker-entrypoint.sh"]
