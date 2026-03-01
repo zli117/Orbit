@@ -6,6 +6,8 @@ RUOK is designed to run on a Raspberry Pi (or any Linux machine) behind a Caddy 
 
 ```bash
 cd okr-app
+export ADMIN_USERNAME=admin
+export DATA_DIR=data
 npm install
 npm run db:push
 npm run dev
