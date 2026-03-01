@@ -9,6 +9,7 @@ import type { MetricDefinition } from '$lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import defaultPromptMd from './default-prompt.md?raw';
 import apiReferenceMd from '../../../../docs/QUERY_API_REFERENCE.md?raw';
+import { getPlugin } from '$lib/server/plugins/manager';
 
 export type AiChatContext = 'query' | 'kr_progress' | 'widget' | 'metric';
 
@@ -20,10 +21,11 @@ export const CONTEXT_ADDENDA: Record<AiChatContext, string> = {
 The user is writing code for a Key Result progress calculation. This code runs automatically to compute a KR's score.
 
 **IMPORTANT RULES:**
-- You MUST call \`progress.set(value)\` where value is between 0 and 1 to set the KR score
+- You MUST call \`progress.set(numerator, denominator)\` to set the KR score (e.g., \`progress.set(7, 10)\`)
+- The score is computed as numerator/denominator (clamped 0–1), and "7 / 10" is shown as the label
 - Do NOT use \`render.markdown()\`, \`render.table()\`, or \`render.plot.*()\` — rendered output is not displayed in this context
 - The code should fetch real data to compute a meaningful score
-- Always handle the empty-data case: if no data is found, call \`progress.set(0)\`
+- Always handle the empty-data case: if no data is found, call \`progress.set(0, 1)\`
 `,
 	widget: `
 ## Context: Dashboard Widget Code
@@ -92,9 +94,17 @@ export async function buildSystemPrompt(userId: string, context: AiChatContext =
 
 	// Append dynamic context data (e.g., available metrics for computed expressions)
 	if (context === 'metric' && contextData?.availableMetrics) {
-		const metrics = contextData.availableMetrics as Array<{ name: string; label: string; type: string }>;
+		const metrics = contextData.availableMetrics as MetricDefinition[];
 		if (metrics.length > 0) {
-			const lines = metrics.map(m => `- \`metrics.${m.name}\` — ${m.label} (${m.type})`);
+			const lines = metrics.map(m => {
+				const parts = [`\`metrics.${m.name}\` — ${m.label} (${m.type})`];
+				if (m.type === 'input' && m.inputType) parts.push(`format: ${m.inputType}${m.unit ? ` (${m.unit})` : ''}`);
+				if (m.type === 'computed' && m.expression) parts.push(`expression: \`${m.expression}\``);
+				if (m.type === 'external' && m.source) {
+					parts.push(describeExternalSource(m.source));
+				}
+				return `- ${parts.join(', ')}`;
+			});
 			prompt += `\n## Available Metrics\n\nThe following metrics are defined above this one and can be referenced in the expression:\n\n${lines.join('\n')}\n`;
 		} else {
 			prompt += `\n## Available Metrics\n\nNo metrics are defined above this one. This is the first metric in the template, so \`metrics.*\` will be empty.\n`;
@@ -127,7 +137,12 @@ async function buildMetricsInfo(userId: string): Promise<string> {
 		const parts = [`\`${d.name}\` — ${d.label} (${d.type})`];
 		if (d.inputType) parts.push(`input type: ${d.inputType}`);
 		if (d.unit) parts.push(`unit: ${d.unit}`);
-		if (d.source) parts.push(`source: ${d.source}`);
+		if (d.type === 'computed' && d.expression) {
+			parts.push(`expression: \`${d.expression}\``);
+		}
+		if (d.type === 'external' && d.source) {
+			parts.push(describeExternalSource(d.source));
+		}
 		return `- ${parts.join(', ')}`;
 	});
 
@@ -138,6 +153,28 @@ The user's current metrics template defines these metrics (accessible via \`day.
 ${lines.join('\n')}
 
 Use these exact metric names when accessing \`day.metrics\` in generated code. For time-format metrics (inputType: "time"), use \`q.parseTime()\` to convert to minutes.`;
+}
+
+/**
+ * Describe an external source string (e.g. "fitbit.sleepLength") with format info from the plugin.
+ */
+function describeExternalSource(source: string): string {
+	let desc = `source: ${source}`;
+	const dotIdx = source.indexOf('.');
+	if (dotIdx > 0) {
+		const pluginId = source.substring(0, dotIdx);
+		const fieldId = source.substring(dotIdx + 1);
+		const plugin = getPlugin(pluginId);
+		if (plugin) {
+			const field = plugin.getAvailableFields().find(f => f.id === fieldId);
+			if (field) {
+				desc += ` (${field.type}`;
+				if (field.unit) desc += `, ${field.unit}`;
+				desc += ')';
+			}
+		}
+	}
+	return desc;
 }
 
 /**

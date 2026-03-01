@@ -36,6 +36,13 @@
       "when": 1771807058561,
       "tag": "0004_tense_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1772389390786,
+      "tag": "0005_rare_deathbird",
+      "breakpoints": true
     }
   ]
 }

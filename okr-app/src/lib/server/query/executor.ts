@@ -12,7 +12,7 @@ const MAX_MEMORY_BYTES = 128 * 1024 * 1024; // 128MB
 
 // Render output types
 export interface RenderOutput {
-	type: 'markdown' | 'table' | 'plotly';
+	type: 'markdown' | 'table' | 'plotly' | 'json';
 	content: unknown;
 }
 
@@ -45,7 +45,8 @@ export interface PlotlyData {
 export interface QueryResult {
 	result: unknown;
 	renders: RenderOutput[];
-	progressValue?: number; // Set via progress.set(value)
+	progressValue?: number; // Set via progress.set(numerator, denominator)
+	progressLabel?: string; // e.g. "42 / 100"
 	error?: string;
 }
 
@@ -79,8 +80,9 @@ export async function executeQuery(
 	// Collect render outputs
 	const renders: RenderOutput[] = [];
 
-	// Track progress value (set via progress.set())
+	// Track progress value (set via progress.set(n, d))
 	let progressValue: number | undefined = undefined;
+	let progressLabel: string | undefined = undefined;
 
 	try {
 		// Note: We don't freeze prototypes in the sandbox because:
@@ -95,8 +97,9 @@ export async function executeQuery(
 		injectRenderAPI(context, renders);
 
 		// Inject the progress API
-		injectProgressAPI(context, (value) => {
+		injectProgressAPI(context, (value, label) => {
 			progressValue = value;
+			progressLabel = label;
 		});
 
 		// Inject params
@@ -155,12 +158,13 @@ export async function executeQuery(
 		const finalResult = context.dump(resolvedResult.value);
 		resolvedResult.value.dispose();
 
-		return { result: finalResult, renders, progressValue };
+		return { result: finalResult, renders, progressValue, progressLabel };
 	} catch (error) {
 		return {
 			result: null,
 			renders,
 			progressValue,
+			progressLabel,
 			error: error instanceof Error ? error.message : 'Query execution failed'
 		};
 	} finally {
@@ -417,6 +421,15 @@ function injectRenderAPI(context: QuickJSContext, renders: RenderOutput[]) {
 	context.setProp(renderHandle, 'table', tableFn);
 	tableFn.dispose();
 
+	// render.json(value) - render any value as formatted JSON (for debugging)
+	const jsonFn = context.newFunction('json', (valueHandle) => {
+		const value = context.dump(valueHandle);
+		renders.push({ type: 'json', content: value });
+		return context.undefined;
+	});
+	context.setProp(renderHandle, 'json', jsonFn);
+	jsonFn.dispose();
+
 	// Create render.plot object with chart helpers
 	const plotHandle = context.newObject();
 
@@ -547,17 +560,17 @@ function injectRenderAPI(context: QuickJSContext, renders: RenderOutput[]) {
 /**
  * Inject the progress API for setting KR progress values
  */
-function injectProgressAPI(context: QuickJSContext, onProgressSet: (value: number) => void) {
+function injectProgressAPI(context: QuickJSContext, onProgressSet: (value: number, label: string) => void) {
 	const progressHandle = context.newObject();
 
-	// progress.set(value) - Set the progress value (0-1)
-	const setFn = context.newFunction('set', (valueHandle) => {
-		const value = context.dump(valueHandle) as number;
-		if (typeof value === 'number' && !isNaN(value)) {
-			// Clamp to 0-1 range
-			const clampedValue = Math.max(0, Math.min(1, value));
-			onProgressSet(clampedValue);
-		}
+	// progress.set(numerator, denominator) - Set progress as a ratio
+	const setFn = context.newFunction('set', (numHandle, denHandle) => {
+		const numerator = context.dump(numHandle) as number;
+		const denominator = context.dump(denHandle) as number;
+		if (typeof numerator !== 'number' || typeof denominator !== 'number') return context.undefined;
+		if (isNaN(numerator) || isNaN(denominator) || denominator === 0) return context.undefined;
+		const clampedValue = Math.max(0, Math.min(1, numerator / denominator));
+		onProgressSet(clampedValue, `${numerator} / ${denominator}`);
 		return context.undefined;
 	});
 	context.setProp(progressHandle, 'set', setFn);

@@ -4,7 +4,7 @@
 	import CodeEditorModal from './CodeEditorModal.svelte';
 
 	interface RenderOutput {
-		type: 'markdown' | 'table' | 'plotly';
+		type: 'markdown' | 'table' | 'plotly' | 'json';
 		content: unknown;
 	}
 
@@ -196,6 +196,7 @@
 				<strong>Render API:</strong>
 				<code>render.markdown(text)</code>,
 				<code>render.table(&#123;headers, rows&#125;)</code>,
+				<code>render.json(value)</code>,
 				<code>render.plot.bar/line/pie(...)</code>
 			</div>
 		</div>
@@ -248,6 +249,10 @@
 										{/each}
 									</tbody>
 								</table>
+							</div>
+						{:else if render.type === 'json'}
+							<div class="render-json">
+								<pre><code>{JSON.stringify(render.content, null, 2)}</code></pre>
 							</div>
 						{:else if render.type === 'plotly'}
 							<div class="render-plotly" bind:this={plotContainers[index]}></div>
@@ -479,6 +484,20 @@
 	.render-table th {
 		background: var(--color-bg);
 		font-weight: 600;
+	}
+
+	.render-json {
+		overflow-x: auto;
+	}
+
+	.render-json pre {
+		margin: 0;
+		padding: var(--spacing-sm);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		font-size: 0.8rem;
+		line-height: 1.5;
 	}
 
 	.render-plotly {

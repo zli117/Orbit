@@ -5,7 +5,7 @@
 	import CodeWithAi from '$lib/components/CodeWithAi.svelte';
 
 	interface RenderOutput {
-		type: 'markdown' | 'table' | 'plotly';
+		type: 'markdown' | 'table' | 'plotly' | 'json';
 		content: unknown;
 	}
 
@@ -36,10 +36,11 @@
 // Output (Render API):
 //   render.markdown(text) - Render markdown content
 //   render.table({ headers, rows }) - Render a table
+//   render.json(value) - Render any value as formatted JSON (for debugging)
 //   render.plot.bar/line/pie/multi(opts) - Render charts
 //
 // Progress (for Key Results):
-//   progress.set(value) - Set progress value (0 to 1)
+//   progress.set(numerator, denominator) - Set progress as a ratio
 
 // Example: Show this month's metrics
 const { year, month } = q.today();
@@ -60,10 +61,10 @@ render.table({
   ])
 });
 
-// For Key Results, use progress.set():
+// For Key Results, use progress.set(n, d):
 // const tasks = await q.tasks({ tag: 'My_Goal', year });
 // const completed = tasks.filter(t => t.completed).length;
-// progress.set(completed / tasks.length);`;
+// progress.set(completed, tasks.length);`;
 
 	let code = $state(sampleCode);
 
@@ -307,6 +308,7 @@ render.table({
 						{ title: 'RENDERING', items: [
 							'render.markdown(text)',
 							'render.table({ headers, rows })',
+							'render.json(value)',
 							'render.plot.bar/line/pie/multi(...)'
 						]},
 						{ title: 'HELPERS', items: [
@@ -323,7 +325,7 @@ render.table({
 							'.startOf(), .endOf(), .diff()'
 						]},
 						{ title: 'PROGRESS', items: [
-							'progress.set(value)'
+							'progress.set(n, d)'
 						]}
 					] as section, sectionIdx}
 						<details class="accordion-item" open={sectionIdx === 0}>
@@ -445,6 +447,10 @@ render.table({
 												{/each}
 											</tbody>
 										</table>
+									</div>
+								{:else if render.type === 'json'}
+									<div class="render-json">
+										<pre><code>{JSON.stringify(render.content, null, 2)}</code></pre>
 									</div>
 								{:else if render.type === 'plotly'}
 									<div class="render-plotly" bind:this={plotContainers[index]}></div>
@@ -867,6 +873,20 @@ render.table({
 	.render-table th {
 		background: var(--color-bg);
 		font-weight: 600;
+	}
+
+	.render-json {
+		overflow-x: auto;
+	}
+
+	.render-json pre {
+		margin: 0;
+		padding: var(--spacing-sm);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		font-size: 0.8rem;
+		line-height: 1.5;
 	}
 
 	.render-plotly {

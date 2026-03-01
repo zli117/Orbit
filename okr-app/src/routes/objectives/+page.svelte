@@ -35,7 +35,7 @@
 		const totalWeight = objective.keyResults.reduce((sum, kr) => sum + kr.weight, 0);
 		if (totalWeight === 0) return 0;
 		return objective.keyResults.reduce((sum, kr) => {
-			const score = getKRScore(kr);
+			const { score } = getKRScore(kr);
 			return sum + score * kr.weight;
 		}, 0) / totalWeight;
 	}
@@ -52,7 +52,7 @@
 
 	// Track loading state and live scores for custom_query KRs
 	let loadingKRs = $state<Set<string>>(new Set());
-	let liveScores = $state<Map<string, number>>(new Map());
+	let liveScores = $state<Map<string, { score: number; label?: string }>>(new Map());
 	let queryErrors = $state<Map<string, string>>(new Map());
 
 	// Fetch progress for all custom_query KRs when data changes
@@ -87,13 +87,13 @@
 			const { results } = await response.json();
 
 			// Update live scores
-			const newScores = new Map<string, number>();
+			const newScores = new Map<string, { score: number; label?: string }>();
 			const newErrors = new Map<string, string>();
 
 			for (const [krId, result] of Object.entries(results)) {
-				const r = result as { score: number | null; error?: string };
+				const r = result as { score: number | null; scoreLabel?: string; error?: string };
 				if (r.score !== null) {
-					newScores.set(krId, r.score);
+					newScores.set(krId, { score: r.score, label: r.scoreLabel });
 				}
 				if (r.error) {
 					newErrors.set(krId, r.error);
@@ -110,11 +110,11 @@
 	}
 
 	// Get the display score for a KR (live score if available, otherwise stored score)
-	function getKRScore(kr: typeof localObjectives[0]['keyResults'][0]): number {
+	function getKRScore(kr: typeof localObjectives[0]['keyResults'][0]): { score: number; label?: string } {
 		if (kr.measurementType === 'custom_query' && liveScores.has(kr.id)) {
 			return liveScores.get(kr.id)!;
 		}
-		return kr.score;
+		return { score: kr.score, label: kr.scoreLabel || undefined };
 	}
 
 	// Check if a KR is currently loading
@@ -659,8 +659,8 @@
 								{#if isKRLoading(kr.id)}
 									<span class="kr-score kr-score-loading">...</span>
 								{:else}
-									{@const score = getKRScore(kr)}
-									<span class="kr-score-badge" style="background: {colors.badge}; color: {colors.accent};">{(score * 100).toFixed(0)}%</span>
+									{@const krResult = getKRScore(kr)}
+									<span class="kr-score-badge" style="background: {colors.badge}; color: {colors.accent};">{krResult.label || `${(krResult.score * 100).toFixed(0)}%`}</span>
 								{/if}
 									<button class="btn-icon btn-icon-sm" onclick={() => openEditKR(objective.id, kr)} title="Edit">
 										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -704,10 +704,10 @@
 									{#if isKRLoading(kr.id)}
 										<div class="progress-bar-indeterminate"></div>
 									{:else}
-										{@const progressScore = getKRScore(kr)}
+										{@const progressResult = getKRScore(kr)}
 										<div
 											class="progress-bar-fill"
-											style="width: {progressScore * 100}%; background-color: {colors.accent};"
+											style="width: {progressResult.score * 100}%; background-color: {colors.accent};"
 										></div>
 									{/if}
 								</div>
@@ -895,7 +895,7 @@
 				{#if krMeasurementType === 'custom_query'}
 					<div class="form-group">
 						<span class="label">Progress Query</span>
-						<p class="form-hint">Write code that calls <code>progress.set(value)</code> with a value between 0 and 1.</p>
+						<p class="form-hint">Write code that calls <code>progress.set(numerator, denominator)</code> to set progress (e.g., <code>progress.set(42, 100)</code>).</p>
 
 						{#if data.savedQueries.length > 0}
 							<div class="query-selector">

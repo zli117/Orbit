@@ -1,9 +1,18 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { marked, Renderer } from 'marked';
 
 	let { data } = $props();
 
-	const renderedHtml = $derived(marked.parse(data.markdownContent) as string);
+	const renderer = new Renderer();
+	renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
+		// Strip HTML tags (from inline code) to generate a clean slug
+		const raw = text.replace(/<[^>]*>/g, '');
+		// Match GitHub-style anchor generation: lowercase, strip non-alphanumeric (except spaces/hyphens), spaces→hyphens
+		const slug = raw.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/(^-|-$)/g, '');
+		return `<h${depth} id="${slug}">${text}</h${depth}>`;
+	};
+
+	const renderedHtml = $derived(marked.parse(data.markdownContent, { renderer }) as string);
 </script>
 
 <svelte:head>

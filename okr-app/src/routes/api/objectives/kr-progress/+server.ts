@@ -18,7 +18,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			return json({ error: 'krIds must be a non-empty array' }, { status: 400 });
 		}
 
-		const results: Record<string, { score: number | null; error?: string }> = {};
+		const results: Record<string, { score: number | null; scoreLabel?: string; error?: string }> = {};
 
 		// Process all KRs in parallel
 		await Promise.all(
@@ -69,19 +69,20 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 				// Check if progress.set() was called
 				if (queryResult.progressValue === undefined) {
-					results[krId] = { score: null, error: 'Query must call progress.set(value)' };
+					results[krId] = { score: null, error: 'Query must call progress.set(numerator, denominator)' };
 					return;
 				}
 
 				// progressValue is already clamped to 0-1 by the executor
 				const clampedScore = queryResult.progressValue;
+				const scoreLabel = queryResult.progressLabel || null;
 
 				// Update the KR score in database
 				await db.update(keyResults)
-					.set({ score: clampedScore, updatedAt: new Date() })
+					.set({ score: clampedScore, scoreLabel, updatedAt: new Date() })
 					.where(eq(keyResults.id, krId));
 
-				results[krId] = { score: clampedScore };
+				results[krId] = { score: clampedScore, scoreLabel: scoreLabel || undefined };
 			})
 		);
 

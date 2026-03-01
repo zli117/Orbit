@@ -25,11 +25,11 @@ render.markdown(`Found ${days.length} days of data`);
 
 - All `q.daily()`, `q.tasks()`, `q.objectives()` calls are async — use `await`
 - `q.today()` is synchronous — no await needed
-- Use `render.markdown()`, `render.table()`, `render.plot.*()` for output
+- Use `render.markdown()`, `render.table()`, `render.json()`, `render.plot.*()` for output
 - Use `q.parseTime()` to convert "HH:MM" to minutes, `q.formatDuration()` to convert minutes back to "HH:MM"
-- For Key Result progress queries, use `progress.set(value)` where value is 0-1
+- For Key Result progress queries, use `progress.set(numerator, denominator)` (e.g., `progress.set(7, 10)`)
 - The `moment` library (Moment.js) is available as a global for date/time parsing, manipulation, and formatting. Use `moment()` for the current time, `moment('YYYY-MM-DD')` for parsing, `.format()`, `.subtract()`, `.add()`, `.startOf()`, `.endOf()` for common operations.
-- There is no `console.log` — use `render.markdown()` for debug output
+- There is no `console.log` — use `render.json()` to inspect data or `render.markdown()` for text output
 - There is no `fetch` or network access in the sandbox
 
 {{API_REFERENCE}}

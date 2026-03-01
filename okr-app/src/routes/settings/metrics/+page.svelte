@@ -14,7 +14,7 @@
 	// Metrics defined above the currently editing metric (for AI context)
 	const availableMetricsForAi = $derived(() => {
 		const upTo = editingMetricIndex ?? metrics.length;
-		return metrics.slice(0, upTo).map(m => ({ name: m.name, label: m.label, type: m.type }));
+		return metrics.slice(0, upTo);
 	});
 
 	let showNewTemplate = $state(false);

@@ -68,6 +68,7 @@ export const keyResults = sqliteTable('key_results', {
 	details: text('details'), // Additional description/notes
 	weight: real('weight').notNull().default(1.0),
 	score: real('score').notNull().default(0), // 0-1 range
+	scoreLabel: text('score_label'), // e.g. "42 / 100" from progress.set(n, d)
 	expectedHours: real('expected_hours').default(0),
 	sortOrder: integer('sort_order').notNull().default(0),
 	// Flexible measurement type

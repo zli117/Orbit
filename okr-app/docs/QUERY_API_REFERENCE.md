@@ -21,6 +21,7 @@ Complete reference for writing JavaScript queries in RUOK's sandboxed environmen
 6. [Rendering (`render`)](#rendering-render)
    - [render.markdown()](#rendermarkdowntext)
    - [render.table()](#rendertabledata)
+   - [render.json()](#renderjsonvalue)
    - [render.plot.bar()](#renderplotbaroptions)
    - [render.plot.line()](#renderplotlineoptions)
    - [render.plot.pie()](#renderplotpieoptions)
@@ -40,7 +41,7 @@ The Query Builder lets you write JavaScript code that runs in a sandboxed **Quic
 Queries are used in three contexts:
 
 - **General analysis** — Ad-hoc exploration in the Query Builder page. Output via `render.*`.
-- **Key Result progress** — Automatically score a Key Result by calling `progress.set(value)`. The value (0–1) becomes the KR's score.
+- **Key Result progress** — Automatically score a Key Result by calling `progress.set(numerator, denominator)`. The ratio becomes the KR's score (0–1), and "numerator / denominator" is shown as the label.
 - **Dashboard widgets** — Saved queries whose rendered output is displayed as a card on your dashboard.
 
 Four global objects are available in every query:
@@ -580,6 +581,22 @@ if (data.length === 0) {
 }
 ```
 
+### `render.json(value)`
+
+Render any JavaScript value as pretty-printed JSON. Useful for debugging.
+
+```javascript
+// Parameters
+render.json(value: any): void
+
+// Examples
+const tasks = await q.tasks({ year: 2025 });
+render.json(tasks[0]); // inspect a single task record
+
+const days = await q.daily({ year: 2025, month: 1 });
+render.json({ taskCount: days.length, sample: days[0] });
+```
+
 ### `render.plot.bar(options)`
 
 Render an interactive bar chart (powered by Plotly.js).
@@ -774,19 +791,18 @@ render.plot.multi({
 
 Used exclusively for **Key Result progress queries**. When a KR uses "Custom Query" measurement, this is how the score is computed.
 
-### `progress.set(value)`
+### `progress.set(numerator, denominator)`
 
 ```javascript
 // Parameters
-progress.set(value: number): void
-// value: 0 to 1 (clamped automatically)
-//   0   = 0% complete
-//   0.5 = 50% complete
-//   1   = 100% complete
+progress.set(numerator: number, denominator: number): void
+// Score = numerator / denominator, clamped to 0–1
+// The label "numerator / denominator" is shown on the KR badge
 ```
 
 **Rules:**
-- Values outside 0–1 are clamped (e.g., `-0.5` becomes `0`, `1.5` becomes `1`)
+- The ratio is clamped to 0–1 (e.g., `progress.set(150, 100)` → score 1.0, label "150 / 100")
+- Division by zero is silently ignored
 - If `progress.set()` is never called in a KR progress query, the query returns an error
 - Only the last call matters if called multiple times
 - Can be combined with `render.*` calls to show a visual breakdown alongside the progress value
@@ -794,32 +810,18 @@ progress.set(value: number): void
 **Examples:**
 
 ```javascript
-// Simple: percentage of tagged tasks completed
+// Simple: completed / total tasks
 const tasks = await q.tasks({ year: 2025, tag: 'Q1_Goal' });
-if (tasks.length === 0) {
-  progress.set(0);
-} else {
-  progress.set(
-    tasks.filter(t => t.completed).length / tasks.length
-  );
-}
+const completed = tasks.filter(t => t.completed).length;
+progress.set(completed, tasks.length);
+// Badge shows e.g. "7 / 10"
 
 // Hours-based progress: track hours against a target
 const TARGET_HOURS = 100;
 const tasks2 = await q.tasks({ year: 2025, tag: 'deep_work' });
 const totalHours = tasks2.reduce((sum, t) => sum + t.expected_hours, 0);
-progress.set(totalHours / TARGET_HOURS);
-render.markdown(`${totalHours.toFixed(1)} / ${TARGET_HOURS} hours`);
-
-// Weighted multi-criteria progress
-const tasks3 = await q.tasks({ year: 2025, tag: 'project_x' });
-const completionRate = tasks3.filter(t => t.completed).length / tasks3.length;
-const hoursRate = Math.min(1,
-  tasks3.reduce((s, t) => s + t.expected_hours, 0) / 50
-);
-// 60% weight on completion, 40% on hours
-const weighted = completionRate * 0.6 + hoursRate * 0.4;
-progress.set(weighted);
+progress.set(totalHours, TARGET_HOURS);
+// Badge shows e.g. "42.5 / 100"
 ```
 
 ---
@@ -893,7 +895,7 @@ Objectives are yearly or monthly goals. Each has weighted key results. KR measur
 |------|-------------|
 | `slider` | Manual 0–100% slider |
 | `checkboxes` | Checklist items, score = completed / total |
-| `custom_query` | JavaScript query that calls `progress.set()` |
+| `custom_query` | JavaScript query that calls `progress.set(n, d)` |
 
 ### Daily metrics
 
@@ -1001,10 +1003,10 @@ const completed = tasks.filter(t => t.completed).length;
 const total = tasks.length;
 
 if (total === 0) {
-  progress.set(0);
+  progress.set(0, 1);
   render.markdown('No course tasks found. Add tasks tagged "ml_course".');
 } else {
-  progress.set(completed / total);
+  progress.set(completed, total);
 
   render.markdown(`## ML Course Progress\n\n${completed}/${total} modules completed`);
 
