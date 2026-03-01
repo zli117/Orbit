@@ -724,18 +724,44 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 			where: eq(tasks.timePeriodId, period.id)
 		});
 
-		// Get task attributes
-		const tasksWithAttrs = await Promise.all(
+		// Get task attributes and tags, build full TaskRecord
+		const taskRecords: TaskRecord[] = await Promise.all(
 			periodTasks.map(async (task) => {
-				const attrs = await db.query.taskAttributes.findMany({
-					where: eq(taskAttributes.taskId, task.id)
-				});
+				const [attrs, taskTagRecords] = await Promise.all([
+					db.query.taskAttributes.findMany({
+						where: eq(taskAttributes.taskId, task.id)
+					}),
+					db.query.taskTags.findMany({
+						where: eq(taskTags.taskId, task.id)
+					})
+				]);
+
+				const tagIds = taskTagRecords.map(tt => tt.tagId);
+				const taskTagsList = tagIds.length > 0
+					? await db.query.tags.findMany({
+							where: eq(tags.userId, userId)
+						}).then(allTags => allTags.filter(t => tagIds.includes(t.id)))
+					: [];
+
+				const attributes = attrs.reduce((acc, attr) => {
+					acc[attr.key] = attr.value;
+					return acc;
+				}, {} as Record<string, string>);
+
 				return {
-					...task,
-					attributes: attrs.reduce((acc, attr) => {
-						acc[attr.key] = attr.value;
-						return acc;
-					}, {} as Record<string, string>)
+					id: task.id,
+					title: task.title,
+					completed: task.completed,
+					completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+					date: period.day!,
+					year: period.year,
+					month: period.month!,
+					week: period.week!,
+					attributes,
+					tags: taskTagsList.map(t => t.name),
+					expected_hours: parseFloat(attrs.find(a => a.key === 'expected_hours')?.value || '0'),
+					progress: parseFloat(attrs.find(a => a.key === 'progress')?.value || '0'),
+					timeSpentMs: task.timeSpentMs || 0
 				};
 			})
 		);
@@ -746,13 +772,10 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 			month: period.month!,
 			week: period.week!,
 			metrics,
-			tasks: tasksWithAttrs,
-			completedTasks: tasksWithAttrs.filter(t => t.completed).length,
-			totalTasks: tasksWithAttrs.length,
-			totalHours: tasksWithAttrs.reduce((sum, t) => {
-				const hours = parseFloat(t.attributes?.hour || '0');
-				return sum + (isNaN(hours) ? 0 : hours);
-			}, 0)
+			tasks: taskRecords,
+			completedTasks: taskRecords.filter(t => t.completed).length,
+			totalTasks: taskRecords.length,
+			totalHours: taskRecords.reduce((sum, t) => sum + t.expected_hours, 0)
 		});
 	}
 
@@ -828,8 +851,9 @@ async function fetchTasks(userId: string, filters: QueryFilters): Promise<TaskRe
 					return acc;
 				}, {} as Record<string, string>),
 				tags: taskTagsList.map(t => t.name),
-				hour: parseFloat(attrs.find(a => a.key === 'hour')?.value || '0'),
-				progress: parseFloat(attrs.find(a => a.key === 'progress')?.value || '0')
+				expected_hours: parseFloat(attrs.find(a => a.key === 'expected_hours')?.value || '0'),
+				progress: parseFloat(attrs.find(a => a.key === 'progress')?.value || '0'),
+				timeSpentMs: task.timeSpentMs || 0
 			};
 		})
 	);

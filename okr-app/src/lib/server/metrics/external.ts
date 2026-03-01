@@ -8,6 +8,7 @@
 import { db } from '$lib/db/client';
 import { dailyMetricValues } from '$lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 import { getPlugin, getUserPluginConfig } from '$lib/server/plugins/manager';
 import type { MetricValues } from './evaluator';
 
@@ -112,8 +113,33 @@ export async function fetchExternalMetrics(
 			const record = records.find(r => r.date === date);
 			if (record) {
 				for (const fieldId of fields) {
+					const sourceId = `${pluginId}.${fieldId}`;
 					const value = record.fields[fieldId];
-					values[`${pluginId}.${fieldId}`] = value ?? null;
+					values[sourceId] = value ?? null;
+
+					// Cache the fetched value in the DB for future requests
+					const stringValue = value === null || value === undefined ? null : String(value);
+					const existing = await db.query.dailyMetricValues.findFirst({
+						where: and(
+							eq(dailyMetricValues.userId, userId),
+							eq(dailyMetricValues.date, date),
+							eq(dailyMetricValues.metricName, sourceId)
+						)
+					});
+					if (existing) {
+						await db.update(dailyMetricValues)
+							.set({ value: stringValue })
+							.where(eq(dailyMetricValues.id, existing.id));
+					} else {
+						await db.insert(dailyMetricValues).values({
+							id: uuidv4(),
+							userId,
+							date,
+							metricName: sourceId,
+							value: stringValue,
+							source: pluginId
+						});
+					}
 				}
 			}
 		} catch (error) {

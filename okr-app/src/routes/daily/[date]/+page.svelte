@@ -9,6 +9,37 @@
 
 	let error = $state('');
 
+	// Client-side flexible metrics loading (avoids blocking page on slow plugin API calls)
+	let flexibleMetrics = $state<{
+		template: { id: string; name: string; effectiveFrom: string } | null;
+		metricsDefinition: MetricDefinition[];
+		values: Record<string, string | number | boolean | null>;
+		errors: Record<string, string>;
+	} | null>(null);
+	let metricsLoading = $state(true);
+
+	$effect(() => {
+		const date = data.date;
+		metricsLoading = true;
+		flexibleMetrics = null;
+		fetch(`/api/metrics/flexible/${date}`)
+			.then(res => res.json())
+			.then(flexData => {
+				flexibleMetrics = {
+					template: flexData.template ?? null,
+					metricsDefinition: flexData.metrics ?? [],
+					values: flexData.values ?? {},
+					errors: flexData.errors ?? {}
+				};
+			})
+			.catch(() => {
+				flexibleMetrics = null;
+			})
+			.finally(() => {
+				metricsLoading = false;
+			});
+	});
+
 	// Store local tags state for inline creation
 	let localTags = $state<Tag[]>([]);
 
@@ -390,10 +421,15 @@
 				<a href="/daily/{data.date}/metrics" class="btn-link">Edit</a>
 			</div>
 
-			{#if data.flexibleMetrics?.template && data.flexibleMetrics.metricsDefinition.length > 0}
+			{#if metricsLoading}
+				<div class="metrics-loading">
+					<div class="spinner"></div>
+					<span class="text-muted text-sm">Loading metrics...</span>
+				</div>
+			{:else if flexibleMetrics?.template && flexibleMetrics.metricsDefinition.length > 0}
 				<div class="metrics-grid">
-					{#each data.flexibleMetrics.metricsDefinition as metric}
-						{@const value = data.flexibleMetrics?.values[metric.name]}
+					{#each flexibleMetrics.metricsDefinition as metric}
+						{@const value = flexibleMetrics?.values[metric.name]}
 						<div class="metric-item">
 							<span class="metric-label">{metric.label}</span>
 							<span class="metric-value" class:empty={value === null || value === undefined || value === ''}>
@@ -597,6 +633,26 @@
 	.metric-value.empty {
 		color: var(--color-text-muted);
 		font-weight: 400;
+	}
+
+	.metrics-loading {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-md) 0;
+	}
+
+	.spinner {
+		width: 18px;
+		height: 18px;
+		border: 2px solid var(--color-border);
+		border-top-color: var(--color-primary);
+		border-radius: 50%;
+		animation: spin 0.6s linear infinite;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
 	}
 
 	/* Journal section */

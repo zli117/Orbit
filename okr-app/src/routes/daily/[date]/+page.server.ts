@@ -1,6 +1,5 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import type { MetricDefinition } from '$lib/db/schema';
 import { db } from '$lib/db/client';
 import { timePeriods, tasks, taskAttributes, taskTags } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -30,10 +29,10 @@ export const load: PageServerLoad = async ({ params, locals, fetch, depends }) =
 	const weekYear = getWeekYear(dateObj, weekStartDay);
 	const weekNumber = getWeekNumber(dateObj, weekStartDay);
 
-	// Fetch daily data, flexible metrics, tags, and weekly period in parallel
-	const [response, flexResponse, tagsResponse, weeklyPeriod] = await Promise.all([
+	// Fetch daily data, tags, and weekly period in parallel
+	// (metrics are loaded client-side to avoid blocking on slow plugin API calls)
+	const [response, tagsResponse, weeklyPeriod] = await Promise.all([
 		fetch(`/api/periods/daily/${dateStr}`),
-		fetch(`/api/metrics/flexible/${dateStr}`),
 		fetch('/api/tags'),
 		db.query.timePeriods.findFirst({
 			where: and(
@@ -52,7 +51,6 @@ export const load: PageServerLoad = async ({ params, locals, fetch, depends }) =
 			date: dateStr,
 			period: null,
 			tasks: [],
-			flexibleMetrics: null,
 			weeklyInitiatives: [],
 			weeklyPeriod: null,
 			weekYear,
@@ -61,7 +59,6 @@ export const load: PageServerLoad = async ({ params, locals, fetch, depends }) =
 		};
 	}
 
-	const flexData = await flexResponse.json();
 	const tagsData = await tagsResponse.json();
 
 	// Load weekly initiatives if we have a weekly period
@@ -102,13 +99,6 @@ export const load: PageServerLoad = async ({ params, locals, fetch, depends }) =
 		period: data.period,
 		tasks: data.tasks || [],
 		tags: tagsData.tags || [],
-		// Flexible metrics system
-		flexibleMetrics: flexResponse.ok ? {
-			template: flexData.template as { id: string; name: string; effectiveFrom: string } | null,
-			metricsDefinition: (flexData.metrics || []) as MetricDefinition[],
-			values: (flexData.values || {}) as Record<string, string | number | boolean | null>,
-			errors: (flexData.errors || {}) as Record<string, string>
-		} : null,
 		// Weekly initiatives
 		weeklyInitiatives,
 		weeklyPeriod,

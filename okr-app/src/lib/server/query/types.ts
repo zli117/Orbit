@@ -20,7 +20,7 @@ export interface DailyRecord {
 	month: number;
 	week: number;
 	metrics: Record<string, string | number | null>;
-	tasks: TaskWithAttributes[];
+	tasks: TaskRecord[];
 	completedTasks: number;
 	totalTasks: number;
 	totalHours: number;
@@ -35,14 +35,6 @@ export interface WeeklyRecord {
 	totalHours: number;
 }
 
-export interface TaskWithAttributes {
-	id: string;
-	title: string;
-	completed: boolean;
-	completedAt: Date | null;
-	attributes: Record<string, string>;
-}
-
 export interface TaskRecord {
 	id: string;
 	title: string;
@@ -54,8 +46,9 @@ export interface TaskRecord {
 	week: number | null;
 	attributes: Record<string, string>;
 	tags: string[];
-	hour: number;
+	expected_hours: number;
 	progress: number;
+	timeSpentMs: number;
 }
 
 export interface ObjectiveRecord {

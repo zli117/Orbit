@@ -141,28 +141,14 @@ interface DailyRecord {
   metrics: Record<string, string | number | null>;
 
   // Tasks for this day
-  tasks: TaskWithAttributes[];     // See schema below
+  tasks: TaskRecord[];             // Same type as q.tasks() — see below
   completedTasks: number;          // Count of completed tasks
   totalTasks: number;              // Total task count
-  totalHours: number;              // Sum of "hour" attribute across tasks
+  totalHours: number;              // Sum of expected_hours across tasks
 }
 ```
 
-**Nested type: `TaskWithAttributes`**
-
-```typescript
-interface TaskWithAttributes {
-  id: string;
-  title: string;
-  completed: boolean;
-  completedAt: Date | null;
-  attributes: Record<string, string>;
-  // Common attribute keys:
-  //   "hour"     - hours spent (e.g., "2.5")
-  //   "progress" - completion progress 0-1 (e.g., "0.75")
-  //   "expected_hours" - planned hours (e.g., "4")
-}
-```
+Tasks inside `DailyRecord` use the same `TaskRecord` type as `q.tasks()` — see [TaskRecord](#taskrecord) below.
 
 **Examples:**
 
@@ -213,7 +199,7 @@ Fetch tasks with their attributes and tags. Returns tasks from all time period t
 - `tag` — Filter to tasks tagged with this exact tag name (case-sensitive)
 - `periodId` — Filter to tasks in a specific time period
 
-**Return type: `TaskRecord[]`**
+#### TaskRecord
 
 ```typescript
 interface TaskRecord {
@@ -235,8 +221,11 @@ interface TaskRecord {
   tags: string[];  // Array of tag names (e.g., ["work", "ai_research"])
 
   // Pre-parsed common attributes for convenience
-  hour: number;      // Parsed from attributes.hour (0 if not set)
-  progress: number;  // Parsed from attributes.progress (0 if not set)
+  expected_hours: number;  // Parsed from attributes.expected_hours, 0 if not set
+  progress: number;     // Parsed from attributes.progress (0 if not set, any number)
+
+  // Timer data
+  timeSpentMs: number;  // Cumulative time tracked via the task timer (milliseconds, 0 if unused)
 }
 ```
 
@@ -258,7 +247,7 @@ const tasks = await q.tasks({ year: 2025 });
 const hoursByTag = {};
 tasks.forEach(t => {
   t.tags.forEach(tag => {
-    hoursByTag[tag] = (hoursByTag[tag] || 0) + t.hour;
+    hoursByTag[tag] = (hoursByTag[tag] || 0) + t.expected_hours;
   });
 });
 
@@ -574,7 +563,7 @@ render.table({
   headers: ['Task', 'Hours', 'Tags'],
   rows: tasks.slice(0, 20).map(t => [
     t.title,
-    t.hour.toFixed(1),
+    t.expected_hours.toFixed(1),
     t.tags.join(', ')
   ])
 });
@@ -586,7 +575,7 @@ if (data.length === 0) {
 } else {
   render.table({
     headers: ['Date', 'Task', 'Duration'],
-    rows: data.map(t => [t.date || '-', t.title, t.hour + 'h'])
+    rows: data.map(t => [t.date || '-', t.title, t.expected_hours + 'h'])
   });
 }
 ```
@@ -621,7 +610,7 @@ render.plot.bar({
 const tasks = await q.tasks({ year: 2025 });
 const byTag = {};
 tasks.forEach(t => t.tags.forEach(tag => {
-  byTag[tag] = (byTag[tag] || 0) + t.hour;
+  byTag[tag] = (byTag[tag] || 0) + t.expected_hours;
 }));
 const sorted = Object.entries(byTag).sort((a, b) => b[1] - a[1]);
 render.plot.bar({
@@ -690,7 +679,7 @@ render.plot.pie(options: {
 const tasks = await q.tasks({ year: 2025 });
 const byTag = {};
 tasks.forEach(t => t.tags.forEach(tag => {
-  byTag[tag] = (byTag[tag] || 0) + t.hour;
+  byTag[tag] = (byTag[tag] || 0) + t.expected_hours;
 }));
 
 render.plot.pie({
@@ -818,7 +807,7 @@ if (tasks.length === 0) {
 // Hours-based progress: track hours against a target
 const TARGET_HOURS = 100;
 const tasks2 = await q.tasks({ year: 2025, tag: 'deep_work' });
-const totalHours = tasks2.reduce((sum, t) => sum + t.hour, 0);
+const totalHours = tasks2.reduce((sum, t) => sum + t.expected_hours, 0);
 progress.set(totalHours / TARGET_HOURS);
 render.markdown(`${totalHours.toFixed(1)} / ${TARGET_HOURS} hours`);
 
@@ -826,7 +815,7 @@ render.markdown(`${totalHours.toFixed(1)} / ${TARGET_HOURS} hours`);
 const tasks3 = await q.tasks({ year: 2025, tag: 'project_x' });
 const completionRate = tasks3.filter(t => t.completed).length / tasks3.length;
 const hoursRate = Math.min(1,
-  tasks3.reduce((s, t) => s + t.hour, 0) / 50
+  tasks3.reduce((s, t) => s + t.expected_hours, 0) / 50
 );
 // 60% weight on completion, 40% on hours
 const weighted = completionRate * 0.6 + hoursRate * 0.4;
@@ -885,11 +874,12 @@ Flexible key-value pairs on tasks. Common keys:
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `hour` | number | Hours spent on the task (e.g., "2.5") |
-| `progress` | number | Progress 0 to 1 (e.g., "0.75") |
-| `expected_hours` | number | Planned/budgeted hours |
+| `expected_hours` | number | Planned/budgeted hours for the task (e.g., "2.5") |
+| `progress` | number | Completion progress, any number (e.g., "75") |
 
-All attribute values are stored as strings. The query API pre-parses `hour` and `progress` as numbers on `TaskRecord`.
+All attribute values are stored as strings. The query API pre-parses `expected_hours` and `progress` as numbers on `TaskRecord`.
+
+Additionally, `timeSpentMs` (number) is available directly on `TaskRecord` — it holds cumulative milliseconds from the built-in task timer.
 
 ### Tags
 
@@ -966,10 +956,10 @@ let untagged = 0;
 
 tasks.forEach(t => {
   if (t.tags.length === 0) {
-    untagged += t.hour;
+    untagged += t.expected_hours;
   } else {
     t.tags.forEach(tag => {
-      byTag[tag] = (byTag[tag] || 0) + t.hour;
+      byTag[tag] = (byTag[tag] || 0) + t.expected_hours;
     });
   }
 });
@@ -1023,7 +1013,7 @@ if (total === 0) {
     rows: tasks.map(t => [
       t.title,
       t.completed ? 'Done' : 'Pending',
-      t.hour.toFixed(1)
+      t.expected_hours.toFixed(1)
     ])
   });
 }
