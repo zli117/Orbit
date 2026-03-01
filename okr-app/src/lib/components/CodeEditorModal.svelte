@@ -10,7 +10,8 @@
 		activeProvider: string;
 		providerModels?: Record<string, string[]>;
 		onSave?: (code: string) => void;
-		context?: 'query' | 'kr_progress' | 'widget';
+		context?: 'query' | 'kr_progress' | 'widget' | 'metric';
+		contextData?: Record<string, unknown>;
 	}
 
 	let {
@@ -22,7 +23,8 @@
 		activeProvider,
 		providerModels = {},
 		onSave,
-		context = 'query'
+		context = 'query',
+		contextData = {}
 	}: Props = $props();
 
 	function handleSave() {
@@ -65,6 +67,7 @@
 					{providerModels}
 					aiCollapsed={false}
 					{context}
+					{contextData}
 				/>
 			</div>
 		</div>

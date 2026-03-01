@@ -520,7 +520,8 @@
 				{#each [
 					{ id: 'query', label: 'Query Builder', desc: 'When writing queries in the Query Builder' },
 					{ id: 'kr_progress', label: 'KR Progress', desc: 'When writing Key Result progress calculations' },
-					{ id: 'widget', label: 'Dashboard Widget', desc: 'When writing dashboard widget code' }
+					{ id: 'widget', label: 'Dashboard Widget', desc: 'When writing dashboard widget code' },
+					{ id: 'metric', label: 'Computed Metric', desc: 'When writing computed metric expressions' }
 				] as ctx}
 					<div class="context-block">
 						<div class="context-header">

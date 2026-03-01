@@ -13,11 +13,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 	try {
 		const body = await request.json();
-		const { messages, provider: overrideProvider, model: overrideModel, context } = body as {
+		const { messages, provider: overrideProvider, model: overrideModel, context, contextData } = body as {
 			messages: AiMessage[];
 			provider?: AiProvider;
 			model?: string;
 			context?: AiChatContext;
+			contextData?: Record<string, unknown>;
 		};
 
 		if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -62,7 +63,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		};
 
 		// Build system prompt
-		const systemPrompt = await buildSystemPrompt(locals.user.id, context);
+		const systemPrompt = await buildSystemPrompt(locals.user.id, context, contextData);
 
 		// Send to provider
 		const response = await sendMessage(provider, finalConfig, systemPrompt, messages);

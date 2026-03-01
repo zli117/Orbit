@@ -19,7 +19,8 @@
 		activeProvider = 'anthropic',
 		providerModels = {},
 		pendingCode = $bindable(''),
-		context = 'query'
+		context = 'query',
+		contextData = {}
 	}: {
 		onCopyToEditor: (code: string) => void;
 		hasConfig: boolean;
@@ -27,7 +28,8 @@
 		activeProvider: string;
 		providerModels?: Record<string, string[]>;
 		pendingCode?: string;
-		context?: 'query' | 'kr_progress' | 'widget';
+		context?: 'query' | 'kr_progress' | 'widget' | 'metric';
+		contextData?: Record<string, unknown>;
 	} = $props();
 
 	let messages = $state<AiMessage[]>([]);
@@ -150,7 +152,8 @@
 					messages,
 					provider: selectedProvider !== activeProvider ? selectedProvider : undefined,
 					model: selectedModel || undefined,
-					context
+					context,
+					contextData: Object.keys(contextData).length > 0 ? contextData : undefined
 				})
 			});
 

@@ -10,7 +10,7 @@ import { eq, desc } from 'drizzle-orm';
 import defaultPromptMd from './default-prompt.md?raw';
 import apiReferenceMd from '../../../../docs/QUERY_API_REFERENCE.md?raw';
 
-export type AiChatContext = 'query' | 'kr_progress' | 'widget';
+export type AiChatContext = 'query' | 'kr_progress' | 'widget' | 'metric';
 
 export const CONTEXT_ADDENDA: Record<AiChatContext, string> = {
 	query: '',
@@ -35,13 +35,40 @@ The user is writing code for a dashboard widget. The rendered output is displaye
 - Do NOT use \`progress.set()\` — it has no effect in widget context
 - Keep output concise — widgets have limited display space
 - Prefer a single chart or a short summary over verbose output
+`,
+	metric: `
+## Context: Computed Metric Expression
+
+The user is writing a JavaScript expression for a computed metric in their daily metrics template. This expression runs automatically each day to calculate a derived value from other metrics.
+
+**IMPORTANT RULES:**
+- This is a single JavaScript EXPRESSION, not a function body — it must evaluate to a value
+- Access other metrics via \`metrics.metricName\` (e.g., \`metrics.sleep_duration\`, \`metrics.steps\`)
+- Only metrics defined ABOVE this one in the template are available
+- The expression should return a number, string, or boolean
+- Keep it simple — this runs on every daily metric evaluation
+- The \`date\` variable is available as a YYYY-MM-DD string
+
+**Available helpers on the \`q\` object:**
+- \`q.parseTime(timeStr)\` — converts "HH:MM" string to minutes (number)
+- \`q.formatDuration(minutes)\` — converts minutes to "Xh Ym" string
+- \`q.formatTime(minutes)\` — converts minutes to "HH:MM" string
+- \`q.isWeekday(dateStr)\` — returns true if the date is Mon-Fri
+- \`q.round(value, decimals)\` — rounds a number to N decimal places
+
+**Examples:**
+- Sleep quality score: \`metrics.sleep_duration >= 7 ? "Good" : "Poor"\`
+- Active minutes ratio: \`q.round(metrics.active_zone_minutes / 30 * 100, 1)\`
+- Sleep in minutes: \`q.parseTime(metrics.sleep_length)\`
+- Formatted sleep: \`q.formatDuration(q.parseTime(metrics.sleep_length))\`
+- Caffeine warning: \`metrics.caffeine_cups > 3 ? "Too much!" : "OK"\`
 `
 };
 
 /**
  * Build the full system prompt for a user, including API reference and metrics info.
  */
-export async function buildSystemPrompt(userId: string, context: AiChatContext = 'query'): Promise<string> {
+export async function buildSystemPrompt(userId: string, context: AiChatContext = 'query', contextData?: Record<string, unknown>): Promise<string> {
 	// Get user's custom prompt or default
 	const config = await db.query.userAiConfig.findFirst({
 		where: eq(userAiConfig.userId, userId)
@@ -61,6 +88,17 @@ export async function buildSystemPrompt(userId: string, context: AiChatContext =
 	const addendum = CONTEXT_ADDENDA[context];
 	if (addendum) {
 		prompt += '\n' + addendum;
+	}
+
+	// Append dynamic context data (e.g., available metrics for computed expressions)
+	if (context === 'metric' && contextData?.availableMetrics) {
+		const metrics = contextData.availableMetrics as Array<{ name: string; label: string; type: string }>;
+		if (metrics.length > 0) {
+			const lines = metrics.map(m => `- \`metrics.${m.name}\` — ${m.label} (${m.type})`);
+			prompt += `\n## Available Metrics\n\nThe following metrics are defined above this one and can be referenced in the expression:\n\n${lines.join('\n')}\n`;
+		} else {
+			prompt += `\n## Available Metrics\n\nNo metrics are defined above this one. This is the first metric in the template, so \`metrics.*\` will be empty.\n`;
+		}
 	}
 
 	return prompt;

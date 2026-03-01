@@ -60,7 +60,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		contextAddenda: {
 			query: CONTEXT_ADDENDA.query || '(no additional instructions)',
 			kr_progress: CONTEXT_ADDENDA.kr_progress,
-			widget: CONTEXT_ADDENDA.widget
+			widget: CONTEXT_ADDENDA.widget,
+			metric: CONTEXT_ADDENDA.metric
 		}
 	};
 };

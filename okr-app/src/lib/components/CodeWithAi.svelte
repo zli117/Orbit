@@ -13,7 +13,8 @@
 		providerModels?: Record<string, string[]>;
 		aiCollapsed?: boolean;
 		headerSnippet?: Snippet;
-		context?: 'query' | 'kr_progress' | 'widget';
+		context?: 'query' | 'kr_progress' | 'widget' | 'metric';
+		contextData?: Record<string, unknown>;
 	}
 
 	let {
@@ -26,7 +27,8 @@
 		providerModels = {},
 		aiCollapsed = false,
 		headerSnippet,
-		context = 'query'
+		context = 'query',
+		contextData = {}
 	}: Props = $props();
 
 	let collapsedOverride = $state<boolean | null>(null);
@@ -93,6 +95,7 @@
 				{providerModels}
 				bind:pendingCode
 				{context}
+				{contextData}
 			/>
 		</div>
 	{/if}

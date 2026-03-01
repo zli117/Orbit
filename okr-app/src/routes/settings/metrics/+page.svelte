@@ -1,9 +1,21 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import type { MetricDefinition } from '$lib/db/schema';
-	import MonacoEditor from '$lib/components/MonacoEditor.svelte';
+	import CodeEditorModal from '$lib/components/CodeEditorModal.svelte';
 
 	let { data } = $props();
+
+	// AI config from layout
+	const aiConfig = $derived(data.aiConfig ?? { hasAiConfig: false, configuredProviders: [] as string[], activeProvider: 'anthropic', providerModels: {} as Record<string, string[]> });
+
+	// Code editor modal state for computed expressions
+	let codeEditorOpen = $state(false);
+
+	// Metrics defined above the currently editing metric (for AI context)
+	const availableMetricsForAi = $derived(() => {
+		const upTo = editingMetricIndex ?? metrics.length;
+		return metrics.slice(0, upTo).map(m => ({ name: m.name, label: m.label, type: m.type }));
+	});
 
 	let showNewTemplate = $state(false);
 	let editingTemplate = $state<typeof data.templates[0] | null>(null);
@@ -330,11 +342,19 @@
 							</div>
 						{:else if newMetricType === 'computed'}
 							<div class="form-group">
-								<label class="label" for="expression">Expression</label>
-								<MonacoEditor
-									bind:value={newMetricExpression}
-									height="120px"
-								/>
+								<label class="label">Expression</label>
+								{#if newMetricExpression}
+									<div class="expression-preview">
+										<code>{newMetricExpression}</code>
+									</div>
+								{/if}
+								<button
+									type="button"
+									class="btn btn-secondary btn-sm"
+									onclick={() => codeEditorOpen = true}
+								>
+									{newMetricExpression ? 'Edit Code with AI...' : 'Write Code with AI...'}
+								</button>
 								<p class="help-text">JavaScript expression. Access other metrics via <code>metrics.name</code>. Use <code>q.parseTime()</code> for time conversions.</p>
 							</div>
 						{:else if newMetricType === 'external'}
@@ -409,14 +429,11 @@
 							<div class="template-metrics">
 								<span class="metrics-count">{template.metricsDefinition.length} metrics</span>
 								<div class="metrics-preview">
-									{#each template.metricsDefinition.slice(0, 5) as metric}
+									{#each template.metricsDefinition as metric}
 										<span class="metric-badge" class:input={metric.type === 'input'} class:computed={metric.type === 'computed'} class:external={metric.type === 'external'}>
 											{metric.label}
 										</span>
 									{/each}
-									{#if template.metricsDefinition.length > 5}
-										<span class="metric-badge more">+{template.metricsDefinition.length - 5} more</span>
-									{/if}
 								</div>
 							</div>
 						</div>
@@ -435,6 +452,18 @@
 		</div>
 	{/if}
 </div>
+
+<CodeEditorModal
+	bind:open={codeEditorOpen}
+	bind:value={newMetricExpression}
+	title="Computed Metric Expression"
+	hasAiConfig={aiConfig.hasAiConfig}
+	configuredProviders={aiConfig.configuredProviders}
+	activeProvider={aiConfig.activeProvider}
+	providerModels={aiConfig.providerModels}
+	context="metric"
+	contextData={{ availableMetrics: availableMetricsForAi() }}
+/>
 
 <style>
 	.metrics-page {
@@ -702,9 +731,20 @@
 		color: #7c3aed;
 	}
 
-	.metric-badge.more {
-		background-color: var(--color-bg-hover);
-		color: var(--color-text-muted);
+	.expression-preview {
+		background-color: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: var(--spacing-xs) var(--spacing-sm);
+		margin-bottom: var(--spacing-xs);
+		overflow-x: auto;
+	}
+
+	.expression-preview code {
+		font-size: 0.8125rem;
+		color: var(--color-text);
+		white-space: pre-wrap;
+		word-break: break-word;
 	}
 
 	.btn-icon {
