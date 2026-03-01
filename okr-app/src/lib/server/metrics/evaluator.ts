@@ -117,14 +117,12 @@ function injectContext(context: QuickJSContext, evalContext: EvaluationContext) 
 	context.setProp(qHandle, 'parseTime', parseTimeFn);
 	parseTimeFn.dispose();
 
-	// formatDuration(minutes) -> "Xh Ym"
+	// formatDuration(minutes) -> "HH:MM" (consistent with parseTime)
 	const formatDurationFn = context.newFunction('formatDuration', (minutesHandle) => {
 		const minutes = context.dump(minutesHandle) as number;
 		const h = Math.floor(minutes / 60);
 		const m = Math.round(minutes % 60);
-		if (h === 0) return context.newString(`${m}m`);
-		if (m === 0) return context.newString(`${h}h`);
-		return context.newString(`${h}h ${m}m`);
+		return context.newString(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
 	});
 	context.setProp(qHandle, 'formatDuration', formatDurationFn);
 	formatDurationFn.dispose();

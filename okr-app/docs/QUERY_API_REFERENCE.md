@@ -446,18 +446,18 @@ const avgSleepHrs = sleepDays.reduce(
 
 ### `q.formatDuration(minutes)`
 
-Format a number of minutes into a human-readable duration string.
+Format a number of minutes into an "HH:MM" string (consistent with `q.parseTime()`).
 
 ```javascript
 // Parameters
 q.formatDuration(minutes: number): string
 
 // Examples
-q.formatDuration(450)  // "7h 30m"
-q.formatDuration(90)   // "1h 30m"
-q.formatDuration(60)   // "1h"
-q.formatDuration(45)   // "45m"
-q.formatDuration(0)    // "0m"
+q.formatDuration(450)  // "07:30"
+q.formatDuration(90)   // "01:30"
+q.formatDuration(60)   // "01:00"
+q.formatDuration(45)   // "00:45"
+q.formatDuration(0)    // "00:00"
 ```
 
 ### `q.formatPercent(value, total)`

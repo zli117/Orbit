@@ -11,6 +11,7 @@ export const load: PageServerLoad = async ({ params, locals, fetch, depends }) =
 	depends('data:daily');
 	depends('data:tasks');
 	depends('data:weekly');
+	depends('data:metrics');
 
 	if (!locals.user) {
 		throw redirect(302, '/login');

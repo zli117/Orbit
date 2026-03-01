@@ -51,7 +51,7 @@ The user is writing a JavaScript expression for a computed metric in their daily
 
 **Available helpers on the \`q\` object:**
 - \`q.parseTime(timeStr)\` — converts "HH:MM" string to minutes (number)
-- \`q.formatDuration(minutes)\` — converts minutes to "Xh Ym" string
+- \`q.formatDuration(minutes)\` — converts minutes to "HH:MM" string
 - \`q.formatTime(minutes)\` — converts minutes to "HH:MM" string
 - \`q.isWeekday(dateStr)\` — returns true if the date is Mon-Fri
 - \`q.round(value, decimals)\` — rounds a number to N decimal places

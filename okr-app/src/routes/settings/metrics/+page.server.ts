@@ -5,7 +5,9 @@ import { eq, desc } from 'drizzle-orm';
 import { redirect } from '@sveltejs/kit';
 import { getRegisteredPlugins } from '$lib/server/plugins/manager';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, depends }) => {
+	depends('data:metrics');
+
 	if (!locals.user) {
 		throw redirect(302, '/login');
 	}
