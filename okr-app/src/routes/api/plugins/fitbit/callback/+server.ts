@@ -43,11 +43,11 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 		// Save credentials
 		await saveUserPluginConfig(pending.userId, 'fitbit', credentials);
-
-		// Redirect to success
-		throw redirect(302, '/settings/plugins?success=fitbit');
 	} catch (err) {
 		console.error('Token exchange failed:', err);
 		throw redirect(302, '/settings/plugins?error=token_exchange_failed');
 	}
+
+	// Redirect to success (must be outside try/catch since SvelteKit redirect throws)
+	throw redirect(302, '/settings/plugins?success=fitbit');
 };
