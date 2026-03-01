@@ -160,7 +160,7 @@
 							<select
 								id={`metric-${metric.name}`}
 								class="input"
-								value={formValues[metric.name] === true ? 'true' : formValues[metric.name] === false ? 'false' : ''}
+								value={formValues[metric.name] === true || formValues[metric.name] === 'true' ? 'true' : formValues[metric.name] === false || formValues[metric.name] === 'false' ? 'false' : ''}
 								onchange={(e) => setInputValue(metric.name, e.currentTarget.value, 'boolean')}
 							>
 								<option value="">Not set</option>

@@ -54,10 +54,14 @@
 	let loadingKRs = $state<Set<string>>(new Set());
 	let liveScores = $state<Map<string, { score: number; label?: string }>>(new Map());
 	let queryErrors = $state<Map<string, string>>(new Map());
+	let krProgressFetched = false;
 
-	// Fetch progress for all custom_query KRs when data changes
+	// Fetch progress for all custom_query KRs once on mount only
 	$effect(() => {
-		const customQueryKRs = localObjectives.flatMap(obj =>
+		if (krProgressFetched) return;
+		krProgressFetched = true;
+
+		const customQueryKRs = data.objectives.flatMap((obj: typeof localObjectives[0]) =>
 			obj.keyResults
 				.filter(kr => kr.measurementType === 'custom_query' && kr.progressQueryCode)
 				.map(kr => kr.id)
