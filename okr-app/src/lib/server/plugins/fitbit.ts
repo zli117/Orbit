@@ -36,7 +36,7 @@ export const fitbitPlugin: DataImportPlugin = {
 	},
 
 	getSetupInfo(configValues: Record<string, string>): SetupInfoItem[] {
-		const baseUrl = configValues['global.base_url'] || 'http://localhost:5173';
+		const baseUrl = (configValues['global.base_url'] || 'http://localhost:5173').replace(/\/+$/, '');
 		return [
 			{
 				label: 'OAuth Callback URL',
@@ -53,7 +53,7 @@ export const fitbitPlugin: DataImportPlugin = {
 	},
 
 	async getOAuthConfig(): Promise<OAuthConfig> {
-		const baseUrl = (await getConfigValue('global.base_url')) || 'http://localhost:5173';
+		const baseUrl = ((await getConfigValue('global.base_url')) || 'http://localhost:5173').replace(/\/+$/, '');
 		const clientId = (await getConfigValue('plugin.fitbit.client_id')) || '';
 		const clientSecret = (await getConfigValue('plugin.fitbit.client_secret')) || '';
 		return {

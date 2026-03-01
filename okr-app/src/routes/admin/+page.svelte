@@ -210,6 +210,33 @@
 		}
 	}
 
+	async function resetUserPassword(userId: string, username: string) {
+		if (!confirm(`Reset password for "${username}" to "default1234"?`)) return;
+
+		loading = true;
+		message = null;
+
+		try {
+			const response = await fetch(`/api/admin/users/${userId}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ resetPassword: true })
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to reset password');
+			}
+
+			message = { type: 'success', text: `Password for "${username}" reset to "default1234"` };
+			await invalidateAll();
+		} catch (error) {
+			message = { type: 'error', text: error instanceof Error ? error.message : 'Failed to reset password' };
+		} finally {
+			loading = false;
+		}
+	}
+
 	async function deleteUser(userId: string, username: string) {
 		if (!confirm(`Permanently delete user "${username}"? This cannot be undone and will delete all their data.`)) return;
 
@@ -461,6 +488,13 @@
 													{user.isAdmin ? 'Remove Admin' : 'Make Admin'}
 												</button>
 												<button
+													class="btn btn-sm btn-warning"
+													onclick={() => resetUserPassword(user.id, user.username)}
+													disabled={loading}
+												>
+													Reset Password
+												</button>
+												<button
 													class="btn btn-sm btn-danger"
 													onclick={() => deleteUser(user.id, user.username)}
 													disabled={loading}
@@ -703,6 +737,15 @@
 	.btn-sm {
 		padding: var(--spacing-xs) var(--spacing-sm);
 		font-size: 0.75rem;
+	}
+
+	.btn-warning {
+		background-color: #f59e0b;
+		color: white;
+	}
+
+	.btn-warning:hover {
+		background-color: #d97706;
 	}
 
 	.btn-danger {

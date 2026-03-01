@@ -24,8 +24,8 @@ RUN npm prune --production
 # Production stage
 FROM node:22-alpine AS production
 
-# Install runtime dependencies (su-exec for dropping privileges in entrypoint)
-RUN apk add --no-cache sqlite su-exec
+# Install runtime dependencies
+RUN apk add --no-cache sqlite
 
 WORKDIR /app
 
@@ -42,10 +42,6 @@ COPY --from=builder --chown=ruok:nodejs /app/drizzle ./drizzle
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chown ruok:nodejs /app/data
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -56,8 +52,9 @@ ENV DATABASE_PATH=/app/data/okr.db
 EXPOSE 3000
 
 # Health check
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-#     CMD wget -q -O /dev/null http://127.0.0.1:3000/api/auth/me || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1:3000/api/auth/me || exit 1
 
-# Entrypoint fixes data dir permissions then drops to non-root user
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Run as non-root user
+USER ruok
+CMD ["node", "build"]

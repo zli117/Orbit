@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/db/client';
 import { users, sessions } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { hashPassword } from '$lib/server/auth';
 
 // PATCH /api/admin/users/[id] - Update user (disable/enable, toggle admin)
 export const PATCH: RequestHandler = async ({ locals, params, request }) => {
@@ -23,7 +24,7 @@ export const PATCH: RequestHandler = async ({ locals, params, request }) => {
 
 	try {
 		const body = await request.json();
-		const { isDisabled, isAdmin } = body;
+		const { isDisabled, isAdmin, resetPassword } = body;
 
 		const user = await db.query.users.findFirst({
 			where: eq(users.id, userId)
@@ -31,6 +32,32 @@ export const PATCH: RequestHandler = async ({ locals, params, request }) => {
 
 		if (!user) {
 			return json({ error: 'User not found' }, { status: 404 });
+		}
+
+		// Handle password reset
+		if (resetPassword) {
+			const passwordHash = await hashPassword('default1234');
+			await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+
+			// Invalidate all their sessions so they must log in with the new password
+			await db.delete(sessions).where(eq(sessions.userId, userId));
+
+			const updatedUser = await db.query.users.findFirst({
+				where: eq(users.id, userId)
+			});
+
+			return json({
+				user: {
+					id: updatedUser!.id,
+					username: updatedUser!.username,
+					isAdmin: updatedUser!.isAdmin || false,
+					isDisabled: updatedUser!.isDisabled || false,
+					weekStartDay: updatedUser!.weekStartDay,
+					timezone: updatedUser!.timezone,
+					createdAt: updatedUser!.createdAt
+				},
+				passwordReset: true
+			});
 		}
 
 		const updates: { isDisabled?: boolean; isAdmin?: boolean } = {};
