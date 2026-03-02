@@ -430,7 +430,7 @@
 								<span class="metrics-count">{template.metricsDefinition.length} metrics</span>
 								<div class="metrics-preview">
 									{#each template.metricsDefinition as metric}
-										<span class="metric-badge" class:input={metric.type === 'input'} class:computed={metric.type === 'computed'} class:external={metric.type === 'external'}>
+										<span class="metric-badge" class:type-input={metric.type === 'input'} class:type-computed={metric.type === 'computed'} class:type-external={metric.type === 'external'}>
 											{metric.label}
 										</span>
 									{/each}
@@ -716,17 +716,17 @@
 		background-color: var(--color-bg-hover);
 	}
 
-	.metric-badge.input {
+	.metric-badge.type-input {
 		background-color: #e0f2fe;
 		color: #0369a1;
 	}
 
-	.metric-badge.computed {
+	.metric-badge.type-computed {
 		background-color: #fef3c7;
 		color: #92400e;
 	}
 
-	.metric-badge.external {
+	.metric-badge.type-external {
 		background-color: #f3e8ff;
 		color: #7c3aed;
 	}
