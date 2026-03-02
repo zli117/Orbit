@@ -2,9 +2,7 @@
 
 **A self-hosted personal OKR system with built-in time tracking, data integrations such as Fitbit, and a programmable analytics engine — write JavaScript or let AI write it for you.**
 
-RUOK is a self-hosted personal productivity framework that connects your yearly ambitions to today's to-do list. Define objectives, measure key results, pull in data from services like Fitbit, and write JavaScript queries to analyze it all — or ask AI to write them for you.
-
-Your data. Your rules. Runs on a Raspberry Pi.
+<img width="3816" height="4879" alt="Screenshot 2026-03-01 at 17-23-27 Week 9 2026 - RUOK" src="https://github.com/user-attachments/assets/1a8a5b2f-a207-43f9-88a3-3063cdb48e46" />
 
 ---
 
@@ -14,7 +12,7 @@ Most productivity tools give you a checklist. RUOK gives you a **programmable sy
 
 **Plan at every level.** Set yearly objectives, break them into monthly key results, plan weekly initiatives, and track daily tasks with a built-in time tracker. Everything rolls up — completing today's work moves the needle on this year's goals.
 
-**Query anything.** Write JavaScript against your own life data — tasks, metrics, sleep patterns, activity levels, objective scores — in a sandboxed code editor with full autocomplete. Render results as markdown, tables, or interactive charts. Use queries to power dashboard widgets and automatically score key results.
+**Query anything.** Write JavaScript against your own life data — tasks, metrics, sleep patterns, activity levels, objective scores — in a sandboxed code editor. Render results as markdown, tables, or interactive charts. Use queries to power dashboard widgets and automatically score key results.
 
 **Let AI write the code.** Don't know where to start? Describe what you want to see in plain English, and the AI assistant generates the query for you. Supports Claude, GPT, Gemini, local models via Ollama, and any OpenRouter provider.
 
@@ -26,70 +24,77 @@ Most productivity tools give you a checklist. RUOK gives you a **programmable sy
 
 ### Multi-Level Planning
 
-| Level | What you track |
-|-------|---------------|
-| **Yearly** | High-level objectives with weighted key results |
-| **Monthly** | Focused objectives that ladder up to yearly goals |
-| **Weekly** | Initiatives and task batches |
-| **Daily** | Tasks with time tracking, custom metrics, and daily review |
+Set yearly objectives, break them into monthly key results, plan weekly initiatives, and track daily tasks with a built-in time tracker. Everything rolls up — objectives are scored automatically based on their key results, measured by manual sliders, checklists, or custom JavaScript queries that compute progress from your actual data.
 
-Objectives are scored automatically based on their key results. Key results can be measured three ways: manual sliders, checklists, or **custom JavaScript queries** that compute progress from your actual data.
+<table>
+  <tr>
+    <td align="center">
+      <img width="3816" height="4452" alt="Screenshot 2026-03-01 at 17-25-53 Objectives 2026 - RUOK" src="https://github.com/user-attachments/assets/02c3c181-e5ee-4ee6-850f-5c8a95744bd7" />
+      <br />
+      <em>Yearly Objectives</em>
+    </td>
+    <td align="center">
+      <img width="3816" height="3782" alt="Screenshot 2026-03-01 at 17-26-06 Objectives 2026 - March - RUOK" src="https://github.com/user-attachments/assets/209ccaca-a02f-415b-a167-84434e0685c9" />
+      <br />
+      <em>Monthly Key Results</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img width="3816" height="2397" alt="Screenshot 2026-03-01 at 17-25-40 Week 9 2026 - RUOK" src="https://github.com/user-attachments/assets/494bda71-bbee-42ea-bd1e-26875188060a" />
+      <br />
+      <em>Weekly Initiatives</em>
+    </td>
+    <td align="center">
+      <img width="3816" height="3948" alt="Screenshot 2026-03-01 at 17-25-21 Sunday March 1 2026 - RUOK" src="https://github.com/user-attachments/assets/4744ab74-0f98-4980-a827-074250221685" />
+      <br />
+      <em>Daily Tasks</em>
+    </td>
+  </tr>
+</table>
+
+<!-- Screenshot: goal hierarchy view showing yearly → monthly → weekly → daily -->
+
+### AI-Powered Analysis
+
+Query your own life data — daily records, tasks, time logs, objective scores, and more — in a sandboxed JavaScript editor with full autocomplete and interactive Plotly charts. Don't want to write code? Describe what you want in plain English and let AI write it for you. Save queries as dashboard widgets or use them to automatically score your key results.
+
+#### Generate Custom Dashboard Widgets
+
+https://github.com/user-attachments/assets/0142013b-b30e-488c-927f-c6c756422215
+
+#### Generate Queries for Key Result Scoring
+
+https://github.com/user-attachments/assets/e8b3c8d3-9a5d-4d8e-af24-3959245d5766
+
+#### Play Around a Query in Query Builder
+
+https://github.com/user-attachments/assets/fca63f13-ec25-4e0d-9d1b-2b355aeaaafc
 
 ### Custom Metrics
 
-Define what you track each day. Three types:
-
-- **Input** — numbers, times, text, or booleans you log manually (e.g., mood, caffeine, focus hours)
-- **Computed** — formulas derived from other metrics (e.g., sleep efficiency = time asleep / time in bed)
-- **External** — data pulled automatically from plugins like Fitbit (sleep, steps, heart rate, readiness)
-
-Metrics are versioned — change your tracking template anytime without losing historical data.
-
-### Query Builder
-
-A full code editor (Monaco) where you analyze your data with JavaScript. The query API gives you access to:
-
-- Daily records with all metrics
-- Tasks with tags, time logs, and attributes
-- Objectives and key results with scores
-- Helper functions for aggregation, time parsing, and formatting
-
-Render results as markdown, data tables, or interactive Plotly charts (bar, line, pie, multi-series). Save queries and reuse them as dashboard widgets or key result scorers.
-
-All code runs in a **sandboxed QuickJS environment** (WebAssembly) — isolated from the server, memory-limited, and time-capped.
-
-### AI-Powered Code Generation
-
-An AI chat panel sits alongside the query editor. Describe what you want to analyze — *"show my sleep trends this month"*, *"which tags take the most time?"*, *"plot task completion rate by day of week"* — and the assistant generates working query code.
-
-Copy the generated code to the editor with one click, run it, and iterate.
-
-Bring your own API key. Supports:
-- **Anthropic** (Claude)
-- **OpenAI** (GPT)
-- **Google** (Gemini)
-- **OpenRouter** (hundreds of models)
-- **Ollama** (fully local, no API key needed)
-
-### Personalized Dashboard
-
-Build your own dashboard with custom widget cards. Each widget runs a saved query and displays the result inline — charts, tables, or formatted text. See your data the way you want at a glance.
+Define what you track each day — numbers, times, booleans, or text you log manually, computed formulas derived from other metrics, and external data pulled automatically from plugins like Fitbit. Metrics are versioned, so you can change your tracking template anytime without losing historical data.
+<img width="3815" height="3153" alt="Screenshot 2026-03-01 at 20-53-01 Metrics Template - Settings - RUOK" src="https://github.com/user-attachments/assets/3e45534d-c331-44ba-93ec-8a528b0d54e2" />
 
 ### Plugins & Integrations
 
-Connect external data sources. Currently supported:
+Connect external data sources via an extensible plugin system. Currently supported: Fitbit (sleep duration, bed/wake times, steps, resting heart rate, cardio load, readiness score), syncing automatically every hour via OAuth2. The [Plugin Development Guide](okr-app/docs/PLUGINS.md) covers everything needed to add a new integration — it also doubles as an AI coding skill for Claude Code or Cursor.
 
-- **Fitbit** — sleep duration, bed/wake times, steps, resting heart rate, cardio load, readiness score. Syncs automatically every hour via OAuth2.
-
-The plugin system is extensible — the [Plugin Development Guide](okr-app/docs/PLUGINS.md) covers everything needed to add a new integration. It also doubles as an AI coding skill — point Claude Code or Cursor at it and ask for a new plugin.
+<img width="3816" height="1944" alt="Screenshot 2026-03-01 at 17-30-20 Plugin Settings - RUOK" src="https://github.com/user-attachments/assets/1d2d888e-cdbb-4109-be81-cf2f3223c78e" />
 
 ### Multi-User & Friends
 
-Run a single instance for your household. Each person gets a private workspace. Add friends to view each other's dashboards — see progress without exposing task details. Great for accountability partners or families sharing a home server.
+Run a single instance for your family and friends. Each person gets a private workspace. Add friends to view each other's dashboards — see progress without exposing task details. Great for accountability partners or families sharing a home server.
+
+<img width="3816" height="1944" alt="Screenshot 2026-03-01 at 17-27-07 Friends RUOK" src="https://github.com/user-attachments/assets/73566450-5b82-41de-800d-556c2640e576" />
 
 ### Admin Tools
 
 User management, query execution logs, security monitoring, and system configuration — all from the browser.
+
+<img width="3816" height="1944" alt="Screenshot 2026-03-01 at 17-29-31 Admin Dashboard RUOK" src="https://github.com/user-attachments/assets/eea5abef-a498-4728-a58f-f491ac4046ff" />
+
+<img width="3816" height="2690" alt="Screenshot 2026-03-01 at 17-29-22 Admin Dashboard RUOK" src="https://github.com/user-attachments/assets/65af6004-7087-4fc6-b484-f2b646d2a499" />
 
 ---
 
@@ -97,12 +102,14 @@ User management, query execution logs, security monitoring, and system configura
 
 ```bash
 cd okr-app
+export ADMIN_USERNAME=admin  # You still need to create this user
+export DATA_DIR=data
 npm install
 npm run db:push
 npm run dev
 ```
 
-Opens on `http://localhost:5173`.
+Opens on `http://localhost:5180/`.
 
 ### Environment Variables
 
