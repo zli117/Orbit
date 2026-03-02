@@ -1,10 +1,12 @@
 import { getQuickJS, type QuickJSContext, type QuickJSHandle } from 'quickjs-emscripten';
 import type { QueryAPI, QueryFilters, DailyRecord, WeeklyRecord, TaskRecord, ObjectiveRecord } from './types';
 import { db } from '$lib/db/client';
-import { timePeriods, tasks, taskAttributes, dailyMetricValues, metricsTemplates, objectives, keyResults, tags, taskTags } from '$lib/db/schema';
+import { users, timePeriods, tasks, taskAttributes, dailyMetricValues, metricsTemplates, objectives, keyResults, tags, taskTags } from '$lib/db/schema';
 import type { MetricDefinition } from '$lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { evaluateMetrics, type MetricValues } from '$lib/server/metrics/evaluator';
+import { getTodayInTimezone, getWeekNumber, getWeekYear, getTodayDateInTimezone } from '$lib/utils/week';
+import type { WeekStartDay } from '$lib/utils/week';
 import momentSource from 'moment/min/moment.min.js?raw';
 
 const EXECUTION_TIMEOUT_MS = 5000;
@@ -227,6 +229,14 @@ function extractErrorMessage(error: unknown): string {
  * Inject the Query API object into the QuickJS context
  */
 async function injectQueryAPI(context: QuickJSContext, userId: string) {
+	// Look up user settings for timezone and week start day
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, userId),
+		columns: { timezone: true, weekStartDay: true }
+	});
+	const timezone = user?.timezone || 'UTC';
+	const weekStartDay = (user?.weekStartDay || 'monday') as WeekStartDay;
+
 	// Create the 'q' object
 	const qHandle = context.newObject();
 
@@ -302,15 +312,13 @@ async function injectQueryAPI(context: QuickJSContext, userId: string) {
 	context.setProp(qHandle, 'objectives', objectivesFn);
 	objectivesFn.dispose();
 
-	// Add today() method — returns current date info
+	// Add today() method — returns current date info (timezone and week-start aware)
 	const todayFn = context.newFunction('today', () => {
-		const now = new Date();
-		const year = now.getFullYear();
-		const month = now.getMonth() + 1;
-		const day = now.getDate();
-		const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-		const week = getISOWeekNumber(now);
-		return jsonToHandle(context, { year, month, day, date, week });
+		const dateStr = getTodayInTimezone(timezone);
+		const [year, month, day] = dateStr.split('-').map(Number);
+		const todayDate = getTodayDateInTimezone(timezone);
+		const week = getWeekNumber(todayDate, weekStartDay);
+		return jsonToHandle(context, { year, month, day, date: dateStr, week });
 	});
 	context.setProp(qHandle, 'today', todayFn);
 	todayFn.dispose();
@@ -766,6 +774,7 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 					title: task.title,
 					completed: task.completed,
 					completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+					periodType: 'daily' as const,
 					date: period.day!,
 					year: period.year,
 					month: period.month!,
@@ -801,6 +810,9 @@ async function fetchTasks(userId: string, filters: QueryFilters): Promise<TaskRe
 
 	if (filters.year) {
 		periodConditions.push(eq(timePeriods.year, filters.year));
+	}
+	if (filters.periodType) {
+		periodConditions.push(eq(timePeriods.periodType, filters.periodType));
 	}
 	if (filters.periodId) {
 		periodConditions.push(eq(timePeriods.id, filters.periodId));
@@ -855,6 +867,7 @@ async function fetchTasks(userId: string, filters: QueryFilters): Promise<TaskRe
 				title: task.title,
 				completed: task.completed,
 				completedAt: task.completedAt?.toISOString() || null,
+				periodType: period?.periodType === 'weekly' ? 'weekly' as const : 'daily' as const,
 				date: period?.day || null,
 				year: period?.year || null,
 				month: period?.month || null,
@@ -925,15 +938,4 @@ async function fetchObjectives(userId: string, filters: QueryFilters): Promise<O
 	);
 
 	return results;
-}
-
-/**
- * Get ISO week number for a date
- */
-function getISOWeekNumber(date: Date): number {
-	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-	const dayNum = d.getUTCDay() || 7;
-	d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-	return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }

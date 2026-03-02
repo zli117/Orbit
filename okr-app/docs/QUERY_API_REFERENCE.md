@@ -198,6 +198,7 @@ Fetch tasks with their attributes and tags. Returns tasks from all time period t
 - `year` — Filter to tasks in time periods of a specific year
 - `completed` — `true` for completed only, `false` for incomplete only
 - `tag` — Filter to tasks tagged with this exact tag name (case-sensitive)
+- `periodType` — `'daily'` for daily tasks only, `'weekly'` for weekly initiatives only
 - `periodId` — Filter to tasks in a specific time period
 
 #### TaskRecord
@@ -210,7 +211,8 @@ interface TaskRecord {
   completedAt: string | null;  // ISO timestamp or null
 
   // Time period context
-  date: string | null;   // "YYYY-MM-DD" for daily tasks, null otherwise
+  periodType: 'daily' | 'weekly';  // Whether this is a daily task or weekly initiative
+  date: string | null;   // "YYYY-MM-DD" for daily tasks, null for weekly
   year: number | null;
   month: number | null;
   week: number | null;

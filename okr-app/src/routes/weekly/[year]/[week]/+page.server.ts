@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/db/client';
 import { timePeriods, tasks, taskAttributes, taskTags, tags } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { getWeekNumber, getWeekStartDate, getWeekYear, formatDate, addDays, getDayName } from '$lib/utils/week';
+import { getWeekNumber, getWeekStartDate, getWeekYear, getTodayDateInTimezone, formatDate, addDays, getDayName } from '$lib/utils/week';
 
 export const load: PageServerLoad = async ({ params, locals, depends }) => {
 	// Register dependency for invalidation
@@ -19,7 +19,8 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
 	const weekStartDay = locals.user.weekStartDay || 'monday';
 
 	if (isNaN(year) || isNaN(week) || week < 1 || week > 53) {
-		const today = new Date();
+		const timezone = locals.user.timezone || 'UTC';
+		const today = getTodayDateInTimezone(timezone);
 		const currentYear = getWeekYear(today, weekStartDay);
 		const currentWeek = getWeekNumber(today, weekStartDay);
 		throw redirect(302, `/weekly/${currentYear}/${currentWeek}`);

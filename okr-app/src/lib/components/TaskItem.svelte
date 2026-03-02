@@ -23,7 +23,7 @@
 	let editProgress = $state(task.attributes?.progress || '');
 	// svelte-ignore state_referenced_locally
 	let editExpectedHours = $state(task.attributes?.expected_hours || '');
-	let showTagPicker = $state(false);
+
 
 	// Sync edit values when task changes (for when props update)
 	$effect(() => {
@@ -237,23 +237,9 @@
 				</button>
 			{/if}
 
-			<!-- Tag picker -->
-			{#if tags.length > 0}
-				<button
-					class="btn-icon"
-					onclick={() => (showTagPicker = !showTagPicker)}
-					title="Manage tags"
-				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-						<line x1="7" y1="7" x2="7.01" y2="7"/>
-					</svg>
-				</button>
-			{/if}
-
 			<button
 				class="btn-icon"
-				onclick={() => { editing = !editing; if (editing) showTagPicker = false; }}
+				onclick={() => { editing = !editing; }}
 				title="Edit task"
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -274,19 +260,6 @@
 		</div>
 	{/if}
 </div>
-
-{#if showTagPicker && !readOnly}
-	<div class="task-tag-picker">
-		<TagInput
-			{tags}
-			selectedTagIds={task.tagIds || []}
-			onChange={handleTagsChange}
-			placeholder="Search or create tags..."
-			allowCreate={!!onCreateTag}
-			onCreateTag={onCreateTag}
-		/>
-	</div>
-{/if}
 
 {#if editing && !readOnly}
 	<div class="task-edit-panel">
@@ -526,12 +499,6 @@
 	.btn-icon-danger:hover {
 		background-color: #fef2f2;
 		color: var(--color-error);
-	}
-
-	.task-tag-picker {
-		padding: var(--spacing-sm) 0 var(--spacing-sm) 28px;
-		border-bottom: 1px solid var(--color-border);
-		background-color: var(--color-bg);
 	}
 
 	.task-edit-panel {

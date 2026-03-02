@@ -12,6 +12,7 @@ export interface QueryFilters {
 	tag?: string;
 	periodId?: string;
 	level?: 'yearly' | 'monthly';
+	periodType?: 'daily' | 'weekly';
 }
 
 export interface DailyRecord {
@@ -40,6 +41,7 @@ export interface TaskRecord {
 	title: string;
 	completed: boolean;
 	completedAt: string | null;
+	periodType: 'daily' | 'weekly';
 	date: string | null;
 	year: number | null;
 	month: number | null;

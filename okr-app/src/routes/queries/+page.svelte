@@ -29,7 +29,7 @@
 //
 // Data Fetching:
 //   q.daily({ year, month, week, from, to }) - Daily records with metrics
-//   q.tasks({ year, tag, completed }) - Tasks with attributes
+//   q.tasks({ year, tag, completed, periodType }) - Tasks with attributes
 //   q.objectives({ year, level }) - Objectives with key results
 //   q.today() - Current date: { year, month, day, date, week }
 //
@@ -301,7 +301,7 @@ render.table({
 					{#each [
 						{ title: 'DATA FETCHING', items: [
 							'q.daily({ year, month, ... })',
-							'q.tasks({ year, tag, ... })',
+							'q.tasks({ year, tag, periodType, ... })',
 							'q.objectives({ year, level })',
 							'q.today()'
 						]},
