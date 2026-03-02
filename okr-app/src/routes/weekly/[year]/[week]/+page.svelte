@@ -299,15 +299,16 @@
 				</div>
 
 				{#if day.tasks.length > 0}
+					{@const sortedTasks = [...day.tasks].sort((a, b) => Number(a.completed) - Number(b.completed))}
 					<ul class="day-tasks">
-						{#each day.tasks.slice(0, 5) as task}
+						{#each sortedTasks.slice(0, 3) as task}
 							<li class:completed={task.completed}>
 								<span class="task-check">{task.completed ? '✓' : '○'}</span>
 								<span class="task-title">{task.title}</span>
 							</li>
 						{/each}
-						{#if day.tasks.length > 5}
-							<li class="more-tasks">+{day.tasks.length - 5} more</li>
+						{#if day.tasks.length > 3}
+							<li class="more-tasks">+{day.tasks.length - 3} more</li>
 						{/if}
 					</ul>
 				{:else}
@@ -429,6 +430,7 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 180px;
+		min-width: 0;
 		padding: var(--spacing-sm);
 		text-decoration: none;
 		color: inherit;
@@ -488,9 +490,7 @@
 	}
 
 	.task-title {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		word-break: break-word;
 	}
 
 	.more-tasks {

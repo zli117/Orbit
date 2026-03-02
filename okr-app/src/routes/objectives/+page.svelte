@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
+	import { tick } from 'svelte';
 	import KRWidget from '$lib/components/KRWidget.svelte';
 	import CodeEditorModal from '$lib/components/CodeEditorModal.svelte';
 	import CircularProgress from '$lib/components/CircularProgress.svelte';
@@ -54,23 +55,27 @@
 	let loadingKRs = $state<Set<string>>(new Set());
 	let liveScores = $state<Map<string, { score: number; label?: string }>>(new Map());
 	let queryErrors = $state<Map<string, string>>(new Map());
-	let krProgressFetched = false;
 
-	// Fetch progress for all custom_query KRs once on mount only
+	// Fetch progress for all custom_query KRs when view changes (mount, level/month switch)
+	let lastProgressViewKey = '';
 	$effect(() => {
-		if (krProgressFetched) return;
-		krProgressFetched = true;
+		const viewKey = `${data.year}-${data.level}-${data.month}`;
+		if (viewKey !== lastProgressViewKey) {
+			lastProgressViewKey = viewKey;
+			fetchAllCustomQueryKRs();
+		}
+	});
 
+	function fetchAllCustomQueryKRs() {
 		const customQueryKRs = data.objectives.flatMap((obj: typeof localObjectives[0]) =>
 			obj.keyResults
 				.filter(kr => kr.measurementType === 'custom_query' && kr.progressQueryCode)
 				.map(kr => kr.id)
 		);
-
 		if (customQueryKRs.length > 0) {
 			fetchKRProgress(customQueryKRs);
 		}
-	});
+	}
 
 	async function fetchKRProgress(krIds: string[]) {
 		// Mark all as loading
@@ -351,8 +356,13 @@
 				throw new Error(result.error || 'Failed to create key result');
 			}
 
+			const wasCustomQuery = krMeasurementType === 'custom_query';
 			closeKRModal();
 			await invalidateAll();
+			if (wasCustomQuery) {
+				await tick();
+				fetchAllCustomQueryKRs();
+			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to create key result';
 		} finally {
@@ -435,8 +445,14 @@
 				throw new Error(result.error || 'Failed to update key result');
 			}
 
+			const wasCustomQuery = krMeasurementType === 'custom_query';
+			const updatedKRId = editingKR!.kr.id;
 			closeKRModal();
 			await invalidateAll();
+			if (wasCustomQuery) {
+				await tick();
+				fetchKRProgress([updatedKRId]);
+			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to update key result';
 		} finally {
