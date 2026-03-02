@@ -915,12 +915,12 @@
 				{#if krMeasurementType === 'custom_query'}
 					<div class="form-group">
 						<span class="label">Progress Query</span>
-						<p class="form-hint">Write code that calls <code>progress.set(numerator, denominator)</code> to set progress (e.g., <code>progress.set(42, 100)</code>).</p>
+						<p class="form-hint">Write a query that calls <code>progress.set(numerator, denominator)</code> to set progress (e.g., <code>progress.set(42, 100)</code>).</p>
 
 						{#if data.savedQueries.length > 0}
 							<div class="query-selector">
 								<select class="input" value={krProgressQueryId || ''} onchange={(e) => selectProgressQuery(e.currentTarget.value || null)}>
-									<option value="">-- Custom code (below) --</option>
+									<option value="">-- Custom query (below) --</option>
 									{#each data.savedQueries as query}
 										<option value={query.id}>{query.name}</option>
 									{/each}
@@ -929,7 +929,7 @@
 						{/if}
 
 						<button type="button" class="btn btn-secondary" onclick={() => codeEditorOpen = true}>
-							{krProgressQueryCode ? 'Edit Code with AI...' : 'Write Code with AI...'}
+							{krProgressQueryCode ? 'Edit Query with AI...' : 'Write Query with AI...'}
 						</button>
 						{#if krProgressQueryCode}
 							<pre class="code-preview"><code>{krProgressQueryCode}</code></pre>

@@ -178,7 +178,7 @@
 
 			{#if savedQueries.length > 0}
 				<select class="input" value={selectedQueryId || ''} onchange={handleSavedQuerySelect}>
-					<option value="">Write custom code...</option>
+					<option value="">Write custom query...</option>
 					{#each savedQueries as query}
 						<option value={query.id}>{query.name}</option>
 					{/each}
@@ -186,7 +186,7 @@
 			{/if}
 
 			<button type="button" class="btn btn-secondary edit-code-btn" onclick={() => codeEditorOpen = true}>
-				{localCode.trim() ? 'Edit Code with AI...' : 'Write Code with AI...'}
+				{localCode.trim() ? 'Edit Query with AI...' : 'Write Query with AI...'}
 			</button>
 			{#if localCode.trim()}
 				<pre class="code-preview"><code>{localCode}</code></pre>
