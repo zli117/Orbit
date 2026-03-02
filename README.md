@@ -71,6 +71,12 @@ https://github.com/user-attachments/assets/e8b3c8d3-9a5d-4d8e-af24-3959245d5766
 
 https://github.com/user-attachments/assets/fca63f13-ec25-4e0d-9d1b-2b355aeaaafc
 
+### Built in Time Tracker
+
+Track time spent on any task, compare estimates against actuals, and query it all later in the analytics engine.
+
+https://github.com/user-attachments/assets/7f465df5-3733-42e2-b7c5-2fb0c9b35b2d
+
 ### Custom Metrics
 
 Define what you track each day — numbers, times, booleans, or text you log manually, computed formulas derived from other metrics, and external data pulled automatically from plugins like Fitbit. Metrics are versioned, so you can change your tracking template anytime without losing historical data.
@@ -95,6 +101,13 @@ User management, query execution logs, security monitoring, and system configura
 <img width="3816" height="1944" alt="Screenshot 2026-03-01 at 17-29-31 Admin Dashboard RUOK" src="https://github.com/user-attachments/assets/eea5abef-a498-4728-a58f-f491ac4046ff" />
 
 <img width="3816" height="2690" alt="Screenshot 2026-03-01 at 17-29-22 Admin Dashboard RUOK" src="https://github.com/user-attachments/assets/65af6004-7087-4fc6-b484-f2b646d2a499" />
+
+### Desktop + Mobile
+
+RUOK is a progressive web app — install it on your phone's home screen for a native-like experience, or use it in any desktop browser. One codebase, no app store, always in sync.
+
+<img width="1857" height="1209" alt="image" src="https://github.com/user-attachments/assets/d10401c2-a194-4168-a181-0d4f7fd3ddac" />
+
 
 ---
 
