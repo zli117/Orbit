@@ -723,13 +723,11 @@
 								<div class="progress-bar" class:progress-bar-loading={isKRLoading(kr.id)}>
 									{#if isKRLoading(kr.id)}
 										<div class="progress-bar-indeterminate"></div>
-									{:else}
-										{@const progressResult = getKRScore(kr)}
-										<div
-											class="progress-bar-fill"
-											style="width: {progressResult.score * 100}%; background-color: {colors.accent};"
-										></div>
 									{/if}
+									<div
+										class="progress-bar-fill"
+										style="width: {isKRLoading(kr.id) ? 0 : getKRScore(kr).score * 100}%; background-color: {colors.accent};"
+									></div>
 								</div>
 								{#if queryErrors.has(kr.id)}
 									<span class="kr-query-error" title={queryErrors.get(kr.id)}>Query error</span>
@@ -1214,12 +1212,15 @@
 		background-color: var(--color-border);
 		border-radius: 3px;
 		overflow: hidden;
+		position: relative;
 	}
 
 	.kr-progress .progress-bar-fill {
 		height: 100%;
-		transition: width 0.3s ease, background-color 0.3s ease;
+		transition: width 0.6s ease, background-color 0.3s ease;
 		border-radius: 3px;
+		position: relative;
+		z-index: 1;
 	}
 
 	.btn-icon {
