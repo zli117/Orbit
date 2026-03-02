@@ -10,7 +10,6 @@ export interface QueryFilters {
 	to?: string; // YYYY-MM-DD
 	completed?: boolean;
 	tag?: string;
-	periodId?: string;
 	level?: 'yearly' | 'monthly';
 	periodType?: 'daily' | 'weekly';
 }
@@ -78,7 +77,7 @@ export interface TodayResult {
 	month: number;
 	day: number;
 	date: string; // YYYY-MM-DD
-	week: number; // ISO week 1-53
+	week: number; // Week 1-53 (respects user's week start day setting)
 }
 
 export interface QueryAPI {

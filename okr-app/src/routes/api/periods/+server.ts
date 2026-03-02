@@ -93,7 +93,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			periodType,
 			year,
 			month: periodType !== 'yearly' ? month : null,
-			week: periodType === 'weekly' || periodType === 'daily' ? week : null,
+			week: periodType === 'weekly' ? week : null,
 			day: periodType === 'daily' ? day : null,
 			createdAt: now,
 			updatedAt: now

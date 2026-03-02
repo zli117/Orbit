@@ -5,7 +5,7 @@ import { users, timePeriods, tasks, taskAttributes, dailyMetricValues, metricsTe
 import type { MetricDefinition } from '$lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { evaluateMetrics, type MetricValues } from '$lib/server/metrics/evaluator';
-import { getTodayInTimezone, getWeekNumber, getWeekYear, getTodayDateInTimezone } from '$lib/utils/week';
+import { getTodayInTimezone, getWeekNumber, getWeekYear, getTodayDateInTimezone, getWeekStartDate, addDays, formatDate } from '$lib/utils/week';
 import type { WeekStartDay } from '$lib/utils/week';
 import momentSource from 'moment/min/moment.min.js?raw';
 
@@ -246,7 +246,7 @@ async function injectQueryAPI(context: QuickJSContext, userId: string) {
 		const filters = filtersHandle ? context.dump(filtersHandle) : {};
 		const promise = context.newPromise();
 
-		fetchDaily(userId, filters as QueryFilters)
+		fetchDaily(userId, filters as QueryFilters, weekStartDay)
 			.then((data) => {
 				const dataHandle = jsonToHandle(context, data);
 				promise.resolve(dataHandle);
@@ -270,7 +270,7 @@ async function injectQueryAPI(context: QuickJSContext, userId: string) {
 		const filters = filtersHandle ? context.dump(filtersHandle) : {};
 		const promise = context.newPromise();
 
-		fetchTasks(userId, filters as QueryFilters)
+		fetchTasks(userId, filters as QueryFilters, weekStartDay)
 			.then((data) => {
 				const dataHandle = jsonToHandle(context, data);
 				promise.resolve(dataHandle);
@@ -704,7 +704,7 @@ async function resolveMetricsForDate(
 	return metrics;
 }
 
-async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyRecord[]> {
+async function fetchDaily(userId: string, filters: QueryFilters, weekStartDay: WeekStartDay): Promise<DailyRecord[]> {
 	const conditions = [
 		eq(timePeriods.userId, userId),
 		eq(timePeriods.periodType, 'daily')
@@ -713,11 +713,20 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 	if (filters.year) {
 		conditions.push(eq(timePeriods.year, filters.year));
 	}
-	if (filters.month) {
-		conditions.push(eq(timePeriods.month, filters.month));
+	if (filters.week && filters.year) {
+		// Convert week number to date range using user's weekStartDay
+		const weekStart = getWeekStartDate(filters.year, filters.week, weekStartDay);
+		const weekEnd = addDays(weekStart, 6);
+		conditions.push(gte(timePeriods.day, formatDate(weekStart)));
+		conditions.push(lte(timePeriods.day, formatDate(weekEnd)));
 	}
-	if (filters.week) {
-		conditions.push(eq(timePeriods.week, filters.week));
+	if (filters.month && filters.year) {
+		// Convert month to date range
+		const monthStart = `${filters.year}-${String(filters.month).padStart(2, '0')}-01`;
+		const lastDay = new Date(Date.UTC(filters.year, filters.month, 0)).getUTCDate();
+		const monthEnd = `${filters.year}-${String(filters.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+		conditions.push(gte(timePeriods.day, monthStart));
+		conditions.push(lte(timePeriods.day, monthEnd));
 	}
 	if (filters.from && filters.to) {
 		conditions.push(gte(timePeriods.day, filters.from));
@@ -769,6 +778,7 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 					return acc;
 				}, {} as Record<string, string>);
 
+				const dayDate = new Date(period.day! + 'T00:00:00Z');
 				return {
 					id: task.id,
 					title: task.title,
@@ -777,8 +787,8 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 					periodType: 'daily' as const,
 					date: period.day!,
 					year: period.year,
-					month: period.month!,
-					week: period.week!,
+					month: dayDate.getUTCMonth() + 1,
+					week: getWeekNumber(dayDate, weekStartDay),
 					attributes,
 					tags: taskTagsList.map(t => t.name),
 					expected_hours: parseFloat(attrs.find(a => a.key === 'expected_hours')?.value || '0'),
@@ -788,11 +798,12 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 			})
 		);
 
+		const periodDate = new Date(period.day! + 'T00:00:00Z');
 		results.push({
 			date: period.day!,
 			year: period.year,
-			month: period.month!,
-			week: period.week!,
+			month: periodDate.getUTCMonth() + 1,
+			week: getWeekNumber(periodDate, weekStartDay),
 			metrics,
 			tasks: taskRecords,
 			completedTasks: taskRecords.filter(t => t.completed).length,
@@ -804,7 +815,7 @@ async function fetchDaily(userId: string, filters: QueryFilters): Promise<DailyR
 	return results.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-async function fetchTasks(userId: string, filters: QueryFilters): Promise<TaskRecord[]> {
+async function fetchTasks(userId: string, filters: QueryFilters, weekStartDay: WeekStartDay): Promise<TaskRecord[]> {
 	// First get the relevant time periods
 	const periodConditions = [eq(timePeriods.userId, userId)];
 
@@ -814,13 +825,43 @@ async function fetchTasks(userId: string, filters: QueryFilters): Promise<TaskRe
 	if (filters.periodType) {
 		periodConditions.push(eq(timePeriods.periodType, filters.periodType));
 	}
-	if (filters.periodId) {
-		periodConditions.push(eq(timePeriods.id, filters.periodId));
-	}
 
-	const periods = await db.query.timePeriods.findMany({
+	let periods = await db.query.timePeriods.findMany({
 		where: and(...periodConditions)
 	});
+
+	// Filter by week: for daily periods use date range, for weekly periods use stored week
+	if (filters.week && filters.year) {
+		const weekStart = getWeekStartDate(filters.year, filters.week, weekStartDay);
+		const weekEnd = addDays(weekStart, 6);
+		const weekStartStr = formatDate(weekStart);
+		const weekEndStr = formatDate(weekEnd);
+		periods = periods.filter(p => {
+			if (p.periodType === 'daily' && p.day) {
+				return p.day >= weekStartStr && p.day <= weekEndStr;
+			}
+			if (p.periodType === 'weekly') {
+				return p.week === filters.week;
+			}
+			return false;
+		});
+	}
+
+	// Filter by month: for daily periods use date range, for weekly periods use stored month
+	if (filters.month && filters.year) {
+		const monthStart = `${filters.year}-${String(filters.month).padStart(2, '0')}-01`;
+		const lastDay = new Date(Date.UTC(filters.year, filters.month, 0)).getUTCDate();
+		const monthEnd = `${filters.year}-${String(filters.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+		periods = periods.filter(p => {
+			if (p.periodType === 'daily' && p.day) {
+				return p.day >= monthStart && p.day <= monthEnd;
+			}
+			if (p.periodType === 'weekly') {
+				return p.month === filters.month;
+			}
+			return false;
+		});
+	}
 
 	const periodIds = periods.map(p => p.id);
 
@@ -862,6 +903,8 @@ async function fetchTasks(userId: string, filters: QueryFilters): Promise<TaskRe
 			// Get period info
 			const period = periods.find(p => p.id === task.timePeriodId);
 
+			// Compute week/month from date for daily periods, use stored values for weekly
+			const taskDate = period?.day ? new Date(period.day + 'T00:00:00Z') : null;
 			return {
 				id: task.id,
 				title: task.title,
@@ -870,8 +913,8 @@ async function fetchTasks(userId: string, filters: QueryFilters): Promise<TaskRe
 				periodType: period?.periodType === 'weekly' ? 'weekly' as const : 'daily' as const,
 				date: period?.day || null,
 				year: period?.year || null,
-				month: period?.month || null,
-				week: period?.week || null,
+				month: taskDate ? taskDate.getUTCMonth() + 1 : (period?.month || null),
+				week: taskDate ? getWeekNumber(taskDate, weekStartDay) : (period?.week || null),
 				attributes: attrs.reduce((acc, attr) => {
 					acc[attr.key] = attr.value;
 					return acc;

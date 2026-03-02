@@ -102,12 +102,11 @@ All three methods accept an optional filters object:
 interface QueryFilters {
   year?: number;       // Filter by year (e.g., 2025)
   month?: number;      // Filter by month (1-12)
-  week?: number;       // Filter by ISO week number (1-53)
+  week?: number;       // Filter by week number (1-53, respects your week start day setting)
   from?: string;       // Start date, inclusive (YYYY-MM-DD)
   to?: string;         // End date, inclusive (YYYY-MM-DD)
   completed?: boolean; // Filter tasks by completion status
   tag?: string;        // Filter tasks by tag name
-  periodId?: string;   // Filter by specific time period ID
   level?: 'yearly' | 'monthly'; // Filter objectives by level
 }
 ```
@@ -123,7 +122,7 @@ Fetch daily records including health metrics, tasks, and computed totals. Return
 **Relevant filters:**
 - `year` — Filter to a specific year
 - `month` — Filter to a specific month (combine with `year`)
-- `week` — Filter to a specific ISO week number
+- `week` — Filter to a specific week number (respects your week start day setting)
 - `from`, `to` — Date range filter (both inclusive, format YYYY-MM-DD)
 
 **Return type: `DailyRecord[]`**
@@ -133,7 +132,7 @@ interface DailyRecord {
   date: string;              // ISO date "YYYY-MM-DD"
   year: number;
   month: number;             // 1-12
-  week: number;              // ISO week 1-53
+  week: number;              // Week number 1-53 (respects your week start day setting)
 
   // Metrics from your metrics template (Settings > Metrics).
   // Keys depend on your configured template and connected plugins.
@@ -196,10 +195,11 @@ Fetch tasks with their attributes and tags. Returns tasks from all time period t
 
 **Relevant filters:**
 - `year` — Filter to tasks in time periods of a specific year
+- `week` (with `year`) — For daily tasks, filters by date range computed from the week number. For weekly initiatives, matches the `week` stored in the record.
+- `month` (with `year`) — For daily tasks, filters by month date range. For weekly initiatives, matches `month` stored in the record.
 - `completed` — `true` for completed only, `false` for incomplete only
 - `tag` — Filter to tasks tagged with this exact tag name (case-sensitive)
 - `periodType` — `'daily'` for daily tasks only, `'weekly'` for weekly initiatives only
-- `periodId` — Filter to tasks in a specific time period
 
 #### TaskRecord
 
@@ -215,7 +215,7 @@ interface TaskRecord {
   date: string | null;   // "YYYY-MM-DD" for daily tasks, null for weekly
   year: number | null;
   month: number | null;
-  week: number | null;
+  week: number | null;   // Week number (respects your week start day setting)
 
   // Flexible attributes as key-value pairs
   attributes: Record<string, string>;

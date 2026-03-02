@@ -43,7 +43,7 @@
 	// svelte-ignore state_referenced_locally
 	let localCode = $state(code);
 	let selectedQueryId = $state<string | null>(null);
-	let editing = $state(false);
+	let editing = $state(!code.trim());
 	let codeEditorOpen = $state(false);
 	let renders = $state<RenderOutput[]>([]);
 	let error = $state('');
@@ -216,11 +216,7 @@
 			{:else if error}
 				<div class="error">{error}</div>
 			{:else if renders.length === 0}
-				{#if !localCode.trim()}
-					<button type="button" class="empty" onclick={startEditing}>Click to add a query</button>
-				{:else}
-					<div class="empty">No output - use render.* functions</div>
-				{/if}
+				<div class="empty">No output - use render.* functions</div>
 			{:else}
 				<div class="renders">
 					{#each renders as render, index}

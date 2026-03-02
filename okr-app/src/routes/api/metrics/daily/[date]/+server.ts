@@ -5,15 +5,6 @@ import { timePeriods, dailyMetrics } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
-// Helper to get week number from date
-function getWeekNumber(date: Date): number {
-	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-	const dayNum = d.getUTCDay() || 7;
-	d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-	return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
-
 // GET /api/metrics/daily/[date] - Get metrics for a specific date
 export const GET: RequestHandler = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -93,7 +84,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 				periodType: 'daily',
 				year: date.getFullYear(),
 				month: date.getMonth() + 1,
-				week: getWeekNumber(date),
+				week: null,
 				day: dateStr,
 				createdAt: now,
 				updatedAt: now
