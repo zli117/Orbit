@@ -108,7 +108,7 @@
 					{
 						...plotData.layout,
 						autosize: true,
-						margin: { t: 40, r: 20, b: 40, l: 50 }
+						margin: { t: plotData.layout?.title?.text ? 60 : 20, r: 20, b: 40, l: 50 }
 					} as Plotly.Layout,
 					{ responsive: true, displayModeBar: false }
 				);

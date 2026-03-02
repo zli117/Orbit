@@ -34,9 +34,9 @@ export interface PlotlyData {
 		[key: string]: unknown;
 	}>;
 	layout?: {
-		title?: string;
-		xaxis?: { title?: string };
-		yaxis?: { title?: string };
+		title?: { text: string };
+		xaxis?: { title?: { text: string } };
+		yaxis?: { title?: { text: string } };
 		barmode?: string;
 		[key: string]: unknown;
 	};
@@ -451,9 +451,9 @@ function injectRenderAPI(context: QuickJSContext, renders: RenderOutput[]) {
 				marker: opts.color ? { color: opts.color } : undefined
 			}],
 			layout: {
-				title: opts.title,
-				xaxis: opts.xLabel ? { title: opts.xLabel } : undefined,
-				yaxis: opts.yLabel ? { title: opts.yLabel } : undefined
+				title: opts.title ? { text: opts.title } : undefined,
+				xaxis: opts.xLabel ? { title: { text: opts.xLabel } } : undefined,
+				yaxis: opts.yLabel ? { title: { text: opts.yLabel } } : undefined
 			}
 		};
 		renders.push({ type: 'plotly', content: plotData });
@@ -481,9 +481,9 @@ function injectRenderAPI(context: QuickJSContext, renders: RenderOutput[]) {
 				marker: opts.color ? { color: opts.color } : undefined
 			}],
 			layout: {
-				title: opts.title,
-				xaxis: opts.xLabel ? { title: opts.xLabel } : undefined,
-				yaxis: opts.yLabel ? { title: opts.yLabel } : undefined
+				title: opts.title ? { text: opts.title } : undefined,
+				xaxis: opts.xLabel ? { title: { text: opts.xLabel } } : undefined,
+				yaxis: opts.yLabel ? { title: { text: opts.yLabel } } : undefined
 			}
 		};
 		renders.push({ type: 'plotly', content: plotData });
@@ -506,7 +506,7 @@ function injectRenderAPI(context: QuickJSContext, renders: RenderOutput[]) {
 				labels: opts.labels
 			}],
 			layout: {
-				title: opts.title
+				title: opts.title ? { text: opts.title } : undefined
 			}
 		};
 		renders.push({ type: 'plotly', content: plotData });
@@ -538,9 +538,9 @@ function injectRenderAPI(context: QuickJSContext, renders: RenderOutput[]) {
 				marker: s.color ? { color: s.color } : undefined
 			})),
 			layout: {
-				title: opts.title,
-				xaxis: opts.xLabel ? { title: opts.xLabel } : undefined,
-				yaxis: opts.yLabel ? { title: opts.yLabel } : undefined
+				title: opts.title ? { text: opts.title } : undefined,
+				xaxis: opts.xLabel ? { title: { text: opts.xLabel } } : undefined,
+				yaxis: opts.yLabel ? { title: { text: opts.yLabel } } : undefined
 			}
 		};
 		renders.push({ type: 'plotly', content: plotData });
