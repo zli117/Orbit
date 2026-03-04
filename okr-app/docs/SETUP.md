@@ -315,25 +315,53 @@ ruok.example.com {
 # }
 ```
 
-### 4. Add DNS records in Cloudflare
+### 4. Set up DNS resolution
 
-Since the server is behind NAT, point the domain to the Pi's **LAN IP**. In the Cloudflare dashboard for your domain:
+The certificate doesn't need the domain to resolve — Caddy obtains it via the Cloudflare API. But your **devices** need to resolve `ruok.example.com` to the Pi's LAN IP to actually reach the server.
+
+**Important:** Cloudflare's DNS servers filter out private IPs (RFC 1918 like `192.168.x.x`, `10.x.x.x`). Adding an A record with a LAN IP in the Cloudflare dashboard won't work — `dig` will return nothing. You need to resolve the domain locally instead.
+
+#### Option A: Local DNS with dnsmasq / Pi-hole (recommended)
+
+Resolve the domain on your local network. Don't add any A record in Cloudflare — the domain only needs to resolve on your LAN.
+
+**With dnsmasq / Pi-hole:**
+
+```bash
+# Single subdomain
+echo "address=/ruok.example.com/192.168.1.50" | sudo tee /etc/dnsmasq.d/ruok.conf
+
+# Or wildcard for all subdomains
+echo "address=/.example.com/192.168.1.50" | sudo tee /etc/dnsmasq.d/ruok.conf
+
+sudo systemctl restart dnsmasq
+```
+
+Then set your router's DHCP DNS server to the Pi's IP so all devices on the network use it.
+
+#### Option B: Tailscale
+
+If you use Tailscale, add an A record in Cloudflare pointing to the Pi's **Tailscale IP** (e.g. `100.x.y.z`). These aren't private IPs, so Cloudflare won't filter them. The app is then accessible from any device on your tailnet.
 
 | Type | Name | Content | Proxy |
 |------|------|---------|-------|
-| A | `ruok` | `192.168.1.50` | DNS only (grey cloud) |
+| A | `ruok` | `100.x.y.z` | DNS only (grey cloud) |
 
-**Important:** Set the proxy toggle to **DNS only** (grey cloud icon). If you enable the orange-cloud proxy, Cloudflare will try to route traffic through its edge network, which won't reach your NAT'd server.
+**Important:** Set the proxy toggle to **DNS only** (grey cloud icon). If you enable the orange-cloud proxy, Cloudflare will try to route traffic through its edge network.
 
-For multiple services, add one A record per subdomain or use a wildcard:
+#### Option C: `/etc/hosts` (quick and dirty)
 
-| Type | Name | Content | Proxy |
-|------|------|---------|-------|
-| A | `*` | `192.168.1.50` | DNS only |
+On each device, add a line to `/etc/hosts` (or the equivalent on your OS):
 
-Replace `192.168.1.50` with your Pi's actual LAN IP. To keep it stable, assign a static IP or a DHCP reservation on your router.
+```
+192.168.1.50  ruok.example.com
+```
 
-> **Note:** These DNS records are public — anyone can look up `ruok.example.com` and see it resolves to `192.168.1.50`. This is harmless since RFC 1918 addresses aren't routable on the internet, but if you prefer not to leak your LAN topology, see the [split DNS alternative](#split-dns-alternative) below.
+Simple but doesn't scale — you have to do it on every device.
+
+---
+
+None of these affect certificate issuance. The DNS-01 challenge works via the Cloudflare API (Caddy creates a `_acme-challenge` TXT record directly), so it doesn't matter how — or whether — the domain's A record resolves.
 
 ### 5. Build and start
 
@@ -352,23 +380,6 @@ Caddy will automatically:
 The first request may take 30–60 seconds while the certificate is issued. Renewals happen automatically in the background (certificates last 90 days, Caddy renews at ~30 days remaining).
 
 Your app is now at `https://ruok.example.com` — green lock, no certificate warnings, no ports forwarded.
-
-### Split DNS alternative
-
-If you don't want your LAN IP in public DNS, you can use **split DNS** instead: leave the A record out of Cloudflare entirely, and resolve the domain locally using your own DNS server.
-
-**With dnsmasq / Pi-hole:**
-
-```bash
-echo "address=/ruok.example.com/192.168.1.50" | sudo tee /etc/dnsmasq.d/ruok.conf
-sudo systemctl restart dnsmasq
-```
-
-**With Tailscale MagicDNS:**
-
-If you use Tailscale, you can point the A record to the Pi's Tailscale IP (e.g. `100.x.y.z`) instead. This makes the app accessible from any device on your tailnet, regardless of physical network.
-
-The DNS-01 challenge still works in all these setups because Caddy talks to Cloudflare's API directly — it doesn't matter how (or whether) the domain resolves locally.
 
 ### Wildcard certificates
 
