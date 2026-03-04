@@ -205,3 +205,212 @@ docker compose up -d --build
 3. Go to Settings to configure your metrics, tags, and integrations
 4. Set yearly objectives at `/objectives`, then break them into monthly goals
 5. Use `/daily` to plan each day
+
+---
+
+## Advanced: Let's Encrypt with Cloudflare DNS Challenge
+
+This section covers how to get a real, publicly trusted TLS certificate for a server that sits behind NAT (e.g. a Raspberry Pi on your home network). Since the server isn't reachable from the internet, the standard HTTP-01 challenge won't work. Instead, we use the **DNS-01 challenge** — Let's Encrypt verifies you own the domain by checking a DNS TXT record, which Caddy creates automatically via the Cloudflare API. No ports need to be forwarded.
+
+### How it works
+
+```
+You ──── home network ──── Pi (192.168.1.50)
+                            ├── Caddy (HTTPS :443)
+                            └── RUOK  (:3000)
+
+Certificate flow (no inbound traffic needed):
+  1. Caddy calls Cloudflare API to create a _acme-challenge TXT record
+  2. Let's Encrypt reads the TXT record from public DNS
+  3. Let's Encrypt issues the certificate to Caddy
+  4. Caddy removes the TXT record
+```
+
+Your server never needs to be reachable from the internet. DNS points `ruok.example.com` to the Pi's LAN IP, so it only resolves for devices on your local network (or via VPN/Tailscale).
+
+### Prerequisites
+
+- A domain on Cloudflare (e.g. `example.com`) — free plan is fine
+- A Cloudflare API token with **Zone:DNS:Edit** permission
+
+#### Creating the Cloudflare API token
+
+1. Go to [Cloudflare Dashboard → My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens)
+2. Click **Create Token**
+3. Use the **Edit zone DNS** template, or create a custom token with:
+   - **Permissions**: Zone → DNS → Edit
+   - **Zone Resources**: Include → Specific zone → `example.com`
+4. Copy the generated token
+
+### 1. Build Caddy with the Cloudflare plugin
+
+The official Caddy image doesn't include DNS provider modules. Create a `Dockerfile` in your Caddy directory:
+
+**`~/caddy/Dockerfile`**:
+
+```dockerfile
+FROM caddy:2-builder AS builder
+RUN xcaddy build --with github.com/caddy-dns/cloudflare
+
+FROM caddy:2
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+```
+
+### 2. Update the Caddy docker-compose.yml
+
+**`~/caddy/docker-compose.yml`**:
+
+```yaml
+services:
+  caddy:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - proxy
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  proxy:
+    external: true
+```
+
+Create a `.env` file in the Caddy directory:
+
+```bash
+CLOUDFLARE_API_TOKEN=your_cloudflare_api_token_here
+```
+
+### 3. Update the Caddyfile
+
+Replace the `local_certs` config with the DNS challenge. Remove the `local_certs` global option entirely:
+
+**`~/caddy/Caddyfile`**:
+
+```caddyfile
+ruok.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    reverse_proxy ruok:3000
+}
+
+# Add more services:
+# photos.example.com {
+#     tls {
+#         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+#     }
+#     reverse_proxy photos:8080
+# }
+```
+
+### 4. Add DNS records in Cloudflare
+
+Since the server is behind NAT, point the domain to the Pi's **LAN IP**. In the Cloudflare dashboard for your domain:
+
+| Type | Name | Content | Proxy |
+|------|------|---------|-------|
+| A | `ruok` | `192.168.1.50` | DNS only (grey cloud) |
+
+**Important:** Set the proxy toggle to **DNS only** (grey cloud icon). If you enable the orange-cloud proxy, Cloudflare will try to route traffic through its edge network, which won't reach your NAT'd server.
+
+For multiple services, add one A record per subdomain or use a wildcard:
+
+| Type | Name | Content | Proxy |
+|------|------|---------|-------|
+| A | `*` | `192.168.1.50` | DNS only |
+
+Replace `192.168.1.50` with your Pi's actual LAN IP. To keep it stable, assign a static IP or a DHCP reservation on your router.
+
+> **Note:** These DNS records are public — anyone can look up `ruok.example.com` and see it resolves to `192.168.1.50`. This is harmless since RFC 1918 addresses aren't routable on the internet, but if you prefer not to leak your LAN topology, see the [split DNS alternative](#split-dns-alternative) below.
+
+### 5. Build and start
+
+```bash
+cd ~/caddy
+docker compose up -d --build
+```
+
+Caddy will automatically:
+1. Call the Cloudflare API to create a `_acme-challenge.ruok.example.com` TXT record
+2. Wait for Let's Encrypt to verify it via public DNS
+3. Receive the signed certificate
+4. Clean up the TXT record
+5. Serve HTTPS with the real certificate
+
+The first request may take 30–60 seconds while the certificate is issued. Renewals happen automatically in the background (certificates last 90 days, Caddy renews at ~30 days remaining).
+
+Your app is now at `https://ruok.example.com` — green lock, no certificate warnings, no ports forwarded.
+
+### Split DNS alternative
+
+If you don't want your LAN IP in public DNS, you can use **split DNS** instead: leave the A record out of Cloudflare entirely, and resolve the domain locally using your own DNS server.
+
+**With dnsmasq / Pi-hole:**
+
+```bash
+echo "address=/ruok.example.com/192.168.1.50" | sudo tee /etc/dnsmasq.d/ruok.conf
+sudo systemctl restart dnsmasq
+```
+
+**With Tailscale MagicDNS:**
+
+If you use Tailscale, you can point the A record to the Pi's Tailscale IP (e.g. `100.x.y.z`) instead. This makes the app accessible from any device on your tailnet, regardless of physical network.
+
+The DNS-01 challenge still works in all these setups because Caddy talks to Cloudflare's API directly — it doesn't matter how (or whether) the domain resolves locally.
+
+### Wildcard certificates
+
+To issue a single wildcard certificate for all subdomains, use a wildcard site block:
+
+```caddyfile
+*.example.com {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+
+    @ruok host ruok.example.com
+    handle @ruok {
+        reverse_proxy ruok:3000
+    }
+
+    # @photos host photos.example.com
+    # handle @photos {
+    #     reverse_proxy photos:8080
+    # }
+}
+```
+
+### Troubleshooting
+
+**Certificate not issuing:**
+```bash
+cd ~/caddy
+docker compose logs caddy
+```
+
+Common issues:
+- Token doesn't have DNS edit permission for the correct zone
+- Token was created for the wrong zone or with account-level scope instead of zone-level
+
+**"Connection refused" from browser:**
+
+The domain resolves but the browser can't connect. Check:
+- Is the DNS record pointing to the correct LAN IP? (`dig ruok.example.com`)
+- Is Caddy running? (`docker compose ps`)
+- Are you on the same network as the Pi?
+
+**Certificate issued but browser still warns:**
+
+Clear your browser's HSTS/certificate cache, or try an incognito window. Old self-signed certificate state can persist.
