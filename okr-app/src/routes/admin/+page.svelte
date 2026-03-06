@@ -50,6 +50,7 @@
 	// Config tab state
 	let configValues = $state<Record<string, string>>({});
 	let savingConfig = $state(false);
+	let setupGuidePlugin = $state<{ name: string; guide: string } | null>(null);
 
 	// Initialize config values from server data
 	$effect.pre(() => {
@@ -372,11 +373,18 @@
 								<p class="text-muted config-desc">{plugin.description}</p>
 							</div>
 						</div>
-						{#if plugin.configured}
-							<span class="badge badge-active">Configured</span>
-						{:else}
-							<span class="badge badge-not-configured">Not Configured</span>
-						{/if}
+						<div class="config-card-actions">
+							{#if plugin.setupGuide}
+								<button type="button" class="btn btn-sm btn-outline" onclick={() => setupGuidePlugin = { name: plugin.name, guide: plugin.setupGuide }}>
+									Setup Guide
+								</button>
+							{/if}
+							{#if plugin.configured}
+								<span class="badge badge-active">Configured</span>
+							{:else}
+								<span class="badge badge-not-configured">Not Configured</span>
+							{/if}
+						</div>
 					</div>
 					{#if plugin.setupInfo?.length}
 						<div class="setup-info">
@@ -570,6 +578,22 @@
 		</div>
 	{/if}
 </main>
+
+{#if setupGuidePlugin}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div class="guide-overlay" role="dialog" aria-modal="true" onkeydown={(e) => { if (e.key === 'Escape') setupGuidePlugin = null; }}>
+		<button class="guide-backdrop" onclick={() => setupGuidePlugin = null}></button>
+		<div class="guide-modal">
+			<div class="guide-header">
+				<h2>{setupGuidePlugin.name} Setup Guide</h2>
+				<button class="btn-icon" onclick={() => setupGuidePlugin = null}>&#x2715;</button>
+			</div>
+			<div class="guide-content">
+				{@html setupGuidePlugin.guide}
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.stats-grid {
@@ -1019,5 +1043,122 @@
 		justify-content: flex-end;
 		padding-top: var(--spacing-md);
 		border-top: 1px solid var(--color-border);
+	}
+
+	.config-card-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		flex-shrink: 0;
+	}
+
+	.btn-outline {
+		background: none;
+		border: 1px solid var(--color-border);
+		color: var(--color-text);
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		font-weight: 500;
+	}
+
+	.btn-outline:hover {
+		background-color: var(--color-bg-hover);
+		border-color: var(--color-text-muted);
+	}
+
+	/* Setup Guide Modal */
+	.guide-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 1000;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.guide-backdrop {
+		position: absolute;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.4);
+		backdrop-filter: blur(2px);
+		border: none;
+		cursor: pointer;
+	}
+
+	.guide-modal {
+		position: relative;
+		background-color: var(--color-surface);
+		border-radius: var(--radius-lg);
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+		width: 95vw;
+		max-width: 640px;
+		max-height: 85vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.guide-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: var(--spacing-md) var(--spacing-lg);
+		border-bottom: 1px solid var(--color-border);
+		flex-shrink: 0;
+	}
+
+	.guide-header h2 {
+		margin: 0;
+		font-size: 1.125rem;
+	}
+
+	.guide-content {
+		padding: var(--spacing-lg);
+		overflow-y: auto;
+		font-size: 0.9rem;
+		line-height: 1.6;
+	}
+
+	.guide-content :global(h3) {
+		margin: 1.5em 0 0.5em;
+		font-size: 1rem;
+		font-weight: 700;
+	}
+
+	.guide-content :global(h3:first-child) {
+		margin-top: 0;
+	}
+
+	.guide-content :global(ol),
+	.guide-content :global(ul) {
+		margin: 0.5em 0;
+		padding-left: 1.5em;
+	}
+
+	.guide-content :global(li) {
+		margin: 0.3em 0;
+	}
+
+	.guide-content :global(li ul) {
+		margin: 0.25em 0;
+	}
+
+	.guide-content :global(code) {
+		background-color: var(--color-bg-hover);
+		padding: 1px 5px;
+		border-radius: var(--radius-sm);
+		font-size: 0.85em;
+		word-break: break-all;
+	}
+
+	.guide-content :global(p) {
+		margin: 0.75em 0;
+	}
+
+	.guide-content :global(a) {
+		color: var(--color-primary);
+	}
+
+	.guide-content :global(a:hover) {
+		text-decoration: underline;
 	}
 </style>

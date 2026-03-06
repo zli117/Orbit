@@ -250,9 +250,6 @@ async function importDailyMetrics(userId: string, pluginId: string, record: Impo
 	if (record.fields.cardioLoad !== undefined) {
 		metricsData.cardioLoad = record.fields.cardioLoad;
 	}
-	if (record.fields.fitbitReadiness !== undefined) {
-		metricsData.fitbitReadiness = record.fields.fitbitReadiness;
-	}
 	if (record.fields.restingHeartRate !== undefined) {
 		metricsData.restingHeartRate = record.fields.restingHeartRate;
 	}

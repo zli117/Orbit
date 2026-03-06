@@ -118,7 +118,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			icon: plugin.icon,
 			configured: await plugin.isConfigured(),
 			adminFields: plugin.getAdminConfigFields(),
-			setupInfo: plugin.getSetupInfo(configMap)
+			setupInfo: plugin.getSetupInfo(configMap),
+			setupGuide: plugin.getSetupGuide?.(configMap) ?? null
 		}))
 	);
 

@@ -416,9 +416,14 @@ The field IDs come from `getAvailableFields()`. For reference, Fitbit provides:
 | `fitbit.wakeUpTime` | Wake time (HH:MM) |
 | `fitbit.bedTime` | Bed time (HH:MM) |
 | `fitbit.steps` | Daily step count |
-| `fitbit.cardioLoad` | Cardio load score |
+| `fitbit.cardioLoad` | Active zone minutes |
 | `fitbit.restingHeartRate` | Resting heart rate (bpm) |
-| `fitbit.fitbitReadiness` | Readiness score (0-100) |
+| `fitbit.hrv` | Heart rate variability — daily RMSSD (ms) |
+| `fitbit.breathingRate` | Breathing rate during sleep (brpm) |
+| `fitbit.spo2` | Blood oxygen saturation average (%) |
+| `fitbit.vo2Max` | VO2 Max / cardio fitness score (mL/kg/min) |
+| `fitbit.skinTemperature` | Nightly skin temperature variation from baseline (°C) |
+| `fitbit.weight` | Body weight |
 
 ---
 

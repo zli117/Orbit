@@ -80,6 +80,9 @@ export interface DataImportPlugin {
 	// Dynamic info items shown in the admin config form (e.g. computed callback URL)
 	getSetupInfo(configValues: Record<string, string>): SetupInfoItem[];
 
+	/** Setup guide HTML shown in admin UI via a modal (optional) */
+	getSetupGuide?(configValues: Record<string, string>): string;
+
 	// Check if plugin has been configured by admin (reads from DB/env)
 	isConfigured(): Promise<boolean>;
 
