@@ -61,7 +61,9 @@ networks:
 }
 
 https://ruok.rpi-01.lan {
-    reverse_proxy ruok:3000
+    reverse_proxy ruok:3000 {
+        flush_interval -1
+    }
 }
 
 # Add more services here:
@@ -69,6 +71,8 @@ https://ruok.rpi-01.lan {
 #     reverse_proxy photos:8080
 # }
 ```
+
+> **Note:** `flush_interval -1` disables response buffering, which is required for Server-Sent Events (real-time sync across devices) to work through Caddy.
 
 Start Caddy:
 
@@ -303,7 +307,9 @@ ruok.example.com {
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }
-    reverse_proxy ruok:3000
+    reverse_proxy ruok:3000 {
+        flush_interval -1
+    }
 }
 
 # Add more services:
@@ -393,7 +399,9 @@ To issue a single wildcard certificate for all subdomains, use a wildcard site b
 
     @ruok host ruok.example.com
     handle @ruok {
-        reverse_proxy ruok:3000
+        reverse_proxy ruok:3000 {
+            flush_interval -1
+        }
     }
 
     # @photos host photos.example.com
