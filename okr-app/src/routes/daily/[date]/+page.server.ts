@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/db/client';
 import { timePeriods, tasks, taskAttributes, taskTags } from '$lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { getWeekNumber, getWeekYear } from '$lib/utils/week';
+import { getWeekNumber, getWeekYear, getTodayInTimezone } from '$lib/utils/week';
 
 export const load: PageServerLoad = async ({ params, locals, fetch, depends }) => {
 	// Register dependencies for invalidation
@@ -20,7 +20,8 @@ export const load: PageServerLoad = async ({ params, locals, fetch, depends }) =
 
 	// Validate date format
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-		throw redirect(302, `/daily/${formatDate(new Date())}`);
+		const timezone = locals.user.timezone || 'UTC';
+		throw redirect(302, `/daily/${getTodayInTimezone(timezone)}`);
 	}
 
 	// Calculate week number and year for this date
@@ -107,9 +108,3 @@ export const load: PageServerLoad = async ({ params, locals, fetch, depends }) =
 	};
 };
 
-function formatDate(date: Date): string {
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const day = String(date.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-}

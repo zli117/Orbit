@@ -1,16 +1,15 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { getTodayInTimezone } from '$lib/utils/week';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		throw redirect(302, '/login');
 	}
 
-	// Redirect to today's date
-	const today = new Date();
-	const year = today.getFullYear();
-	const month = String(today.getMonth() + 1).padStart(2, '0');
-	const day = String(today.getDate()).padStart(2, '0');
+	// Redirect to today's date (respecting user's timezone)
+	const timezone = locals.user.timezone || 'UTC';
+	const today = getTodayInTimezone(timezone);
 
-	throw redirect(302, `/daily/${year}-${month}-${day}`);
+	throw redirect(302, `/daily/${today}`);
 };
