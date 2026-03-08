@@ -8,6 +8,10 @@ import { getConfigValue } from '$lib/server/config';
 
 const FITBIT_API_BASE = 'https://api.fitbit.com';
 
+function escapeHtml(s: string): string {
+	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 export const fitbitPlugin: DataImportPlugin = {
 	id: 'fitbit',
 	name: 'Fitbit',
@@ -47,8 +51,8 @@ export const fitbitPlugin: DataImportPlugin = {
 	},
 
 	getSetupGuide(configValues: Record<string, string>): string {
-		const baseUrl = (configValues['global.base_url'] || 'http://localhost:5173').replace(/\/+$/, '');
-		const callbackUrl = `${baseUrl}/api/plugins/fitbit/callback`;
+		const baseUrl = escapeHtml((configValues['global.base_url'] || 'http://localhost:5173').replace(/\/+$/, ''));
+		const callbackUrl = escapeHtml(`${(configValues['global.base_url'] || 'http://localhost:5173').replace(/\/+$/, '')}/api/plugins/fitbit/callback`);
 
 		return `
 <h3>1. Create a Fitbit developer account</h3>

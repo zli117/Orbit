@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { tick } from 'svelte';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/sanitize';
 	import CodeWithAi from '$lib/components/CodeWithAi.svelte';
 
 	interface RenderOutput {
@@ -148,9 +148,6 @@ render.table({
 		});
 	}
 
-	function renderMarkdown(text: string): string {
-		return marked.parse(text) as string;
-	}
 
 	async function saveQuery() {
 		if (!queryName.trim()) return;

@@ -6,7 +6,11 @@ import { saveUserPluginConfig } from '$lib/server/plugins/manager';
 import { getPendingAuth } from '$lib/server/plugins/oauth-state';
 
 // GET /api/plugins/fitbit/callback - OAuth callback
-export const GET: RequestHandler = async ({ url, cookies }) => {
+export const GET: RequestHandler = async ({ url, cookies, locals }) => {
+	if (!locals.user) {
+		throw redirect(302, '/login');
+	}
+
 	const code = url.searchParams.get('code');
 	const state = url.searchParams.get('state');
 	const error = url.searchParams.get('error');
@@ -31,6 +35,11 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	const pending = getPendingAuth(state);
 	if (!pending || pending.expiresAt < Date.now()) {
 		throw redirect(302, '/settings/plugins?error=expired');
+	}
+
+	// Verify the callback is from the same user who initiated the OAuth flow
+	if (pending.userId !== locals.user.id) {
+		throw redirect(302, '/settings/plugins?error=user_mismatch');
 	}
 
 	// Clean up cookie

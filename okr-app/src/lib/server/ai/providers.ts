@@ -145,10 +145,10 @@ async function sendGeminiMessage(
 	}));
 
 	const response = await fetchWithTimeout(
-		`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.apiKey}`,
+		`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
 		{
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey },
 			body: JSON.stringify({
 				systemInstruction: { parts: [{ text: systemPrompt }] },
 				contents

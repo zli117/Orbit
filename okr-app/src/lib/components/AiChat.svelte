@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/sanitize';
 	import { tick } from 'svelte';
 
 	interface AiMessage {
@@ -106,9 +106,6 @@
 		return blocks;
 	}
 
-	function renderMarkdown(text: string): string {
-		return marked.parse(text) as string;
-	}
 
 	async function scrollToBottom() {
 		await tick();

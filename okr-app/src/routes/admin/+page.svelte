@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import DOMPurify from 'isomorphic-dompurify';
 
 	interface UserData {
 		id: string;
@@ -589,7 +590,7 @@
 				<button class="btn-icon" onclick={() => setupGuidePlugin = null}>&#x2715;</button>
 			</div>
 			<div class="guide-content">
-				{@html setupGuidePlugin.guide}
+				{@html DOMPurify.sanitize(setupGuidePlugin.guide)}
 			</div>
 		</div>
 	</div>

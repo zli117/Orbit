@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/sanitize';
 	import CodeEditorModal from './CodeEditorModal.svelte';
 
 	interface RenderOutput {
@@ -145,9 +145,6 @@
 		executeQuery();
 	}
 
-	function renderMarkdown(text: string): string {
-		return marked.parse(text) as string;
-	}
 
 	$effect(() => {
 		// Re-render Plotly when renders change

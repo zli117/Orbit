@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/sanitize';
 
 	interface Props {
 		queryId?: string | null;
@@ -60,8 +60,8 @@
 		executeQuery();
 	});
 
-	// Convert Markdown to HTML
-	const htmlContent = $derived(result ? marked(result) : '');
+	// Convert Markdown to sanitized HTML
+	const htmlContent = $derived(result ? renderMarkdown(result) : '');
 </script>
 
 {#if loading}

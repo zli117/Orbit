@@ -1,11 +1,11 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/db/client';
-import { users } from '$lib/db/schema';
+import { users, sessions } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyPassword, hashPassword } from '$lib/server/auth';
+import { verifyPassword, hashPassword, createSession } from '$lib/server/auth';
 
-export const POST: RequestHandler = async ({ locals, request }) => {
+export const POST: RequestHandler = async ({ locals, request, cookies }) => {
 	if (!locals.user) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
@@ -39,6 +39,17 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		// Hash and save new password
 		const newHash = await hashPassword(newPassword);
 		await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, locals.user.id));
+
+		// Invalidate all existing sessions and create a fresh one
+		await db.delete(sessions).where(eq(sessions.userId, locals.user.id));
+		const newSessionId = await createSession(locals.user.id);
+		cookies.set('session', newSessionId, {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: process.env.NODE_ENV === 'production',
+			maxAge: 60 * 60 * 24 * 30 // 30 days
+		});
 
 		return json({ success: true });
 	} catch (error) {
