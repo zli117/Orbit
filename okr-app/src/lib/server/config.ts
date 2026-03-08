@@ -19,7 +19,9 @@ const CACHE_TTL_MS = 60_000; // 60 seconds
 const ENV_FALLBACKS: Record<string, () => string | undefined> = {
 	'global.base_url': () => env.PUBLIC_BASE_URL,
 	'plugin.fitbit.client_id': () => env.FITBIT_CLIENT_ID,
-	'plugin.fitbit.client_secret': () => env.FITBIT_CLIENT_SECRET
+	'plugin.fitbit.client_secret': () => env.FITBIT_CLIENT_SECRET,
+	'plugin.oura.client_id': () => env.OURA_CLIENT_ID,
+	'plugin.oura.client_secret': () => env.OURA_CLIENT_SECRET
 };
 
 /**

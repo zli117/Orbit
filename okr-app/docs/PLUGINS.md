@@ -425,6 +425,27 @@ The field IDs come from `getAvailableFields()`. For reference, Fitbit provides:
 | `fitbit.skinTemperature` | Nightly skin temperature variation from baseline (°C) |
 | `fitbit.weight` | Body weight |
 
+Oura Ring provides:
+
+| Source key | Description |
+|-----------|-------------|
+| `oura.readinessScore` | Readiness score (0-100) |
+| `oura.sleepScore` | Sleep score (0-100) |
+| `oura.activityScore` | Activity score (0-100) |
+| `oura.totalSleepDuration` | Total sleep duration (HH:MM) |
+| `oura.sleepEfficiency` | Sleep efficiency (%) |
+| `oura.avgHRV` | Average HRV during sleep (ms) |
+| `oura.avgHeartRate` | Average heart rate during sleep (bpm) |
+| `oura.lowestHeartRate` | Lowest heart rate during sleep (bpm) |
+| `oura.avgBreathingRate` | Average breathing rate during sleep (breaths/min) |
+| `oura.deepSleepDuration` | Deep sleep duration (HH:MM) |
+| `oura.remSleepDuration` | REM sleep duration (HH:MM) |
+| `oura.steps` | Daily step count |
+| `oura.activeCalories` | Active calories burned (kcal) |
+| `oura.totalCalories` | Total calories burned (kcal) |
+| `oura.spo2` | Blood oxygen saturation average (%) |
+| `oura.temperatureDeviation` | Temperature deviation from baseline (°C) |
+
 ---
 
 ## Sync Behavior
