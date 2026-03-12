@@ -955,6 +955,7 @@
 	activeProvider={data.aiConfig?.activeProvider ?? 'anthropic'}
 	providerModels={data.aiConfig?.providerModels ?? {}}
 	context="kr_progress"
+	contextData={{ level: data.level, year: data.year, month: data.month }}
 />
 
 {#if editingObjective}

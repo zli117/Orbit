@@ -110,6 +110,24 @@
 		return data.year === getWeekYear(today) && data.week === getWeekNumber(today);
 	});
 
+	const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+		'July', 'August', 'September', 'October', 'November', 'December'];
+
+	// Compute the month this week belongs to using the same rule as getMonthForWeek:
+	// if the week contains a month's 1st, it belongs to that month; otherwise the month of the start date
+	const weekMonth = $derived(() => {
+		if (data.days.length === 0) return '';
+		for (const d of data.days) {
+			const day = parseInt(d.date.split('-')[2]);
+			if (day === 1) {
+				const month = parseInt(d.date.split('-')[1]);
+				return monthNames[month - 1];
+			}
+		}
+		const month = parseInt(data.days[0].date.split('-')[1]);
+		return monthNames[month - 1];
+	});
+
 	const completionPercent = $derived(
 		data.stats.totalTasks > 0
 			? Math.round((data.stats.completedTasks / data.stats.totalTasks) * 100)
@@ -196,7 +214,7 @@
 </script>
 
 <svelte:head>
-	<title>Week {data.week}, {data.year} - RUOK</title>
+	<title>Week {data.week} {weekMonth()} {data.year} - RUOK</title>
 </svelte:head>
 
 <div class="weekly-page">
@@ -209,7 +227,7 @@
 			</button>
 
 			<div class="week-display">
-				<h1>Week {data.week}, {data.year}</h1>
+				<h1>Week {data.week} <span class="week-month">{weekMonth()} {data.year}</span></h1>
 				{#if !isCurrentWeek()}
 					<button class="btn-link" onclick={goToCurrentWeek}>Go to current week</button>
 				{/if}
@@ -352,6 +370,12 @@
 		font-size: 1.5rem;
 		font-weight: 800;
 		letter-spacing: -0.02em;
+	}
+
+	.week-month {
+		font-weight: 400;
+		opacity: 0.55;
+		font-size: 0.9em;
 	}
 
 	.btn-link {

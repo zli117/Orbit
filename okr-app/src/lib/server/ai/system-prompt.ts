@@ -26,6 +26,7 @@ The user is writing code for a Key Result progress calculation. This code runs a
 - Do NOT use \`render.markdown()\`, \`render.table()\`, or \`render.plot.*()\` — rendered output is not displayed in this context
 - The code should fetch real data to compute a meaningful score
 - Always handle the empty-data case: if no data is found, call \`progress.set(0, 1)\`
+- Pay attention to whether this is a YEARLY or MONTHLY objective (see below) — scope your data queries accordingly
 `,
 	widget: `
 ## Context: Dashboard Widget Code
@@ -90,6 +91,21 @@ export async function buildSystemPrompt(userId: string, context: AiChatContext =
 	const addendum = CONTEXT_ADDENDA[context];
 	if (addendum) {
 		prompt += '\n' + addendum;
+	}
+
+	// Append KR progress context (yearly vs monthly objective)
+	if (context === 'kr_progress' && contextData?.level) {
+		const level = contextData.level as string;
+		const year = contextData.year as number;
+		const month = contextData.month as number | null;
+		if (level === 'monthly' && month) {
+			const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+				'July', 'August', 'September', 'October', 'November', 'December'];
+			const monthName = monthNames[(month as number) - 1] || `Month ${month}`;
+			prompt += `\n## Objective Scope: Monthly — ${monthName} ${year}\n\nThis Key Result belongs to a **monthly** objective for **${monthName} ${year}**. Your query should only fetch data for this specific month. Use \`{ year: ${year}, month: ${month} }\` in your filters, or use date range filters scoped to ${monthName} ${year}. Do NOT query the entire year.\n`;
+		} else {
+			prompt += `\n## Objective Scope: Yearly — ${year}\n\nThis Key Result belongs to a **yearly** objective for **${year}**. Your query should fetch data for the entire year. Use \`{ year: ${year} }\` in your filters.\n`;
+		}
 	}
 
 	// Append dynamic context data (e.g., available metrics for computed expressions)

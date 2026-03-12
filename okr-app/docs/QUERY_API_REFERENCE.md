@@ -10,15 +10,25 @@ Complete reference for writing JavaScript queries in RUOK's sandboxed environmen
    - [q.daily()](#qdailyfilters)
    - [q.tasks()](#qtasksfilters)
    - [q.objectives()](#qobjectivesfilters)
-4. [Helper Functions (`q`)](#helper-functions-q)
+   - [q.today()](#qtoday)
+4. [Week/Month Utilities (`q`)](#weekmonth-utilities-q)
+   - [q.weeksInMonth()](#qweeksinmonthyear-month)
+   - [q.monthForWeek()](#qmonthforweekyear-week)
+   - [q.weekNumber()](#qweeknumberdatestr)
+   - [q.weekStartDate()](#qweekstartdateyear-week)
+   - [q.weekYear()](#qweekyeardatestr)
+   - [q.daysInWeek()](#qdaysinweekyear-week)
+   - [q.totalWeeksInYear()](#qtotalweeksinyearyear)
+   - [q.totalDaysInYear()](#qtotaldaysinyearyear)
+5. [Helper Functions (`q`)](#helper-functions-q)
    - [q.sum()](#qsumitems-field)
    - [q.avg()](#qavgitems-field)
    - [q.count()](#qcountitems)
    - [q.parseTime()](#qparsetimetimestr)
    - [q.formatDuration()](#qformatdurationminutes)
    - [q.formatPercent()](#qformatpercentvalue-total)
-5. [Date/Time Library (`moment`)](#datetime-library-moment)
-6. [Rendering (`render`)](#rendering-render)
+6. [Date/Time Library (`moment`)](#datetime-library-moment)
+7. [Rendering (`render`)](#rendering-render)
    - [render.markdown()](#rendermarkdowntext)
    - [render.table()](#rendertabledata)
    - [render.json()](#renderjsonvalue)
@@ -26,11 +36,11 @@ Complete reference for writing JavaScript queries in RUOK's sandboxed environmen
    - [render.plot.line()](#renderplotlineoptions)
    - [render.plot.pie()](#renderplotpieoptions)
    - [render.plot.multi()](#renderplotmultioptions)
-7. [Progress (`progress`)](#progress-progress)
-8. [Parameters (`params`)](#parameters-params)
-9. [Data Schemas](#data-schemas)
-10. [Complete Examples](#complete-examples)
-11. [Limits & Constraints](#limits--constraints)
+8. [Progress (`progress`)](#progress-progress)
+9. [Parameters (`params`)](#parameters-params)
+10. [Data Schemas](#data-schemas)
+11. [Complete Examples](#complete-examples)
+12. [Limits & Constraints](#limits--constraints)
 
 ---
 
@@ -360,6 +370,151 @@ for (const [month, objs] of Object.entries(byMonth)) {
 }
 ```
 
+### `q.today()`
+
+Get the current date info, aware of your timezone and week start day settings. Returns a synchronous result (no `await` needed).
+
+```typescript
+interface TodayResult {
+  year: number;
+  month: number;   // 1-12
+  day: number;     // 1-31
+  date: string;    // "YYYY-MM-DD"
+  week: number;    // Week number 1-53 (respects your week start day setting)
+}
+```
+
+```javascript
+// Examples
+const { year, month, week } = q.today();
+const days = await q.daily({ year, month });
+const weekTasks = await q.tasks({ year, week });
+```
+
+---
+
+## Week/Month Utilities (`q`)
+
+Functions for mapping between weeks and months. All respect your **week start day** setting (Settings > General). The first week of a month is the week that contains the 1st of that month — consistent with how the first week of a year is defined.
+
+> **Important:** Always prefer `q.*` helpers over Moment.js for week, month, and year calculations. Moment.js methods like `isoWeek()`, `week()`, `weeksInYear()` ignore your week start day setting and may return inconsistent results. Use `q.weekNumber()`, `q.totalWeeksInYear()`, etc. instead.
+
+### `q.weeksInMonth(year, month)`
+
+Get all week numbers that belong to a given month.
+
+```javascript
+// Parameters
+q.weeksInMonth(year: number, month: number): number[]
+
+// Examples
+q.weeksInMonth(2025, 3)   // e.g., [9, 10, 11, 12, 13]
+q.weeksInMonth(2025, 1)   // e.g., [1, 2, 3, 4, 5]
+q.weeksInMonth(2025, 12)  // e.g., [49, 50, 51, 52]
+
+// Get all weekly tasks for March 2025
+const marchWeeks = q.weeksInMonth(2025, 3);
+const marchTasks = await q.tasks({ year: 2025, periodType: 'weekly' });
+const filtered = marchTasks.filter(t => marchWeeks.includes(t.week));
+```
+
+### `q.monthForWeek(year, week)`
+
+Get the month (1-12) that a week belongs to. A week belongs to the month whose 1st it contains. If no month boundary falls in the week, it belongs to the month of its start date.
+
+```javascript
+// Parameters
+q.monthForWeek(year: number, week: number): number
+
+// Examples
+q.monthForWeek(2025, 9)   // 3 (March — week 9 contains March 1st)
+q.monthForWeek(2025, 10)  // 3 (March — entirely within March)
+q.monthForWeek(2025, 1)   // 1 (January)
+```
+
+### `q.weekNumber(dateStr)`
+
+Get the week number for a date string.
+
+```javascript
+// Parameters
+q.weekNumber(dateStr: string): number  // dateStr in "YYYY-MM-DD" format
+
+// Examples
+q.weekNumber('2025-03-15')  // e.g., 11
+q.weekNumber('2025-01-01')  // 1
+```
+
+### `q.weekStartDate(year, week)`
+
+Get the start date (first day) of a week as a "YYYY-MM-DD" string.
+
+```javascript
+// Parameters
+q.weekStartDate(year: number, week: number): string
+
+// Examples
+q.weekStartDate(2025, 11)  // "2025-03-10" (Monday-first) or "2025-03-09" (Sunday-first)
+q.weekStartDate(2025, 1)   // "2024-12-29" (Monday-first, ISO week 1 may start in prior year)
+```
+
+### `q.weekYear(dateStr)`
+
+Get the year a date's week belongs to. For ISO/Monday-first weeks, dates near year boundaries may belong to the adjacent year's week numbering (e.g., Jan 1 might be in week 52 of the prior year).
+
+```javascript
+// Parameters
+q.weekYear(dateStr: string): number
+
+// Examples
+q.weekYear('2025-01-01')  // 2025 (for Monday-first) or 2025 (for Sunday-first)
+q.weekYear('2024-12-30')  // 2025 (Monday-first — this date is in ISO week 1 of 2025)
+```
+
+### `q.daysInWeek(year, week)`
+
+Get all 7 dates in a week as an array of "YYYY-MM-DD" strings, ordered from the first day (Monday or Sunday, depending on your setting) to the last.
+
+```javascript
+// Parameters
+q.daysInWeek(year: number, week: number): string[]
+
+// Examples
+q.daysInWeek(2025, 11)
+// Monday-first: ["2025-03-10", "2025-03-11", ..., "2025-03-16"]
+// Sunday-first: ["2025-03-09", "2025-03-10", ..., "2025-03-15"]
+
+// Fetch daily data for a specific week by date range
+const days = q.daysInWeek(2025, 11);
+const records = await q.daily({ from: days[0], to: days[6] });
+```
+
+### `q.totalWeeksInYear(year)`
+
+Get the total number of weeks in a year (52 or 53, depending on the calendar). Respects your week start day setting.
+
+```javascript
+// Parameters
+q.totalWeeksInYear(year: number): number
+
+// Examples
+q.totalWeeksInYear(2025)  // 52 (Monday-first)
+q.totalWeeksInYear(2020)  // 53 (Monday-first — Jan 1 is Wednesday, Dec 31 is Thursday)
+```
+
+### `q.totalDaysInYear(year)`
+
+Get the total number of days in a year (365 or 366 for leap years).
+
+```javascript
+// Parameters
+q.totalDaysInYear(year: number): number
+
+// Examples
+q.totalDaysInYear(2025)  // 365
+q.totalDaysInYear(2024)  // 366 (leap year)
+```
+
 ---
 
 ## Helper Functions (`q`)
@@ -472,6 +627,8 @@ q.formatPercent(85, 100)  // "85%"
 ## Date/Time Library (`moment`)
 
 The [Moment.js](https://momentjs.com/) library is available as a global `moment` in the sandbox. It provides comprehensive date/time parsing, manipulation, and formatting.
+
+> **Important:** Prefer `q.*` helpers over Moment.js equivalents for week/month/year operations. The `q.*` functions respect your week start day setting, while Moment.js methods like `moment().isoWeek()`, `moment().week()`, `moment().isoWeekYear()`, `moment().weeksInYear()`, and `moment().isLeapYear()` use their own locale logic and may produce different results. Use `q.weekNumber()`, `q.weekYear()`, `q.weeksInMonth()`, `q.totalWeeksInYear()`, `q.totalDaysInYear()`, etc. instead. Moment.js is still useful for date parsing, formatting, arithmetic, and comparison.
 
 ### Quick Examples
 

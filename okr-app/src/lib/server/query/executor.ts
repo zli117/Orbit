@@ -5,7 +5,7 @@ import { users, timePeriods, tasks, taskAttributes, dailyMetricValues, metricsTe
 import type { MetricDefinition } from '$lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { evaluateMetrics, type MetricValues } from '$lib/server/metrics/evaluator';
-import { getTodayInTimezone, getWeekNumber, getWeekYear, getTodayDateInTimezone, getWeekStartDate, addDays, formatDate } from '$lib/utils/week';
+import { getTodayInTimezone, getWeekNumber, getWeekYear, getTodayDateInTimezone, getWeekStartDate, getMonthForWeek, getWeeksInMonth, maxWeeksInYear, addDays, formatDate } from '$lib/utils/week';
 import type { WeekStartDay } from '$lib/utils/week';
 import momentSource from 'moment/min/moment.min.js?raw';
 
@@ -322,6 +322,76 @@ async function injectQueryAPI(context: QuickJSContext, userId: string) {
 	});
 	context.setProp(qHandle, 'today', todayFn);
 	todayFn.dispose();
+
+	// Add week/month utility functions (these need weekStartDay from user settings)
+	const weeksInMonthFn = context.newFunction('weeksInMonth', (yearHandle, monthHandle) => {
+		const year = context.dump(yearHandle) as number;
+		const month = context.dump(monthHandle) as number;
+		return jsonToHandle(context, getWeeksInMonth(year, month, weekStartDay));
+	});
+	context.setProp(qHandle, 'weeksInMonth', weeksInMonthFn);
+	weeksInMonthFn.dispose();
+
+	const monthForWeekFn = context.newFunction('monthForWeek', (yearHandle, weekHandle) => {
+		const year = context.dump(yearHandle) as number;
+		const week = context.dump(weekHandle) as number;
+		return context.newNumber(getMonthForWeek(year, week, weekStartDay));
+	});
+	context.setProp(qHandle, 'monthForWeek', monthForWeekFn);
+	monthForWeekFn.dispose();
+
+	const weekNumberFn = context.newFunction('weekNumber', (dateStrHandle) => {
+		const dateStr = context.dump(dateStrHandle) as string;
+		const date = new Date(dateStr + 'T00:00:00Z');
+		return context.newNumber(getWeekNumber(date, weekStartDay));
+	});
+	context.setProp(qHandle, 'weekNumber', weekNumberFn);
+	weekNumberFn.dispose();
+
+	const weekStartDateFn = context.newFunction('weekStartDate', (yearHandle, weekHandle) => {
+		const year = context.dump(yearHandle) as number;
+		const week = context.dump(weekHandle) as number;
+		const date = getWeekStartDate(year, week, weekStartDay);
+		return context.newString(formatDate(date));
+	});
+	context.setProp(qHandle, 'weekStartDate', weekStartDateFn);
+	weekStartDateFn.dispose();
+
+	const weekYearFn = context.newFunction('weekYear', (dateStrHandle) => {
+		const dateStr = context.dump(dateStrHandle) as string;
+		const date = new Date(dateStr + 'T00:00:00Z');
+		return context.newNumber(getWeekYear(date, weekStartDay));
+	});
+	context.setProp(qHandle, 'weekYear', weekYearFn);
+	weekYearFn.dispose();
+
+	const daysInWeekFn = context.newFunction('daysInWeek', (yearHandle, weekHandle) => {
+		const year = context.dump(yearHandle) as number;
+		const week = context.dump(weekHandle) as number;
+		const start = getWeekStartDate(year, week, weekStartDay);
+		const days: string[] = [];
+		for (let d = 0; d < 7; d++) {
+			days.push(formatDate(addDays(start, d)));
+		}
+		return jsonToHandle(context, days);
+	});
+	context.setProp(qHandle, 'daysInWeek', daysInWeekFn);
+	daysInWeekFn.dispose();
+
+	const totalWeeksInYearFn = context.newFunction('totalWeeksInYear', (yearHandle) => {
+		const year = context.dump(yearHandle) as number;
+		return context.newNumber(maxWeeksInYear(year, weekStartDay));
+	});
+	context.setProp(qHandle, 'totalWeeksInYear', totalWeeksInYearFn);
+	totalWeeksInYearFn.dispose();
+
+	const totalDaysInYearFn = context.newFunction('totalDaysInYear', (yearHandle) => {
+		const year = context.dump(yearHandle) as number;
+		const isLeap = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+		return context.newNumber(isLeap ? 366 : 365);
+	});
+	context.setProp(qHandle, 'totalDaysInYear', totalDaysInYearFn);
+	totalDaysInYearFn.dispose();
 
 	// Add helper functions
 	addHelperFunctions(context, qHandle);
@@ -856,8 +926,8 @@ async function fetchTasks(userId: string, filters: QueryFilters, weekStartDay: W
 			if (p.periodType === 'daily' && p.day) {
 				return p.day >= monthStart && p.day <= monthEnd;
 			}
-			if (p.periodType === 'weekly') {
-				return p.month === filters.month;
+			if (p.periodType === 'weekly' && p.week && p.year) {
+				return getMonthForWeek(p.year, p.week, weekStartDay) === filters.month;
 			}
 			return false;
 		});
@@ -913,7 +983,11 @@ async function fetchTasks(userId: string, filters: QueryFilters, weekStartDay: W
 				periodType: period?.periodType === 'weekly' ? 'weekly' as const : 'daily' as const,
 				date: period?.day || null,
 				year: period?.year || null,
-				month: taskDate ? taskDate.getUTCMonth() + 1 : (period?.month || null),
+				month: taskDate
+					? taskDate.getUTCMonth() + 1
+					: (period?.periodType === 'weekly' && period?.week && period?.year
+						? getMonthForWeek(period.year, period.week, weekStartDay)
+						: (period?.month || null)),
 				week: taskDate ? getWeekNumber(taskDate, weekStartDay) : (period?.week || null),
 				attributes: attrs.reduce((acc, attr) => {
 					acc[attr.key] = attr.value;

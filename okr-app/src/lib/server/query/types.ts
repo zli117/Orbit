@@ -89,6 +89,16 @@ export interface QueryAPI {
 	// Date helpers
 	today(): TodayResult;
 
+	// Week/month mapping (all respect your week start day setting)
+	weeksInMonth(year: number, month: number): number[];
+	monthForWeek(year: number, week: number): number;
+	weekNumber(dateStr: string): number;
+	weekStartDate(year: number, week: number): string;
+	weekYear(dateStr: string): number;
+	daysInWeek(year: number, week: number): string[];
+	totalWeeksInYear(year: number): number;
+	totalDaysInYear(year: number): number;
+
 	// Aggregations
 	sum(items: unknown[], field: string): number;
 	avg(items: unknown[], field: string): number;

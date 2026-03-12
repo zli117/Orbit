@@ -149,6 +149,55 @@ export function getWeekYear(date: Date, weekStartDay: WeekStartDay = 'monday'): 
 }
 
 /**
+ * Get the month (1-12) that a week belongs to.
+ * Rule: the first week of a month is the week containing the 1st of that month.
+ * If a week contains a month's 1st, it belongs to that month.
+ * If no 1st falls in the week, all days are in the same month.
+ */
+export function getMonthForWeek(year: number, week: number, weekStartDay: WeekStartDay = 'monday'): number {
+	const weekStart = getWeekStartDate(year, week, weekStartDay);
+	for (let d = 0; d < 7; d++) {
+		const day = addDays(weekStart, d);
+		if (day.getUTCDate() === 1) {
+			return day.getUTCMonth() + 1;
+		}
+	}
+	// No month boundary — all days are in the same month
+	return weekStart.getUTCMonth() + 1;
+}
+
+/**
+ * Get the maximum number of weeks in a year.
+ */
+export function maxWeeksInYear(year: number, weekStartDay: WeekStartDay): number {
+	if (weekStartDay === 'monday') {
+		// ISO: 53 weeks if Jan 1 or Dec 31 is Thursday
+		const jan1Day = new Date(Date.UTC(year, 0, 1)).getUTCDay();
+		const dec31Day = new Date(Date.UTC(year, 11, 31)).getUTCDay();
+		return (jan1Day === 4 || dec31Day === 4) ? 53 : 52;
+	} else {
+		// US: use the week number of Dec 31
+		return getUSWeekNumber(new Date(Date.UTC(year, 11, 31)));
+	}
+}
+
+/**
+ * Get all week numbers that belong to a given month of a year.
+ * Uses the same rule as getMonthForWeek: a week belongs to the month
+ * whose 1st it contains (or the month of all its days if no 1st is present).
+ */
+export function getWeeksInMonth(year: number, month: number, weekStartDay: WeekStartDay = 'monday'): number[] {
+	const weeks: number[] = [];
+	const max = maxWeeksInYear(year, weekStartDay);
+	for (let w = 1; w <= max; w++) {
+		if (getMonthForWeek(year, w, weekStartDay) === month) {
+			weeks.push(w);
+		}
+	}
+	return weeks;
+}
+
+/**
  * Format date as YYYY-MM-DD (uses UTC to avoid timezone issues)
  */
 export function formatDate(date: Date): string {
