@@ -4,9 +4,9 @@
 
 	let { data } = $props();
 
-	let loading = $state(false);
+	let saving = $state(false);
 	let error = $state('');
-	let success = $state('');
+	let saveStatus = $state<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
 	// Form values - initialized from server data
 	let formValues = $state<Record<string, string | number | boolean | null>>({});
@@ -37,10 +37,21 @@
 	// Check if we have a template
 	const hasTemplate = $derived(data.template !== null && data.metricsDefinition.length > 0);
 
+	// Debounced auto-save
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function scheduleAutoSave() {
+		if (debounceTimer) clearTimeout(debounceTimer);
+		saveStatus = 'idle';
+		debounceTimer = setTimeout(() => {
+			saveFlexibleMetrics();
+		}, 800);
+	}
+
 	async function saveFlexibleMetrics() {
-		loading = true;
+		saving = true;
+		saveStatus = 'saving';
 		error = '';
-		success = '';
 
 		// Collect only input values
 		const inputValues: Record<string, string | number | boolean | null> = {};
@@ -72,12 +83,13 @@
 				}
 			}
 
-			success = 'Metrics saved successfully!';
+			saveStatus = 'saved';
 			await invalidateAll();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to save metrics';
+			saveStatus = 'error';
 		} finally {
-			loading = false;
+			saving = false;
 		}
 	}
 
@@ -99,6 +111,7 @@
 		} else {
 			formValues[metricName] = value || null;
 		}
+		scheduleAutoSave();
 	}
 
 	function formatValue(value: string | number | boolean | null): string {
@@ -134,13 +147,9 @@
 		<div class="error-banner">{error}</div>
 	{/if}
 
-	{#if success}
-		<div class="success-banner">{success}</div>
-	{/if}
-
 	{#if hasTemplate}
 		<!-- Flexible metrics form based on template -->
-		<form class="card metrics-form" onsubmit={(e) => { e.preventDefault(); saveFlexibleMetrics(); }}>
+		<div class="card metrics-form">
 			{#each data.metricsDefinition as metric}
 				<div class="metric-field" class:computed={metric.type === 'computed'} class:external={metric.type === 'external'}>
 					<label class="label" for={`metric-${metric.name}`}>
@@ -205,13 +214,18 @@
 				</div>
 			{/each}
 
-			<div class="form-actions">
-				<button type="button" class="btn btn-secondary" onclick={goBack}>Cancel</button>
-				<button type="submit" class="btn btn-primary" disabled={loading}>
-					{loading ? 'Saving...' : 'Save Metrics'}
-				</button>
+			<div class="form-footer">
+				<span class="save-status" class:visible={saveStatus !== 'idle'}>
+					{#if saveStatus === 'saving'}
+						Saving...
+					{:else if saveStatus === 'saved'}
+						Saved
+					{:else if saveStatus === 'error'}
+						Save failed
+					{/if}
+				</span>
 			</div>
-		</form>
+		</div>
 	{:else}
 		<!-- No template configured -->
 		<div class="card no-template-card">
@@ -297,15 +311,6 @@
 		margin-bottom: var(--spacing-md);
 	}
 
-	.success-banner {
-		background-color: #f0fdf4;
-		border: 1px solid #bbf7d0;
-		color: var(--color-success);
-		padding: var(--spacing-sm) var(--spacing-md);
-		border-radius: var(--radius-md);
-		margin-bottom: var(--spacing-md);
-	}
-
 	.metrics-form {
 		display: flex;
 		flex-direction: column;
@@ -382,11 +387,21 @@
 		cursor: help;
 	}
 
-	.form-actions {
+	.form-footer {
 		display: flex;
 		justify-content: flex-end;
-		gap: var(--spacing-sm);
-		padding-top: var(--spacing-md);
-		border-top: 1px solid var(--color-border);
+		padding-top: var(--spacing-sm);
+		min-height: 1.5em;
+	}
+
+	.save-status {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		opacity: 0;
+		transition: opacity 0.2s ease;
+	}
+
+	.save-status.visible {
+		opacity: 1;
 	}
 </style>
