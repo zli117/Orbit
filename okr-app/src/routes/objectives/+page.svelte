@@ -111,6 +111,12 @@
 
 			liveScores = newScores;
 			queryErrors = newErrors;
+
+			// Recalculate objective and overall scores from live data
+			for (const obj of localObjectives) {
+				obj.averageScore = recalculateObjectiveScore(obj);
+			}
+			localOverallScore = recalculateOverallScore();
 		} catch (err) {
 			console.error('Failed to fetch KR progress:', err);
 		} finally {
