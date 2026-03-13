@@ -41,6 +41,12 @@
 		}, 0) / totalWeight;
 	}
 
+	// Total planned hours across all KRs
+	const totalPlannedHours = $derived(
+		localObjectives.reduce((sum, obj) =>
+			sum + obj.keyResults.reduce((ksum, kr) => ksum + (kr.expectedHours || 0), 0), 0)
+	);
+
 	// Helper to recalculate overall score
 	function recalculateOverallScore(): number {
 		if (localObjectives.length === 0) return 0;
@@ -631,6 +637,7 @@
 	<div class="overall-score card">
 		<CircularProgress value={localOverallScore} size={120} strokeWidth={8} />
 		<span class="score-label">Overall {data.level === 'yearly' ? 'Year' : (data.month ? monthNames[data.month - 1] : 'Month')} Score</span>
+		<span class="hours-label">{totalPlannedHours}h planned</span>
 	</div>
 
 	<div class="objectives-list">
@@ -1103,6 +1110,12 @@
 		font-size: 0.875rem;
 		color: var(--color-text-muted);
 		font-weight: 500;
+	}
+
+	.hours-label {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		opacity: 0.7;
 	}
 
 	.objectives-list {

@@ -199,6 +199,40 @@ function jsonToHandle(context: QuickJSContext, value: unknown): QuickJSHandle {
 }
 
 /**
+ * Coerce a stored string value to its proper type based on the metric's inputType.
+ * The DB stores all values as text, so we need to parse numbers and booleans back.
+ */
+function coerceMetricValue(
+	value: string | number | boolean | null | undefined,
+	inputType?: string
+): string | number | boolean | null {
+	if (value === null || value === undefined) return null;
+
+	// Already the right type (e.g. from a computed expression or direct API)
+	if (typeof value === 'number' || typeof value === 'boolean') return value;
+
+	const str = String(value);
+
+	if (inputType === 'number') {
+		const num = Number(str);
+		return isNaN(num) ? null : num;
+	}
+
+	if (inputType === 'boolean') {
+		return str === 'true';
+	}
+
+	// For 'time' and 'text', keep as string
+	// For unspecified inputType, try numeric coercion (common for external metrics)
+	if (!inputType) {
+		const num = Number(str);
+		return isNaN(num) ? str : num;
+	}
+
+	return str;
+}
+
+/**
  * Evaluate all metrics in a template, returning computed values
  */
 export async function evaluateMetrics(
@@ -212,11 +246,13 @@ export async function evaluateMetrics(
 
 	for (const metric of template) {
 		if (metric.type === 'input') {
-			// Use input value if provided
-			values[metric.name] = inputValues[metric.name] ?? null;
+			// Use input value if provided, coercing to proper type
+			values[metric.name] = coerceMetricValue(inputValues[metric.name] ?? null, metric.inputType);
 		} else if (metric.type === 'external') {
-			// Use external source value
-			values[metric.name] = externalValues[metric.name] ?? null;
+			// Use external source value, coercing to proper type
+			// External metrics don't have inputType, so try numeric coercion by default
+			// (time-format strings like "7:30" won't parse as numbers and stay as strings)
+			values[metric.name] = coerceMetricValue(externalValues[metric.name] ?? null, undefined);
 		} else if (metric.type === 'computed') {
 			// Evaluate expression with current values
 			if (!metric.expression) {
